@@ -1,0 +1,35 @@
+spring:
+  main:
+    web-application-type: servlet
+  application:
+    name: curious-images
+  datasource:
+    url: jdbc:h2:file:~/cimages/${DATABASE_FILE};DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: sa
+  sql.init.mode: always
+  jpa.defer-datasource-initialization: false
+  title: cImages
+  h2:
+    console:
+      enabled: ${H2_CONSOLE_ENABLED}
+  cache:
+    caffeine:
+      spec: "maximumSize=5,expireAfterAccess=600s"
+
+server:
+  port: ${SERVER_PORT}
+
+logging.level:
+  org.jooq.Constants: off
+  com:
+    github:
+      curiousoddman:
+        curious_images:
+          ui:
+            controller:
+              element: debug
+          model:
+            playlist: debug
+

@@ -1,0 +1,255 @@
+buildscript {
+    dependencies {
+        classpath "com.h2database:h2:2.4.240"
+    }
+}
+
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.0.0'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'idea'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+    id 'application'
+    id "org.jooq.jooq-codegen-gradle" version "3.19.28"
+    id "org.flywaydb.flyway" version "11.19.1"
+}
+
+group = 'com.github.curiousoddman'
+description = 'An images organizer app'
+
+def javafxVersion = '25.0.1'
+def flywayAndJooqDatabase ='jdbc:h2:file:~/cimages/fw-jooq;DB_CLOSE_ON_EXIT=FALSE'
+
+idea {
+    module {
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
+run {
+    jvmArgs([
+            "--add-reads", "javafx.graphics=ALL-UNNAMED",
+            "--add-opens", "javafx.controls/com.sun.javafx.charts=ALL-UNNAMED",
+            "--add-opens", "javafx.graphics/com.sun.javafx.iio=ALL-UNNAMED",
+            "--add-opens", "javafx.graphics/com.sun.javafx.iio.common=ALL-UNNAMED",
+            "--add-opens", "javafx.graphics/com.sun.javafx.css=ALL-UNNAMED",
+            "--add-opens", "javafx.base/com.sun.javafx.runtime=ALL-UNNAMED"
+    ])
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+javafx {
+    version = "${javafxVersion}"
+    modules = ['javafx.controls', 'javafx.fxml']
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+application {
+    mainClass = 'com.github.curiousoddman.curious_images.Main'
+}
+
+flyway {
+    url = flywayAndJooqDatabase
+    user = 'sa'
+    password = 'sa'
+    schemas = ['public']
+//    placeholders = [
+//            'keyABC': 'valueXYZ',
+//            'otherplaceholder': 'value123'
+//    ]
+}
+
+jooq {
+    configuration {
+        jdbc {
+            driver = "org.h2.Driver"
+            url = flywayAndJooqDatabase
+            user = 'sa'
+            password = 'sa'
+        }
+        generator {
+            name = "org.jooq.codegen.JavaGenerator"
+            database {
+                inputSchema = "public"
+//                excludes = "flyway_schema_history"
+                //isIncludeExcludePackageRoutines = true
+                schemaVersionProvider = "none"
+                target {
+                    packageName = "com.github.curiousoddman.curious_images.dbobj"
+                    directory = "${layout.projectDirectory}/src/main/java"
+                }
+            }
+        }
+    }
+}
+
+jooqCodegen.dependsOn flywayMigrate
+
+def gitExec = { String... args ->
+    def proc = (["git"] + args.toList()).execute(null, projectDir)
+    proc.waitFor()
+    return proc.text.trim()
+}
+
+def versionFile = file("version.txt")
+
+tasks.register('bumpVersion') {
+    doLast {
+        def current = versionFile.text.trim().toInteger()
+        def next = current + 1
+        versionFile.text = next
+        println "Version bumped: ${current} → ${next}"
+    }
+}
+
+tasks.register('tagVersion') {
+    doLast {
+        def v = versionFile.text.trim()
+        gitExec("tag", "-a", "v${v}", "-m", "Release v${v}")
+        println "Tagged: v${v}"
+    }
+}
+
+tagVersion.mustRunAfter bumpVersion
+build.mustRunAfter tagVersion
+
+springBoot {
+    buildInfo {
+        properties {
+            version = versionFile.text.trim()
+            additional = [
+                    'commit.hash' : gitExec("rev-parse", "--short", "HEAD"),
+                    'commit.date' : gitExec("log", "-1", "--format=%cs"),
+            ]
+        }
+    }
+}
+
+dependencies {
+    runtimeOnly "org.jooq:jooq-codegen"
+    runtimeOnly 'com.h2database:h2'
+
+    implementation 'org.springframework.boot:spring-boot-h2console'
+    implementation 'org.springframework.boot:spring-boot-starter-flyway'
+    implementation 'org.springframework.boot:spring-boot-starter-jooq'
+//    implementation 'org.springframework.boot:spring-boot-starter-web'
+//    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+//    implementation 'org.springframework.boot:spring-boot-starter-cache'
+//    implementation 'com.github.ben-manes.caffeine:caffeine'
+//    implementation 'org.jsoup:jsoup:1.22.1'
+//    implementation 'com.squareup.okhttp3:okhttp:5.3.2'
+
+    implementation "org.openjfx:javafx-controls:${javafxVersion}"
+    implementation "org.openjfx:javafx-fxml:${javafxVersion}"
+    implementation "org.openjfx:javafx-media:${javafxVersion}"
+
+    compileOnly 'org.projectlombok:lombok'
+    testCompileOnly 'org.projectlombok:lombok'
+
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+    annotationProcessor 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-flyway-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-jooq-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging.showStandardStreams = true
+    jvmArgs([
+            "--add-reads", "javafx.graphics=ALL-UNNAMED",
+            "--add-opens", "javafx.controls/com.sun.javafx.charts=ALL-UNNAMED",
+            "--add-opens", "javafx.graphics/com.sun.javafx.iio=ALL-UNNAMED",
+            "--add-opens", "javafx.graphics/com.sun.javafx.iio.common=ALL-UNNAMED",
+            "--add-opens", "javafx.graphics/com.sun.javafx.css=ALL-UNNAMED",
+            "--add-opens", "javafx.base/com.sun.javafx.runtime=ALL-UNNAMED"
+    ])
+}
+
+def deployDir = "C:\\cImages"
+def desktopDir = System.getProperty("user.home") + "\\Desktop"
+def jarName = "cImages.jar"
+def javaHome = System.getProperty("java.home")
+def javawPath = "${javaHome}\\bin\\java.exe"
+
+def tokens = [
+        deployDir : deployDir,
+        jarName   : jarName,
+        desktopDir: desktopDir,
+        javawPath : javawPath
+]
+
+tasks.register('deploy') {
+    dependsOn(bootJar, bumpVersion, tagVersion, build)
+
+    description = "Builds prod JAR and deploys to `$deployDir`"
+
+    doLast {
+        // Create deploy dir
+        mkdir deployDir
+
+        // Copy JAR
+        def jarFile = bootJar.archiveFile.get().asFile
+        copy {
+            from jarFile
+            into deployDir
+            rename { jarName }
+        }
+
+        copy {
+            from "deploy/launch-app.bat"
+            into deployDir
+            expand(tokens)
+        }
+
+        def vbs = new File("${deployDir}\\create-shortcut.vbs")
+        copy {
+            from "deploy/create-shortcut.vbs"
+            into deployDir
+            expand(tokens)
+        }
+
+        copy {
+            from "src/main/resources/icons/cImages.ico"
+            into deployDir
+        }
+
+        println "✅ JAR deployed to: ${deployDir}\\${jarName}"
+        println "✅ Desktop shortcut created: ${desktopDir}\\cImages.lnk"
+
+        println "VBS path: ${vbs.absolutePath}"
+        println "VBS content:\n${vbs.text}"
+        println "Desktop dir: ${desktopDir}"
+
+        def proc = ["cscript", "//Nologo", vbs.absolutePath].execute()
+        def stdout = proc.inputStream.text
+        def stderr = proc.errorStream.text
+        proc.waitFor()
+
+        println "Exit code: ${proc.exitValue()}"
+        if (stdout) println "stdout: ${stdout}"
+        if (stderr) println "stderr: ${stderr}"
+    }
+}

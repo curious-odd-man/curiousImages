@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
+<?import javafx.scene.shape.CubicCurveTo?>
+<?import javafx.scene.shape.MoveTo?>
+<?import javafx.scene.shape.Path?>
+
+<AnchorPane fx:id="rootPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.app.preloader.PreloaderController">
+    <VBox alignment="CENTER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" spacing="20" AnchorPane.bottomAnchor="120.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+
+        <Label fx:id="loadingText" style="-fx-font-size: 18px;" text="cImages Loading..." />
+        <Circle fx:id="loaderCircle" fill="TRANSPARENT" radius="40" stroke="DODGERBLUE" strokeWidth="5" />
+      <padding>
+         <Insets bottom="50.0" left="50.0" right="50.0" top="50.0" />
+      </padding>
+    </VBox>
+
+    <!-- Wave 1 -->
+    <Path fx:id="wave1" fill="#00c6ff55" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+        <elements>
+            <MoveTo x="0" y="200.0" />
+            <CubicCurveTo fx:id="wave1Curve" controlX1="200" controlX2="600" controlY1="150.0" controlY2="250.0" x="800" y="200.0" />
+        </elements>
+    </Path>
+
+    <!-- Wave 2 -->
+    <Path fx:id="wave2" fill="#0072ff55" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+        <elements>
+            <MoveTo x="0" y="210.0" />
+            <CubicCurveTo fx:id="wave2Curve" controlX1="200" controlX2="600" controlY1="120.0" controlY2="400" x="800" y="210.0" />
+        </elements>
+    </Path>
+
+    <!-- Wave 3 -->
+    <Path fx:id="wave3" fill="#00f2fe55" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+        <elements>
+            <MoveTo x="0" y="220.0" />
+            <CubicCurveTo fx:id="wave3Curve" controlX1="200" controlX2="600" controlY1="250.0" controlY2="250.0" x="800" y="220.0" />
+        </elements>
+    </Path>
+
+</AnchorPane>
