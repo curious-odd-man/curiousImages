@@ -5,14 +5,23 @@ package com.github.curiousoddman.curious_images.dbobj;
 
 
 import com.github.curiousoddman.curious_images.dbobj.tables.FlywaySchemaHistory;
+import com.github.curiousoddman.curious_images.dbobj.tables.Folder;
+import com.github.curiousoddman.curious_images.dbobj.tables.ImportRoot;
 import com.github.curiousoddman.curious_images.dbobj.tables.PendingAction;
+import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
+import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail;
 import com.github.curiousoddman.curious_images.dbobj.tables.UserPreferences;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FlywaySchemaHistoryRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.FolderRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PendingActionRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.UserPreferencesRecord;
 
 import javax.annotation.processing.Generated;
 
+import org.jooq.ForeignKey;
 import org.jooq.TableField;
 import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
@@ -39,6 +48,22 @@ public class Keys {
     // -------------------------------------------------------------------------
 
     public static final UniqueKey<FlywaySchemaHistoryRecord> FLYWAY_SCHEMA_HISTORY_PK = Internal.createUniqueKey(FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY, DSL.name("flyway_schema_history_pk"), new TableField[] { FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY.INSTALLED_RANK }, true);
+    public static final UniqueKey<FolderRecord> CONSTRAINT_7B = Internal.createUniqueKey(Folder.FOLDER, DSL.name("CONSTRAINT_7B"), new TableField[] { Folder.FOLDER.ID }, true);
+    public static final UniqueKey<FolderRecord> CONSTRAINT_7BF01 = Internal.createUniqueKey(Folder.FOLDER, DSL.name("CONSTRAINT_7BF01"), new TableField[] { Folder.FOLDER.IMPORT_ROOT_ID, Folder.FOLDER.RELATIVE_PATH }, true);
+    public static final UniqueKey<ImportRootRecord> CONSTRAINT_D = Internal.createUniqueKey(ImportRoot.IMPORT_ROOT, DSL.name("CONSTRAINT_D"), new TableField[] { ImportRoot.IMPORT_ROOT.ID }, true);
+    public static final UniqueKey<ImportRootRecord> CONSTRAINT_D9 = Internal.createUniqueKey(ImportRoot.IMPORT_ROOT, DSL.name("CONSTRAINT_D9"), new TableField[] { ImportRoot.IMPORT_ROOT.PATH }, true);
     public static final UniqueKey<PendingActionRecord> CONSTRAINT_7 = Internal.createUniqueKey(PendingAction.PENDING_ACTION, DSL.name("CONSTRAINT_7"), new TableField[] { PendingAction.PENDING_ACTION.ID }, true);
+    public static final UniqueKey<PhotoRecord> CONSTRAINT_4 = Internal.createUniqueKey(Photo.PHOTO, DSL.name("CONSTRAINT_4"), new TableField[] { Photo.PHOTO.ID }, true);
+    public static final UniqueKey<PhotoRecord> CONSTRAINT_489 = Internal.createUniqueKey(Photo.PHOTO, DSL.name("CONSTRAINT_489"), new TableField[] { Photo.PHOTO.ABSOLUTE_PATH }, true);
+    public static final UniqueKey<ThumbnailRecord> CONSTRAINT_F = Internal.createUniqueKey(Thumbnail.THUMBNAIL, DSL.name("CONSTRAINT_F"), new TableField[] { Thumbnail.THUMBNAIL.PHOTO_ID }, true);
     public static final UniqueKey<UserPreferencesRecord> CONSTRAINT_2 = Internal.createUniqueKey(UserPreferences.USER_PREFERENCES, DSL.name("CONSTRAINT_2"), new TableField[] { UserPreferences.USER_PREFERENCES.PREF_KEY }, true);
+
+    // -------------------------------------------------------------------------
+    // FOREIGN KEY definitions
+    // -------------------------------------------------------------------------
+
+    public static final ForeignKey<FolderRecord, ImportRootRecord> CONSTRAINT_7BF = Internal.createForeignKey(Folder.FOLDER, DSL.name("CONSTRAINT_7BF"), new TableField[] { Folder.FOLDER.IMPORT_ROOT_ID }, Keys.CONSTRAINT_D, new TableField[] { ImportRoot.IMPORT_ROOT.ID }, true);
+    public static final ForeignKey<FolderRecord, FolderRecord> CONSTRAINT_7BF0 = Internal.createForeignKey(Folder.FOLDER, DSL.name("CONSTRAINT_7BF0"), new TableField[] { Folder.FOLDER.PARENT_FOLDER_ID }, Keys.CONSTRAINT_7B, new TableField[] { Folder.FOLDER.ID }, true);
+    public static final ForeignKey<PhotoRecord, FolderRecord> CONSTRAINT_48 = Internal.createForeignKey(Photo.PHOTO, DSL.name("CONSTRAINT_48"), new TableField[] { Photo.PHOTO.FOLDER_ID }, Keys.CONSTRAINT_7B, new TableField[] { Folder.FOLDER.ID }, true);
+    public static final ForeignKey<ThumbnailRecord, PhotoRecord> CONSTRAINT_F5 = Internal.createForeignKey(Thumbnail.THUMBNAIL, DSL.name("CONSTRAINT_F5"), new TableField[] { Thumbnail.THUMBNAIL.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
 }

@@ -5,6 +5,7 @@ package com.github.curiousoddman.curious_images.dbobj;
 
 
 import com.github.curiousoddman.curious_images.dbobj.tables.FlywaySchemaHistory;
+import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
 
 import javax.annotation.processing.Generated;
 
@@ -33,4 +34,6 @@ public class Indexes {
     // -------------------------------------------------------------------------
 
     public static final Index FLYWAY_SCHEMA_HISTORY_S_IDX = Internal.createIndex(DSL.name("flyway_schema_history_s_idx"), FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY, new OrderField[] { FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY.SUCCESS }, false);
+    public static final Index IDX_PHOTO_CAPTURE_DATE = Internal.createIndex(DSL.name("IDX_PHOTO_CAPTURE_DATE"), Photo.PHOTO, new OrderField[] { Photo.PHOTO.CAPTURE_DATE }, false);
+    public static final Index IDX_PHOTO_FOLDER = Internal.createIndex(DSL.name("IDX_PHOTO_FOLDER"), Photo.PHOTO, new OrderField[] { Photo.PHOTO.FOLDER_ID }, false);
 }

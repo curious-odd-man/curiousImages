@@ -5,7 +5,11 @@ package com.github.curiousoddman.curious_images.dbobj;
 
 
 import com.github.curiousoddman.curious_images.dbobj.tables.FlywaySchemaHistory;
+import com.github.curiousoddman.curious_images.dbobj.tables.Folder;
+import com.github.curiousoddman.curious_images.dbobj.tables.ImportRoot;
 import com.github.curiousoddman.curious_images.dbobj.tables.PendingAction;
+import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
+import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail;
 import com.github.curiousoddman.curious_images.dbobj.tables.UserPreferences;
 
 import java.util.Arrays;
@@ -45,9 +49,29 @@ public class Public extends SchemaImpl {
     public final FlywaySchemaHistory FLYWAY_SCHEMA_HISTORY = FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY;
 
     /**
+     * The table <code>public.FOLDER</code>.
+     */
+    public final Folder FOLDER = Folder.FOLDER;
+
+    /**
+     * The table <code>public.IMPORT_ROOT</code>.
+     */
+    public final ImportRoot IMPORT_ROOT = ImportRoot.IMPORT_ROOT;
+
+    /**
      * The table <code>public.PENDING_ACTION</code>.
      */
     public final PendingAction PENDING_ACTION = PendingAction.PENDING_ACTION;
+
+    /**
+     * The table <code>public.PHOTO</code>.
+     */
+    public final Photo PHOTO = Photo.PHOTO;
+
+    /**
+     * The table <code>public.THUMBNAIL</code>.
+     */
+    public final Thumbnail THUMBNAIL = Thumbnail.THUMBNAIL;
 
     /**
      * The table <code>public.USER_PREFERENCES</code>.
@@ -71,7 +95,11 @@ public class Public extends SchemaImpl {
     public final List<Table<?>> getTables() {
         return Arrays.asList(
             FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY,
+            Folder.FOLDER,
+            ImportRoot.IMPORT_ROOT,
             PendingAction.PENDING_ACTION,
+            Photo.PHOTO,
+            Thumbnail.THUMBNAIL,
             UserPreferences.USER_PREFERENCES
         );
     }

@@ -5,7 +5,11 @@ package com.github.curiousoddman.curious_images.dbobj;
 
 
 import com.github.curiousoddman.curious_images.dbobj.tables.FlywaySchemaHistory;
+import com.github.curiousoddman.curious_images.dbobj.tables.Folder;
+import com.github.curiousoddman.curious_images.dbobj.tables.ImportRoot;
 import com.github.curiousoddman.curious_images.dbobj.tables.PendingAction;
+import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
+import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail;
 import com.github.curiousoddman.curious_images.dbobj.tables.UserPreferences;
 
 import javax.annotation.processing.Generated;
@@ -31,9 +35,29 @@ public class Tables {
     public static final FlywaySchemaHistory FLYWAY_SCHEMA_HISTORY = FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY;
 
     /**
+     * The table <code>public.FOLDER</code>.
+     */
+    public static final Folder FOLDER = Folder.FOLDER;
+
+    /**
+     * The table <code>public.IMPORT_ROOT</code>.
+     */
+    public static final ImportRoot IMPORT_ROOT = ImportRoot.IMPORT_ROOT;
+
+    /**
      * The table <code>public.PENDING_ACTION</code>.
      */
     public static final PendingAction PENDING_ACTION = PendingAction.PENDING_ACTION;
+
+    /**
+     * The table <code>public.PHOTO</code>.
+     */
+    public static final Photo PHOTO = Photo.PHOTO;
+
+    /**
+     * The table <code>public.THUMBNAIL</code>.
+     */
+    public static final Thumbnail THUMBNAIL = Thumbnail.THUMBNAIL;
 
     /**
      * The table <code>public.USER_PREFERENCES</code>.

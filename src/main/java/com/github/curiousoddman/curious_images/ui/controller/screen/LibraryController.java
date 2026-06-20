@@ -2,9 +2,9 @@ package com.github.curiousoddman.curious_images.ui.controller.screen;
 
 import com.github.curiousoddman.curious_images.config.FxmlLoader;
 import com.github.curiousoddman.curious_images.config.FxmlView;
-import com.github.curiousoddman.curious_images.domain.DataAccess;
 import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferencesService;
 import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
+import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import javafx.beans.InvalidationListener;
@@ -13,11 +13,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.canvas.Canvas;
 import javafx.scene.control.*;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import lombok.RequiredArgsConstructor;
@@ -29,10 +25,11 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.net.URL;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import static com.github.curiousoddman.curious_images.domain.tags.FilesScanningService.LIBRARY_SCAN;
+import static com.github.curiousoddman.curious_images.domain.imports.ImportService.IMPORT_SCAN;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
 @Lazy
@@ -42,46 +39,18 @@ import static com.sun.javafx.util.Utils.runOnFxThread;
 public class LibraryController implements Initializable {
     private final ApplicationEventPublisher eventPublisher;
     private final FxmlLoader fxmlLoader;
-    private final DataAccess dataAccess;
-
     @FXML
-    public Button buttonPlayPause;
-    @FXML
-    public Slider volumeControl;
-    @FXML
-    public ImageView currentTrackAlbumImage;
-    @FXML
-    public Label currentTrackName;
-    @FXML
-    public Label currentTrackAlbum;
-    @FXML
-    public Label currentTrackArtist;
-    @FXML
-    public Canvas currentTrackProgress;
-    @FXML
-    public Label timeSinceStart;
-    @FXML
-    public TextField searchField;
-    @FXML
-    public Label timeRemaining;
-    @FXML
-    public VBox artistList;
-    @FXML
-    public VBox artistAlbumsView;
-    @FXML
-    public Label artistTitle;
-    @FXML
-    public TabPane tabPane;
-    @FXML
-    public Tab albumsTab;
-    @FXML
-    public Tab historyTab;
-    @FXML
-    public Tab currentLyricsTab;
-    @FXML
-    public Tab editTagsTab;
-    public StackPane canvasPane;
     public SplitPane librarySplitPane;
+
+    // Import status bar (§11) — the only new UI in this phase.
+    @FXML
+    public Label importProgressLabel;
+    @FXML
+    public Label importCurrentFileLabel;
+    @FXML
+    public Label importElapsedLabel;
+    @FXML
+    public Button importCancelButton;
 
     private final UserPreferencesService userPreferencesService;
 
@@ -117,23 +86,27 @@ public class LibraryController implements Initializable {
 
     @EventListener
     public void onBackgroundProcessEvent(BackgroundProcessEvent event) {
+        if (!event.getProcessName().equals(IMPORT_SCAN)) {
+            return;
+        }
         runOnFxThread(() -> {
-            currentTrackName.setText(event.getProcessName());
-            currentTrackAlbum.setText(event.getDescription());
-            currentTrackName.setText("");
-            timeSinceStart.setText(String.valueOf(event.getProgress()));
-            timeRemaining.setText('-' + String.valueOf(event.getMaxProgress() - event.getProgress()));
-
-            if (event.getProcessName().equals(LIBRARY_SCAN)
-                    && event.getEventType().isTerminal()) {
-                onLibraryDataUpdated();
-            }
+            importProgressLabel.setText(event.getMaxProgress() > 0
+                    ? event.getProgress() + " / " + event.getMaxProgress()
+                    : event.getDescription());
+            importCurrentFileLabel.setText(event.getCurrentItem() == null ? "" : event.getCurrentItem());
+            long elapsedMs = System.currentTimeMillis() - event.getTimestamp();
+            importElapsedLabel.setText(Duration.ofMillis(elapsedMs).toString());
+            importCancelButton.setVisible(!event.getEventType().isTerminal());
         });
+    }
+
+    @FXML
+    public void onCancelImport(ActionEvent actionEvent) {
+        eventPublisher.publishEvent(new InterruptBackgroundProcessEvent(this));
     }
 
     @SneakyThrows
     private void onLibraryDataUpdated() {
-        artistList.getChildren().clear();
         log.info("Update UI from library in separate thread");
         Thread t = new Thread(() -> {
 
@@ -149,7 +122,7 @@ public class LibraryController implements Initializable {
         stage.setScene(new Scene(root));
         stage.setTitle("Rescan library");
         stage.initModality(Modality.APPLICATION_MODAL);
-        stage.initOwner(buttonPlayPause.getScene().getWindow());
+        stage.initOwner(importCancelButton.getScene().getWindow());
         stage.showAndWait();
     }
 }

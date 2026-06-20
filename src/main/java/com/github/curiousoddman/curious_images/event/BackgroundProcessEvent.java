@@ -15,8 +15,9 @@ public class BackgroundProcessEvent extends ApplicationEvent {
     private final int maxProgress;
     private final Exception error;
     private final BackgroundProcessEventType eventType;
+    private final String currentItem;   // absolute path of the file currently being processed; nullable
 
-    public BackgroundProcessEvent(Object source, String processName, String description, int progress, int maxProgress, Exception error, BackgroundProcessEventType eventType) {
+    public BackgroundProcessEvent(Object source, String processName, String description, int progress, int maxProgress, Exception error, BackgroundProcessEventType eventType, String currentItem) {
         super(source);
         this.source = source;
         this.processName = processName;
@@ -25,5 +26,6 @@ public class BackgroundProcessEvent extends ApplicationEvent {
         this.maxProgress = maxProgress;
         this.error = error;
         this.eventType = eventType;
+        this.currentItem = currentItem;
     }
 }

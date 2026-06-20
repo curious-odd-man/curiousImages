@@ -18,6 +18,11 @@ spring:
     caffeine:
       spec: "maximumSize=5,expireAfterAccess=600s"
 
+app:
+  thumbnail-cache:
+    dir: ~/cimages/thumb-cache
+
+
 server:
   port: ${SERVER_PORT}
 
