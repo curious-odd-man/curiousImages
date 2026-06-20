@@ -6,6 +6,7 @@ import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static com.github.curiousoddman.curious_images.dbobj.Tables.IMPORT_ROOT;
 
@@ -43,5 +44,12 @@ public class ImportRootRepository {
                 .set(IMPORT_ROOT.LAST_SCANNED_AT, now)
                 .where(IMPORT_ROOT.ID.eq(importRootId))
                 .execute();
+    }
+
+    /** All import roots, ordered by path — the top level of the library tree. */
+    public List<ImportRootRecord> findAll() {
+        return dsl.selectFrom(IMPORT_ROOT)
+                .orderBy(IMPORT_ROOT.PATH)
+                .fetch();
     }
 }

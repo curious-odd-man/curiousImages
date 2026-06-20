@@ -8,6 +8,7 @@ import org.jooq.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static com.github.curiousoddman.curious_images.dbobj.Tables.PHOTO;
@@ -31,6 +32,13 @@ public class PhotoRepository {
                 dsl.selectFrom(PHOTO)
                         .where(PHOTO.ABSOLUTE_PATH.eq(absolutePath))
                         .fetchOne());
+    }
+
+    public List<PhotoRecord> findByFolderId(long folderId) {
+        return dsl.selectFrom(PHOTO)
+                .where(PHOTO.FOLDER_ID.eq(folderId))
+                .orderBy(PHOTO.FILENAME)
+                .fetch();
     }
 
     public long insert(long folderId, String absolutePath, String filename, String extension,

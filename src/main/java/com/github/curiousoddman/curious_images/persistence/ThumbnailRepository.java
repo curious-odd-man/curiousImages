@@ -7,7 +7,10 @@ import org.jooq.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.github.curiousoddman.curious_images.dbobj.Tables.THUMBNAIL;
 
@@ -42,5 +45,20 @@ public class ThumbnailRepository {
                 dsl.selectFrom(THUMBNAIL)
                         .where(THUMBNAIL.PHOTO_ID.eq(photoId))
                         .fetchOne());
+    }
+
+    /**
+     * Batch lookup for a page/folder of photos — avoids one query per photo when populating the
+     * grid. Photos with no thumbnail row simply have no entry in the returned map.
+     */
+    public Map<Long, ThumbnailRecord> findByPhotoIds(Collection<Long> photoIds) {
+        if (photoIds.isEmpty()) {
+            return Map.of();
+        }
+        return dsl.selectFrom(THUMBNAIL)
+                .where(THUMBNAIL.PHOTO_ID.in(photoIds))
+                .fetch()
+                .stream()
+                .collect(Collectors.toMap(ThumbnailRecord::getPhotoId, r -> r));
     }
 }

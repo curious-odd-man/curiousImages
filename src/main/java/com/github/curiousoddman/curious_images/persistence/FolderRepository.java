@@ -5,6 +5,9 @@ import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+import java.util.Optional;
+
 import static com.github.curiousoddman.curious_images.dbobj.Tables.FOLDER;
 
 /**
@@ -37,5 +40,30 @@ public class FolderRepository {
                 .returning(FOLDER.ID)
                 .fetchOne()
                 .getId();
+    }
+
+    /**
+     * The synthetic "root" folder row for an import root ({@code relative_path = ""},
+     * {@code parent_folder_id IS NULL}). This is the folder whose photos should be shown when the
+     * import-root node itself is selected in the library tree, and the parent that the import
+     * root's top-level folders hang off of.
+     */
+    public Optional<FolderRecord> findRootFolder(long importRootId) {
+        return Optional.ofNullable(
+                dsl.selectFrom(FOLDER)
+                        .where(FOLDER.IMPORT_ROOT_ID.eq(importRootId))
+                        .and(FOLDER.PARENT_FOLDER_ID.isNull())
+                        .fetchOne());
+    }
+
+    /**
+     * Direct child folders of {@code parentFolderId}, ordered by name — used to build one level of
+     * the library tree at a time.
+     */
+    public List<FolderRecord> findChildren(long parentFolderId) {
+        return dsl.selectFrom(FOLDER)
+                .where(FOLDER.PARENT_FOLDER_ID.eq(parentFolderId))
+                .orderBy(FOLDER.NAME)
+                .fetch();
     }
 }
