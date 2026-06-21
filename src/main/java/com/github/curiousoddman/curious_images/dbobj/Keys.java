@@ -4,17 +4,25 @@
 package com.github.curiousoddman.curious_images.dbobj;
 
 
+import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroup;
+import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroupMember;
+import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateJob;
 import com.github.curiousoddman.curious_images.dbobj.tables.FlywaySchemaHistory;
 import com.github.curiousoddman.curious_images.dbobj.tables.Folder;
 import com.github.curiousoddman.curious_images.dbobj.tables.ImportRoot;
 import com.github.curiousoddman.curious_images.dbobj.tables.PendingAction;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
+import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail;
 import com.github.curiousoddman.curious_images.dbobj.tables.UserPreferences;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.DuplicateGroupMemberRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.DuplicateGroupRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.DuplicateJobRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FlywaySchemaHistoryRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FolderRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PendingActionRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoHashRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.UserPreferencesRecord;
@@ -47,6 +55,11 @@ public class Keys {
     // UNIQUE and PRIMARY KEY definitions
     // -------------------------------------------------------------------------
 
+    public static final UniqueKey<DuplicateGroupRecord> CONSTRAINT_B = Internal.createUniqueKey(DuplicateGroup.DUPLICATE_GROUP, DSL.name("CONSTRAINT_B"), new TableField[] { DuplicateGroup.DUPLICATE_GROUP.ID }, true);
+    public static final UniqueKey<DuplicateGroupRecord> CONSTRAINT_B68 = Internal.createUniqueKey(DuplicateGroup.DUPLICATE_GROUP, DSL.name("CONSTRAINT_B68"), new TableField[] { DuplicateGroup.DUPLICATE_GROUP.EXTENSION, DuplicateGroup.DUPLICATE_GROUP.PIXEL_HASH }, true);
+    public static final UniqueKey<DuplicateGroupMemberRecord> CONSTRAINT_BB = Internal.createUniqueKey(DuplicateGroupMember.DUPLICATE_GROUP_MEMBER, DSL.name("CONSTRAINT_BB"), new TableField[] { DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.ID }, true);
+    public static final UniqueKey<DuplicateGroupMemberRecord> CONSTRAINT_BB010 = Internal.createUniqueKey(DuplicateGroupMember.DUPLICATE_GROUP_MEMBER, DSL.name("CONSTRAINT_BB010"), new TableField[] { DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID, DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.PHOTO_ID }, true);
+    public static final UniqueKey<DuplicateJobRecord> CONSTRAINT_6F = Internal.createUniqueKey(DuplicateJob.DUPLICATE_JOB, DSL.name("CONSTRAINT_6F"), new TableField[] { DuplicateJob.DUPLICATE_JOB.ID }, true);
     public static final UniqueKey<FlywaySchemaHistoryRecord> FLYWAY_SCHEMA_HISTORY_PK = Internal.createUniqueKey(FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY, DSL.name("flyway_schema_history_pk"), new TableField[] { FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY.INSTALLED_RANK }, true);
     public static final UniqueKey<FolderRecord> CONSTRAINT_7B = Internal.createUniqueKey(Folder.FOLDER, DSL.name("CONSTRAINT_7B"), new TableField[] { Folder.FOLDER.ID }, true);
     public static final UniqueKey<FolderRecord> CONSTRAINT_7BF01 = Internal.createUniqueKey(Folder.FOLDER, DSL.name("CONSTRAINT_7BF01"), new TableField[] { Folder.FOLDER.IMPORT_ROOT_ID, Folder.FOLDER.RELATIVE_PATH }, true);
@@ -55,6 +68,7 @@ public class Keys {
     public static final UniqueKey<PendingActionRecord> CONSTRAINT_7 = Internal.createUniqueKey(PendingAction.PENDING_ACTION, DSL.name("CONSTRAINT_7"), new TableField[] { PendingAction.PENDING_ACTION.ID }, true);
     public static final UniqueKey<PhotoRecord> CONSTRAINT_4 = Internal.createUniqueKey(Photo.PHOTO, DSL.name("CONSTRAINT_4"), new TableField[] { Photo.PHOTO.ID }, true);
     public static final UniqueKey<PhotoRecord> CONSTRAINT_489 = Internal.createUniqueKey(Photo.PHOTO, DSL.name("CONSTRAINT_489"), new TableField[] { Photo.PHOTO.ABSOLUTE_PATH }, true);
+    public static final UniqueKey<PhotoHashRecord> CONSTRAINT_6 = Internal.createUniqueKey(PhotoHash.PHOTO_HASH, DSL.name("CONSTRAINT_6"), new TableField[] { PhotoHash.PHOTO_HASH.PHOTO_ID }, true);
     public static final UniqueKey<ThumbnailRecord> CONSTRAINT_F = Internal.createUniqueKey(Thumbnail.THUMBNAIL, DSL.name("CONSTRAINT_F"), new TableField[] { Thumbnail.THUMBNAIL.PHOTO_ID }, true);
     public static final UniqueKey<UserPreferencesRecord> CONSTRAINT_2 = Internal.createUniqueKey(UserPreferences.USER_PREFERENCES, DSL.name("CONSTRAINT_2"), new TableField[] { UserPreferences.USER_PREFERENCES.PREF_KEY }, true);
 
@@ -62,8 +76,12 @@ public class Keys {
     // FOREIGN KEY definitions
     // -------------------------------------------------------------------------
 
+    public static final ForeignKey<DuplicateGroupRecord, DuplicateJobRecord> CONSTRAINT_B6 = Internal.createForeignKey(DuplicateGroup.DUPLICATE_GROUP, DSL.name("CONSTRAINT_B6"), new TableField[] { DuplicateGroup.DUPLICATE_GROUP.DUPLICATE_JOB_ID }, Keys.CONSTRAINT_6F, new TableField[] { DuplicateJob.DUPLICATE_JOB.ID }, true);
+    public static final ForeignKey<DuplicateGroupMemberRecord, DuplicateGroupRecord> CONSTRAINT_BB0 = Internal.createForeignKey(DuplicateGroupMember.DUPLICATE_GROUP_MEMBER, DSL.name("CONSTRAINT_BB0"), new TableField[] { DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID }, Keys.CONSTRAINT_B, new TableField[] { DuplicateGroup.DUPLICATE_GROUP.ID }, true);
+    public static final ForeignKey<DuplicateGroupMemberRecord, PhotoRecord> CONSTRAINT_BB01 = Internal.createForeignKey(DuplicateGroupMember.DUPLICATE_GROUP_MEMBER, DSL.name("CONSTRAINT_BB01"), new TableField[] { DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
     public static final ForeignKey<FolderRecord, ImportRootRecord> CONSTRAINT_7BF = Internal.createForeignKey(Folder.FOLDER, DSL.name("CONSTRAINT_7BF"), new TableField[] { Folder.FOLDER.IMPORT_ROOT_ID }, Keys.CONSTRAINT_D, new TableField[] { ImportRoot.IMPORT_ROOT.ID }, true);
     public static final ForeignKey<FolderRecord, FolderRecord> CONSTRAINT_7BF0 = Internal.createForeignKey(Folder.FOLDER, DSL.name("CONSTRAINT_7BF0"), new TableField[] { Folder.FOLDER.PARENT_FOLDER_ID }, Keys.CONSTRAINT_7B, new TableField[] { Folder.FOLDER.ID }, true);
     public static final ForeignKey<PhotoRecord, FolderRecord> CONSTRAINT_48 = Internal.createForeignKey(Photo.PHOTO, DSL.name("CONSTRAINT_48"), new TableField[] { Photo.PHOTO.FOLDER_ID }, Keys.CONSTRAINT_7B, new TableField[] { Folder.FOLDER.ID }, true);
+    public static final ForeignKey<PhotoHashRecord, PhotoRecord> CONSTRAINT_66 = Internal.createForeignKey(PhotoHash.PHOTO_HASH, DSL.name("CONSTRAINT_66"), new TableField[] { PhotoHash.PHOTO_HASH.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
     public static final ForeignKey<ThumbnailRecord, PhotoRecord> CONSTRAINT_F5 = Internal.createForeignKey(Thumbnail.THUMBNAIL, DSL.name("CONSTRAINT_F5"), new TableField[] { Thumbnail.THUMBNAIL.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
 }

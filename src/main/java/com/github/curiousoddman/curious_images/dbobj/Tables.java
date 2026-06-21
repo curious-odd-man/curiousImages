@@ -4,11 +4,15 @@
 package com.github.curiousoddman.curious_images.dbobj;
 
 
+import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroup;
+import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroupMember;
+import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateJob;
 import com.github.curiousoddman.curious_images.dbobj.tables.FlywaySchemaHistory;
 import com.github.curiousoddman.curious_images.dbobj.tables.Folder;
 import com.github.curiousoddman.curious_images.dbobj.tables.ImportRoot;
 import com.github.curiousoddman.curious_images.dbobj.tables.PendingAction;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
+import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail;
 import com.github.curiousoddman.curious_images.dbobj.tables.UserPreferences;
 
@@ -28,6 +32,21 @@ import javax.annotation.processing.Generated;
 )
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Tables {
+
+    /**
+     * The table <code>public.DUPLICATE_GROUP</code>.
+     */
+    public static final DuplicateGroup DUPLICATE_GROUP = DuplicateGroup.DUPLICATE_GROUP;
+
+    /**
+     * The table <code>public.DUPLICATE_GROUP_MEMBER</code>.
+     */
+    public static final DuplicateGroupMember DUPLICATE_GROUP_MEMBER = DuplicateGroupMember.DUPLICATE_GROUP_MEMBER;
+
+    /**
+     * The table <code>public.DUPLICATE_JOB</code>.
+     */
+    public static final DuplicateJob DUPLICATE_JOB = DuplicateJob.DUPLICATE_JOB;
 
     /**
      * The table <code>public.flyway_schema_history</code>.
@@ -53,6 +72,11 @@ public class Tables {
      * The table <code>public.PHOTO</code>.
      */
     public static final Photo PHOTO = Photo.PHOTO;
+
+    /**
+     * The table <code>public.PHOTO_HASH</code>.
+     */
+    public static final PhotoHash PHOTO_HASH = PhotoHash.PHOTO_HASH;
 
     /**
      * The table <code>public.THUMBNAIL</code>.

@@ -21,10 +21,8 @@ spring:
 app:
   thumbnail-cache:
     dir: ~/cimages/thumb-cache
-
-
-server:
-  port: ${SERVER_PORT}
+  duplicate-detection:
+    thread-count: 4
 
 logging.level:
   org.jooq.Constants: off
@@ -37,4 +35,3 @@ logging.level:
               element: debug
           model:
             playlist: debug
-

@@ -1,5 +1,7 @@
 package com.github.curiousoddman.curious_images.domain.imports.thumbnail;
 
+import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailCachePaths;
+import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

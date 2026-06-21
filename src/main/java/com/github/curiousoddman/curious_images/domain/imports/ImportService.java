@@ -1,18 +1,17 @@
 package com.github.curiousoddman.curious_images.domain.imports;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.ExtractedMetadata;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
-import com.github.curiousoddman.curious_images.domain.imports.thumbnail.ThumbnailGenerator;
-import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.RescanLibraryEvent;
-import com.github.curiousoddman.curious_images.event.types.BackgroundProcessEventType;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
+import com.github.curiousoddman.curious_images.util.async.AbstractBackgroundJob;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
@@ -36,36 +35,25 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The photo import pipeline: recursively scans a chosen folder, extracts metadata, generates
  * thumbnails, and persists everything idempotently so re-running a scan is fast and safe.
  * <p>
- * This is a rewrite of the former {@code domain.tags.FilesScanningService} stub (now deleted),
- * which only walked the file tree and published progress events but never implemented
- * {@code extractMetadataAndUpdateDatabase}. While rewriting, two pre-existing bugs are fixed:
- * <ol>
- *     <li>The old code's {@code try/catch} wrapped the entire scan loop, so one corrupt/unreadable
- *     file aborted the whole import. Each file's processing is now isolated (see the
- *     {@code catch} inside the loop below).</li>
- *     <li>Nothing prevented a second {@link RescanLibraryEvent} from starting a second concurrent
- *     scan thread while one was already running. {@link #running} now guards against that.</li>
- * </ol>
- * See implementation plan §8 for the full algorithm this class implements.
+ * Run-state (single-flight guard, interrupt flag) and {@code BackgroundProcessEvent} publishing
+ * now live in {@link AbstractBackgroundJob} — this class only implements what's specific to
+ * importing: the file walk, metadata/thumbnail pipeline, and batched persistence.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ImportService {
+public class ImportService extends AbstractBackgroundJob {
     public static final String IMPORT_SCAN = "Import Scan";
 
     private static final Set<String> SUPPORTED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "cr2");
-    private static final int PROGRESS_PUBLISH_INTERVAL_MS = 100;
     private static final int DB_FLUSH_BATCH_SIZE = 200;
     private static final int APPROXIMATE_LIBRARY_SIZE = 25_000;
 
-    private final ApplicationEventPublisher eventPublisher;
     private final DSLContext dsl;
     private final ImportRootRepository importRootRepository;
     private final FolderRepository folderRepository;
@@ -74,30 +62,25 @@ public class ImportService {
     private final PhotoMetadataExtractor metadataExtractor;
     private final ThumbnailGenerator thumbnailGenerator;
     private final TimeProvider timeProvider;
-
-    private final AtomicBoolean running = new AtomicBoolean(false);
-    private volatile boolean shouldInterrupt;
-    private long lastProgressPublishMs;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @EventListener
     public void onRescanEvent(RescanLibraryEvent event) {
-        if (!running.compareAndSet(false, true)) {
+        if (!tryStart()) {
             log.warn("Import already running, ignoring new RescanLibraryEvent for {}", event.getPath());
             return;
         }
-        shouldInterrupt = false;
-        lastProgressPublishMs = 0;
         new Thread(() -> runImport(event.getPath()), "import-scan").start();
     }
 
     @EventListener
     public void onInterruptBackgroundProcess(InterruptBackgroundProcessEvent event) {
-        shouldInterrupt = true;
+        requestInterrupt();
     }
 
     private void runImport(String rootPathString) {
         log.info("Starting import scan of {}", rootPathString);
-        publishStarted();
+        publishStarted("Discovering files...");
         int imported = 0;
         int skipped = 0;
         int errors = 0;
@@ -110,14 +93,14 @@ public class ImportService {
 
             List<Path> files = scan(rootPath);
             log.info("Discovered {} supported files under {}", files.size(), rootPathString);
-            publishDiscovered(files.size());
+            publishInProgress("Importing photos...", 0, files.size());
 
             List<Query> buffer = new ArrayList<>(DB_FLUSH_BATCH_SIZE);
             for (int i = 0; i < files.size(); i++) {
-                if (shouldInterrupt) {
+                if (isInterruptRequested()) {
                     flush(buffer);
                     log.info("Import scan interrupted after {} files", i);
-                    publishInterrupted();
+                    publishInterrupted("Interrupted");
                     return;
                 }
 
@@ -137,27 +120,26 @@ public class ImportService {
                 if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
                     flush(buffer);
                 }
-                maybePublishProgress(i, files.size(), file);
+                publishProgress("Importing photos...", i + 1, files.size(), file.toString(), i == files.size() - 1);
             }
             flush(buffer);
 
             importRootRepository.updateLastScannedAt(importRootId, timeProvider.now());
             log.info("Import scan of {} completed: {} imported/updated, {} skipped, {} errors",
                     rootPathString, imported, skipped, errors);
-            publishEnded(imported, skipped, errors);
+            publishEnded("Imported/updated %d, skipped %d unchanged, %d errors".formatted(imported, skipped, errors));
         } catch (Exception e) {
             log.error("Import scan of {} failed", rootPathString, e);
             publishFailed(e);
         } finally {
-            running.set(false);
+            finish();
         }
     }
 
     /**
-     * Imports (or rescans) a single file. Folder upsert, skip-vs-reprocess decision (§12),
-     * metadata extraction, and thumbnail generation all happen here; the actual PHOTO/THUMBNAIL
-     * writes are queued into {@code buffer} rather than executed immediately — see {@link #flush}
-     * and implementation plan §13 for why.
+     * Imports (or rescans) a single file. Folder upsert, skip-vs-reprocess decision, metadata
+     * extraction, and thumbnail generation all happen here; the actual PHOTO/THUMBNAIL writes are
+     * queued into {@code buffer} rather than executed immediately — see {@link #flush}.
      * <p>
      * The one exception is a brand-new photo's INSERT, which always executes immediately: it is
      * the only write in this method that needs a freshly generated id back (to attach a
@@ -204,15 +186,15 @@ public class ImportService {
                 .ifPresent(thumbnail -> buffer.add(thumbnailRepository.upsertQuery(
                         photoId, thumbnail.cachePath(), thumbnail.width(), thumbnail.height(), now)));
         // If generate() returned empty (no embedded preview, corrupt file, unsupported format),
-        // we simply don't queue a THUMBNAIL row — the future Grid view falls back to
-        // img/noimage.png for photos with no thumbnail row. Not treated as an error.
+        // we simply don't queue a THUMBNAIL row — the Grid view falls back to img/noimage.png for
+        // photos with no thumbnail row. Not treated as an error.
     }
 
     /**
      * Resolves (creating if necessary) the FOLDER row id for {@code dir}, walking up to the
      * import root first so the full ancestor chain exists with correct {@code parent_folder_id}
-     * links — needed for the future Folder Tree view, even though this phase doesn't build one.
-     * The import root itself is folder row {@code relative_path = ""} (see migration plan §4).
+     * links — needed for the Folder Tree view. The import root itself is folder row
+     * {@code relative_path = ""}.
      */
     private long resolveFolderId(long importRootId, Path rootPath, Path dir, Map<Path, Long> folderIdCache) {
         Long cached = folderIdCache.get(dir);
@@ -244,25 +226,6 @@ public class ImportService {
         buffer.clear();
     }
 
-    /**
-     * Only publishes if {@value #PROGRESS_PUBLISH_INTERVAL_MS}ms have passed, or it's the last file — see §13.
-     */
-    private void maybePublishProgress(int index, int total, Path currentFile) {
-        long nowMs = System.currentTimeMillis();
-        boolean isLastFile = index == total - 1;
-        if (!isLastFile && nowMs - lastProgressPublishMs < PROGRESS_PUBLISH_INTERVAL_MS) {
-            return;
-        }
-        lastProgressPublishMs = nowMs;
-        eventPublisher.publishEvent(eventBuilder()
-                .eventType(BackgroundProcessEventType.IN_PROGRESS)
-                .progress(index + 1)
-                .maxProgress(total)
-                .description("Importing photos...")
-                .currentItem(currentFile.toString())
-                .build());
-    }
-
     private List<Path> scan(Path rootPath) throws IOException {
         List<Path> found = new ArrayList<>(APPROXIMATE_LIBRARY_SIZE);
         Files.walkFileTree(rootPath, new SimpleFileVisitor<>() {
@@ -282,47 +245,13 @@ public class ImportService {
         return dot < 0 ? "" : filename.substring(dot + 1).toLowerCase(Locale.ROOT);
     }
 
-    private void publishStarted() {
-        eventPublisher.publishEvent(eventBuilder()
-                .eventType(BackgroundProcessEventType.STARTED)
-                .description("Discovering files...")
-                .maxProgress(-1)
-                .build());
+    @Override
+    protected ApplicationEventPublisher eventPublisher() {
+        return applicationEventPublisher;
     }
 
-    private void publishDiscovered(int total) {
-        eventPublisher.publishEvent(eventBuilder()
-                .eventType(BackgroundProcessEventType.IN_PROGRESS)
-                .maxProgress(total)
-                .description("Importing photos...")
-                .build());
-    }
-
-    private void publishInterrupted() {
-        eventPublisher.publishEvent(eventBuilder()
-                .eventType(BackgroundProcessEventType.INTERRUPTED)
-                .description("Interrupted")
-                .build());
-    }
-
-    private void publishFailed(Exception e) {
-        eventPublisher.publishEvent(eventBuilder()
-                .eventType(BackgroundProcessEventType.FAILED)
-                .description("Import failed: " + e.getMessage())
-                .error(e)
-                .build());
-    }
-
-    private void publishEnded(int imported, int skipped, int errors) {
-        eventPublisher.publishEvent(eventBuilder()
-                .eventType(BackgroundProcessEventType.ENDED)
-                .description("Imported/updated %d, skipped %d unchanged, %d errors".formatted(imported, skipped, errors))
-                .build());
-    }
-
-    private BackgroundProcessEvent.BackgroundProcessEventBuilder eventBuilder() {
-        return BackgroundProcessEvent.builder()
-                .source(this)
-                .processName(IMPORT_SCAN);
+    @Override
+    protected String getProcessName() {
+        return IMPORT_SCAN;
     }
 }

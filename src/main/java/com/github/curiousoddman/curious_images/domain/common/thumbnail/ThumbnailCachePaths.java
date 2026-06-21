@@ -1,4 +1,4 @@
-package com.github.curiousoddman.curious_images.domain.imports.thumbnail;
+package com.github.curiousoddman.curious_images.domain.common.thumbnail;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

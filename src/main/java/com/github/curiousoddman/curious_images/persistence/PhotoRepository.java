@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images.persistence;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.domain.dedupe.PhotoForHashing;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.CaptureDateSource;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
@@ -89,5 +90,12 @@ public class PhotoRepository {
 
     private String sourceName(CaptureDateSource captureDateSource) {
         return captureDateSource == null ? null : captureDateSource.name();
+    }
+
+    public List<PhotoForHashing> findAllForHashing() {
+        return dsl.select(PHOTO.ID, PHOTO.ABSOLUTE_PATH, PHOTO.EXTENSION, PHOTO.FILE_SIZE)
+                .from(PHOTO)
+                .fetch(r -> new PhotoForHashing(
+                        r.get(PHOTO.ID), r.get(PHOTO.ABSOLUTE_PATH), r.get(PHOTO.EXTENSION), r.get(PHOTO.FILE_SIZE)));
     }
 }

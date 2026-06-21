@@ -4,8 +4,11 @@
 package com.github.curiousoddman.curious_images.dbobj;
 
 
+import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroup;
+import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroupMember;
 import com.github.curiousoddman.curious_images.dbobj.tables.FlywaySchemaHistory;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
+import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash;
 
 import javax.annotation.processing.Generated;
 
@@ -34,6 +37,10 @@ public class Indexes {
     // -------------------------------------------------------------------------
 
     public static final Index FLYWAY_SCHEMA_HISTORY_S_IDX = Internal.createIndex(DSL.name("flyway_schema_history_s_idx"), FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY, new OrderField[] { FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY.SUCCESS }, false);
+    public static final Index IDX_DUPLICATE_GROUP_JOB = Internal.createIndex(DSL.name("IDX_DUPLICATE_GROUP_JOB"), DuplicateGroup.DUPLICATE_GROUP, new OrderField[] { DuplicateGroup.DUPLICATE_GROUP.DUPLICATE_JOB_ID }, false);
+    public static final Index IDX_DUPLICATE_GROUP_MEMBER_GROUP = Internal.createIndex(DSL.name("IDX_DUPLICATE_GROUP_MEMBER_GROUP"), DuplicateGroupMember.DUPLICATE_GROUP_MEMBER, new OrderField[] { DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID }, false);
+    public static final Index IDX_DUPLICATE_GROUP_MEMBER_PHOTO = Internal.createIndex(DSL.name("IDX_DUPLICATE_GROUP_MEMBER_PHOTO"), DuplicateGroupMember.DUPLICATE_GROUP_MEMBER, new OrderField[] { DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.PHOTO_ID }, false);
     public static final Index IDX_PHOTO_CAPTURE_DATE = Internal.createIndex(DSL.name("IDX_PHOTO_CAPTURE_DATE"), Photo.PHOTO, new OrderField[] { Photo.PHOTO.CAPTURE_DATE }, false);
     public static final Index IDX_PHOTO_FOLDER = Internal.createIndex(DSL.name("IDX_PHOTO_FOLDER"), Photo.PHOTO, new OrderField[] { Photo.PHOTO.FOLDER_ID }, false);
+    public static final Index IDX_PHOTO_HASH_PIXEL_HASH = Internal.createIndex(DSL.name("IDX_PHOTO_HASH_PIXEL_HASH"), PhotoHash.PHOTO_HASH, new OrderField[] { PhotoHash.PHOTO_HASH.PIXEL_HASH }, false);
 }

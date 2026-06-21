@@ -1,6 +1,5 @@
-package com.github.curiousoddman.curious_images.domain.imports.thumbnail;
+package com.github.curiousoddman.curious_images.domain.common.thumbnail;
 
-import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
@@ -8,7 +7,6 @@ import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,19 +15,18 @@ import java.util.Optional;
 /**
  * Generates and caches 512px (longest-edge) JPEG thumbnails for imported photos.
  * <p>
- * Same code path regardless of source format — this is what "do not perform full RAW rendering"
- * means in practice (see implementation plan §10): a CR2 never goes through a raw decoder, only
- * its already-JPEG-encoded embedded preview does, via {@link PhotoMetadataExtractor}.
+ * Decoding itself (including the CR2-embedded-preview special case) now lives in
+ * {@link SourceImageDecoder}, shared with duplicate detection's pixel hashing — this class is
+ * just "decode, resize, write to cache path".
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ThumbnailGenerator {
     private static final int LONGEST_EDGE = 512;
-    private static final String CR2_EXTENSION = "cr2";
 
     private final ThumbnailCachePaths cachePaths;
-    private final PhotoMetadataExtractor metadataExtractor;
+    private final SourceImageDecoder imageDecoder;
 
     public record GeneratedThumbnail(String cachePath, int width, int height) {
     }
@@ -42,7 +39,7 @@ public class ThumbnailGenerator {
      * {@code img/noimage.png}, rather than failing the whole file's import.
      */
     public Optional<GeneratedThumbnail> generate(long photoId, Path sourceFile, String extension) {
-        BufferedImage source = decodeSourceImage(sourceFile, extension);
+        BufferedImage source = imageDecoder.decode(sourceFile, extension).orElse(null);
         if (source == null) {
             return Optional.empty();
         }
@@ -58,7 +55,7 @@ public class ThumbnailGenerator {
      * Regenerates the cached thumbnail for {@code photoId} if the file at its deterministic shard
      * path is missing — e.g. because the cache directory was cleared. The import job itself
      * always generates fresh thumbnails via {@link #generate}, so it won't usually hit this path;
-     * this method exists for the future Grid view, which will call it on every thumbnail load.
+     * this method exists for the Grid view, which calls it on every thumbnail load.
      *
      * @return {@code true} if a thumbnail was (re)generated, {@code false} if one already existed
      * on disk and nothing needed to be done
@@ -69,28 +66,6 @@ public class ThumbnailGenerator {
             return false;
         }
         return generate(photoId, sourceFile, extension).isPresent();
-    }
-
-    private BufferedImage decodeSourceImage(Path sourceFile, String extension) {
-        try {
-            if (CR2_EXTENSION.equalsIgnoreCase(extension)) {
-                return metadataExtractor.extractEmbeddedPreviewBytes(sourceFile)
-                        .map(this::decodeBytes)
-                        .orElse(null);
-            }
-            return ImageIO.read(sourceFile.toFile());
-        } catch (IOException e) {
-            log.warn("Failed to decode {} for thumbnail generation", sourceFile, e);
-            return null;
-        }
-    }
-
-    private BufferedImage decodeBytes(byte[] bytes) {
-        try {
-            return ImageIO.read(new ByteArrayInputStream(bytes));
-        } catch (IOException e) {
-            return null;
-        }
     }
 
     private GeneratedThumbnail writeThumbnail(long photoId, BufferedImage source, Path sourceFile) throws IOException {

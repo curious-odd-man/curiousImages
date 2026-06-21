@@ -7,7 +7,10 @@ package com.github.curiousoddman.curious_images.dbobj.tables;
 import com.github.curiousoddman.curious_images.dbobj.Indexes;
 import com.github.curiousoddman.curious_images.dbobj.Keys;
 import com.github.curiousoddman.curious_images.dbobj.Public;
+import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroup.DuplicateGroupPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroupMember.DuplicateGroupMemberPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.Folder.FolderPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash.PhotoHashPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail.ThumbnailPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 
@@ -243,6 +246,32 @@ public class Photo extends TableImpl<PhotoRecord> {
         return _folder;
     }
 
+    private transient PhotoHashPath _photoHash;
+
+    /**
+     * Get the implicit to-many join path to the <code>public.PHOTO_HASH</code>
+     * table
+     */
+    public PhotoHashPath photoHash() {
+        if (_photoHash == null)
+            _photoHash = new PhotoHashPath(this, null, Keys.CONSTRAINT_66.getInverseKey());
+
+        return _photoHash;
+    }
+
+    private transient DuplicateGroupMemberPath _duplicateGroupMember;
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>public.DUPLICATE_GROUP_MEMBER</code> table
+     */
+    public DuplicateGroupMemberPath duplicateGroupMember() {
+        if (_duplicateGroupMember == null)
+            _duplicateGroupMember = new DuplicateGroupMemberPath(this, null, Keys.CONSTRAINT_BB01.getInverseKey());
+
+        return _duplicateGroupMember;
+    }
+
     private transient ThumbnailPath _thumbnail;
 
     /**
@@ -254,6 +283,14 @@ public class Photo extends TableImpl<PhotoRecord> {
             _thumbnail = new ThumbnailPath(this, null, Keys.CONSTRAINT_F5.getInverseKey());
 
         return _thumbnail;
+    }
+
+    /**
+     * Get the implicit many-to-many join path to the
+     * <code>public.DUPLICATE_GROUP</code> table
+     */
+    public DuplicateGroupPath duplicateGroup() {
+        return duplicateGroupMember().duplicateGroup();
     }
 
     @Override

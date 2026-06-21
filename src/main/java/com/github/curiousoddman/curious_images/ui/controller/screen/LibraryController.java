@@ -6,6 +6,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.FolderRecord
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
+import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateDetectionService;
 import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferencesService;
 import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
@@ -61,6 +62,7 @@ public class LibraryController implements Initializable {
     private final FolderRepository folderRepository;
     private final PhotoRepository photoRepository;
     private final ThumbnailRepository thumbnailRepository;
+    private final DuplicateDetectionService duplicateDetectionService;
 
     @FXML
     public SplitPane librarySplitPane;
@@ -81,7 +83,7 @@ public class LibraryController implements Initializable {
     @FXML
     public Label importElapsedLabel;
     @FXML
-    public Button importCancelButton;
+    public Button backgroundProcessCancelButton;
 
     /**
      * Shown in place of a thumbnail when no {@code THUMBNAIL} row/file exists yet for a photo.
@@ -123,9 +125,6 @@ public class LibraryController implements Initializable {
 
     @EventListener
     public void onBackgroundProcessEvent(BackgroundProcessEvent event) {
-        if (!event.getProcessName().equals(IMPORT_SCAN)) {
-            return;
-        }
         runOnFxThread(() -> {
             importProgressLabel.setText(event.getMaxProgress() > 0
                     ? event.getProgress() + " / " + event.getMaxProgress()
@@ -133,12 +132,12 @@ public class LibraryController implements Initializable {
             importCurrentFileLabel.setText(event.getCurrentItem() == null ? "" : event.getCurrentItem());
             long elapsedMs = System.currentTimeMillis() - event.getTimestamp();
             importElapsedLabel.setText(Duration.ofMillis(elapsedMs).toString());
-            importCancelButton.setVisible(!event.getEventType().isTerminal());
+            backgroundProcessCancelButton.setVisible(!event.getEventType().isTerminal());
         });
     }
 
     @FXML
-    public void onCancelImport(ActionEvent actionEvent) {
+    public void onCancelBackgroundJob(ActionEvent actionEvent) {
         eventPublisher.publishEvent(new InterruptBackgroundProcessEvent(this));
     }
 
@@ -155,6 +154,11 @@ public class LibraryController implements Initializable {
         });
         t.setDaemon(true);
         t.start();
+    }
+
+    @FXML
+    public void onFindDuplicates(ActionEvent event) {
+        duplicateDetectionService.start();
     }
 
     private List<TreeItem<LibraryTreeNode>> buildImportRootItems() {
@@ -300,7 +304,7 @@ public class LibraryController implements Initializable {
         stage.setScene(new Scene(root));
         stage.setTitle("Rescan library");
         stage.initModality(Modality.APPLICATION_MODAL);
-        stage.initOwner(importCancelButton.getScene().getWindow());
+        stage.initOwner(backgroundProcessCancelButton.getScene().getWindow());
         stage.showAndWait();
     }
 }

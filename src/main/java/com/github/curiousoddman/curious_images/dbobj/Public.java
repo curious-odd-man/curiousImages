@@ -4,11 +4,15 @@
 package com.github.curiousoddman.curious_images.dbobj;
 
 
+import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroup;
+import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroupMember;
+import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateJob;
 import com.github.curiousoddman.curious_images.dbobj.tables.FlywaySchemaHistory;
 import com.github.curiousoddman.curious_images.dbobj.tables.Folder;
 import com.github.curiousoddman.curious_images.dbobj.tables.ImportRoot;
 import com.github.curiousoddman.curious_images.dbobj.tables.PendingAction;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
+import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail;
 import com.github.curiousoddman.curious_images.dbobj.tables.UserPreferences;
 
@@ -44,6 +48,21 @@ public class Public extends SchemaImpl {
     public static final Public PUBLIC = new Public();
 
     /**
+     * The table <code>public.DUPLICATE_GROUP</code>.
+     */
+    public final DuplicateGroup DUPLICATE_GROUP = DuplicateGroup.DUPLICATE_GROUP;
+
+    /**
+     * The table <code>public.DUPLICATE_GROUP_MEMBER</code>.
+     */
+    public final DuplicateGroupMember DUPLICATE_GROUP_MEMBER = DuplicateGroupMember.DUPLICATE_GROUP_MEMBER;
+
+    /**
+     * The table <code>public.DUPLICATE_JOB</code>.
+     */
+    public final DuplicateJob DUPLICATE_JOB = DuplicateJob.DUPLICATE_JOB;
+
+    /**
      * The table <code>public.flyway_schema_history</code>.
      */
     public final FlywaySchemaHistory FLYWAY_SCHEMA_HISTORY = FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY;
@@ -67,6 +86,11 @@ public class Public extends SchemaImpl {
      * The table <code>public.PHOTO</code>.
      */
     public final Photo PHOTO = Photo.PHOTO;
+
+    /**
+     * The table <code>public.PHOTO_HASH</code>.
+     */
+    public final PhotoHash PHOTO_HASH = PhotoHash.PHOTO_HASH;
 
     /**
      * The table <code>public.THUMBNAIL</code>.
@@ -94,11 +118,15 @@ public class Public extends SchemaImpl {
     @Override
     public final List<Table<?>> getTables() {
         return Arrays.asList(
+            DuplicateGroup.DUPLICATE_GROUP,
+            DuplicateGroupMember.DUPLICATE_GROUP_MEMBER,
+            DuplicateJob.DUPLICATE_JOB,
             FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY,
             Folder.FOLDER,
             ImportRoot.IMPORT_ROOT,
             PendingAction.PENDING_ACTION,
             Photo.PHOTO,
+            PhotoHash.PHOTO_HASH,
             Thumbnail.THUMBNAIL,
             UserPreferences.USER_PREFERENCES
         );

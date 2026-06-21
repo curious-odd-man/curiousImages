@@ -1,54 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
+<?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
 
-<BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0"
-            prefHeight="1080.0" prefWidth="1920.0" xmlns="http://javafx.com/javafx/17.0.12"
-            xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.LibraryController">
+<BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0" prefHeight="1080.0" prefWidth="1920.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.LibraryController">
     <center>
-        <SplitPane fx:id="librarySplitPane" dividerPositions="0.2559" maxHeight="1.7976931348623157E308"
-                   maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0"
-                   BorderPane.alignment="CENTER">
+        <SplitPane fx:id="librarySplitPane" dividerPositions="0.2559" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0" BorderPane.alignment="CENTER">
             <items>
-                <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0"
-                            minWidth="0.0">
+                <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0">
                     <children>
-                        <TreeView fx:id="libraryTreeView" showRoot="false" maxHeight="1.7976931348623157E308"
-                                  maxWidth="1.7976931348623157E308" AnchorPane.bottomAnchor="0.0"
-                                  AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
-                                  AnchorPane.topAnchor="0.0"/>
+                        <TreeView fx:id="libraryTreeView" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" showRoot="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
                     </children>
                 </AnchorPane>
                 <!-- Right: photo grid for the selected folder, with a thumbnail-size slider -->
-                <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0"
-                            minWidth="0.0">
+                <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0">
                     <children>
-                        <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
-                                    AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
-                                    AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                        <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                             <top>
                                 <HBox alignment="CENTER_LEFT" spacing="8.0" BorderPane.alignment="CENTER">
                                     <padding>
-                                        <Insets bottom="6.0" left="10.0" right="10.0" top="6.0"/>
+                                        <Insets bottom="6.0" left="10.0" right="10.0" top="6.0" />
                                     </padding>
                                     <children>
-                                        <Label text="Thumbnail size:"/>
-                                        <Slider fx:id="thumbnailSizeSlider" blockIncrement="16.0" max="320.0"
-                                                min="64.0" prefWidth="200.0" value="128.0"/>
+                                        <Label text="Thumbnail size:" />
+                                        <Slider fx:id="thumbnailSizeSlider" blockIncrement="16.0" max="320.0" min="64.0" prefWidth="200.0" value="128.0" />
                                     </children>
                                 </HBox>
                             </top>
                             <center>
-                                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" maxHeight="1.7976931348623157E308"
-                                            maxWidth="1.7976931348623157E308" BorderPane.alignment="CENTER">
+                                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" BorderPane.alignment="CENTER">
                                     <content>
-                                        <FlowPane fx:id="photoGridPane" hgap="8.0" maxWidth="1.7976931348623157E308"
-                                                  vgap="8.0">
+                                        <FlowPane fx:id="photoGridPane" hgap="8.0" maxWidth="1.7976931348623157E308" vgap="8.0">
                                             <padding>
-                                                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
+                                                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
                                             </padding>
                                         </FlowPane>
                                     </content>
@@ -65,34 +51,38 @@
             <menus>
                 <Menu mnemonicParsing="false" text="File">
                     <items>
-                        <MenuItem mnemonicParsing="false" onAction="#onRescanMenuClicked" text="Rescan library..."/>
-                        <MenuItem mnemonicParsing="false" text="Close"/>
+                        <MenuItem mnemonicParsing="false" onAction="#onRescanMenuClicked" text="Rescan library..." />
+                        <MenuItem mnemonicParsing="false" onAction="#onFindDuplicates" text="Find duplicates" />
+                        <MenuItem mnemonicParsing="false" text="Close" />
                     </items>
                 </Menu>
                 <Menu mnemonicParsing="false" text="Edit">
                     <items>
-                        <MenuItem mnemonicParsing="false" text="Delete"/>
+                        <MenuItem mnemonicParsing="false" text="Delete" />
                     </items>
                 </Menu>
                 <Menu mnemonicParsing="false" text="Help">
                     <items>
-                        <MenuItem mnemonicParsing="false" text="About"/>
+                        <MenuItem mnemonicParsing="false" text="About" />
                     </items>
                 </Menu>
             </menus>
         </MenuBar>
     </top>
     <bottom>
-        <HBox alignment="CENTER_LEFT" spacing="12.0" BorderPane.alignment="CENTER">
+        <HBox alignment="CENTER_LEFT" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" spacing="12.0" BorderPane.alignment="CENTER">
             <padding>
-                <Insets bottom="6.0" left="10.0" right="10.0" top="6.0"/>
+                <Insets bottom="6.0" left="10.0" right="10.0" top="6.0" />
             </padding>
             <children>
-                <Label fx:id="importProgressLabel" text=""/>
-                <Label fx:id="importCurrentFileLabel" maxWidth="1.7976931348623157E308" text="" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="importElapsedLabel" text=""/>
-                <Button fx:id="importCancelButton" managed="false" mnemonicParsing="false" onAction="#onCancelImport"
-                        text="Cancel" visible="false"/>
+                <Button fx:id="backgroundProcessCancelButton" cancelButton="true" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onCancelBackgroundJob" text="❌" textFill="RED" visible="false">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                </Button>
+                <Label fx:id="importProgressLabel" text="" />
+                <Label fx:id="importCurrentFileLabel" maxWidth="1.7976931348623157E308" text="" HBox.hgrow="ALWAYS" />
+                <Label fx:id="importElapsedLabel" text="" />
             </children>
         </HBox>
     </bottom>

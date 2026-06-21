@@ -2,8 +2,8 @@ package com.github.curiousoddman.curious_images.domain.imports;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
-import com.github.curiousoddman.curious_images.domain.imports.thumbnail.ThumbnailCachePaths;
-import com.github.curiousoddman.curious_images.domain.imports.thumbnail.ThumbnailGenerator;
+import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailCachePaths;
+import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator;
 import com.github.curiousoddman.curious_images.event.RescanLibraryEvent;
 import com.github.curiousoddman.curious_images.event.types.BackgroundProcessEventType;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
