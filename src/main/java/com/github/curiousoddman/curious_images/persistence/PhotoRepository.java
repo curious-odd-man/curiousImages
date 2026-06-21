@@ -88,6 +88,17 @@ public class PhotoRepository {
                 .where(PHOTO.ID.eq(photoId));
     }
 
+    /**
+     * Deletes a single photo row, used when resolving duplicates. Caller is responsible for first
+     * deleting dependent rows ({@code THUMBNAIL}, {@code DUPLICATE_GROUP_MEMBER}) and for passing
+     * a {@code ctx} bound to the same transaction — see {@code DuplicateResolutionService}.
+     */
+    public void deleteById(DSLContext ctx, long photoId) {
+        ctx.deleteFrom(PHOTO)
+                .where(PHOTO.ID.eq(photoId))
+                .execute();
+    }
+
     private String sourceName(CaptureDateSource captureDateSource) {
         return captureDateSource == null ? null : captureDateSource.name();
     }

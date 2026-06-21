@@ -1,0 +1,13 @@
+.keep-preview {
+    -fx-border-color: #2e7d32;
+    -fx-border-width: 3;
+    -fx-border-radius: 4;
+    -fx-background-color: derive(#2e7d32, 90%);
+}
+
+.drop-preview {
+    -fx-border-color: #c62828;
+    -fx-border-width: 3;
+    -fx-border-radius: 4;
+    -fx-background-color: derive(#c62828, 90%);
+}

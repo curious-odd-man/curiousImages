@@ -7,17 +7,23 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRe
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateDetectionService;
+import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateResolutionService;
 import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferencesService;
 import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
+import com.github.curiousoddman.curious_images.model.DuplicateGroupView;
+import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
+import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeNode;
+import com.github.curiousoddman.curious_images.ui.styles.CssClasses;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import javafx.beans.InvalidationListener;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -47,7 +53,6 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import static com.github.curiousoddman.curious_images.domain.imports.ImportService.IMPORT_SCAN;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
 @Lazy
@@ -63,6 +68,8 @@ public class LibraryController implements Initializable {
     private final PhotoRepository photoRepository;
     private final ThumbnailRepository thumbnailRepository;
     private final DuplicateDetectionService duplicateDetectionService;
+    private final DuplicateGroupRepository duplicateGroupRepository;
+    private final DuplicateResolutionService duplicateResolutionService;
 
     @FXML
     public SplitPane librarySplitPane;
@@ -85,6 +92,18 @@ public class LibraryController implements Initializable {
     @FXML
     public Button backgroundProcessCancelButton;
 
+    // Duplicates review.
+    @FXML
+    public TabPane mainTabPane;
+    @FXML
+    public Tab duplicatesTab;
+    @FXML
+    public Accordion duplicatesAccordion;
+    @FXML
+    public Button keepSelectedButton;
+    @FXML
+    public Button deleteSelectedButton;
+
     /**
      * Shown in place of a thumbnail when no {@code THUMBNAIL} row/file exists yet for a photo.
      */
@@ -97,6 +116,17 @@ public class LibraryController implements Initializable {
         libraryTreeView.getSelectionModel().selectedItemProperty()
                 .addListener((obs, oldItem, newItem) -> onTreeSelectionChanged(newItem));
         onLibraryDataUpdated();
+
+        mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+            if (newTab == duplicatesTab) {
+                loadDuplicatesTab();
+            }
+        });
+        duplicatesAccordion.expandedPaneProperty().addListener((obs, oldPane, newPane) -> updateActionButtonsState());
+        keepSelectedButton.setOnMouseEntered(e -> previewAction(true));
+        keepSelectedButton.setOnMouseExited(e -> clearPreview());
+        deleteSelectedButton.setOnMouseEntered(e -> previewAction(false));
+        deleteSelectedButton.setOnMouseExited(e -> clearPreview());
     }
 
     public void setUserPrefs(Stage primaryStage) {
@@ -306,5 +336,182 @@ public class LibraryController implements Initializable {
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.initOwner(backgroundProcessCancelButton.getScene().getWindow());
         stage.showAndWait();
+    }
+
+    // ----------------------------------------------------------------------------------------
+    // Duplicates tab
+    // ----------------------------------------------------------------------------------------
+
+    /**
+     * One photo's accordion-pane cell: the live checkbox + the container node that gets the
+     * red/green preview border, kept together so hover preview and button actions can read/style
+     * them without walking the scene graph.
+     */
+    private record DuplicateCell(PhotoRecord photo, CheckBox checkBox, VBox container) {
+    }
+
+    /**
+     * Stashed as a {@code TitledPane}'s user data so actions know which group + cells are "open".
+     */
+    private record PaneData(long groupId, List<DuplicateCell> cells) {
+    }
+
+    /**
+     * Reloads the Duplicates tab from the DB. Called whenever the tab is selected, and again
+     * after a keep/delete action completes so the view reflects what's left.
+     */
+    private void loadDuplicatesTab() {
+        Thread t = new Thread(() -> {
+            List<DuplicateGroupView> groups = duplicateGroupRepository.findAllGroupsWithMembers();
+            runOnFxThread(() -> populateDuplicatesAccordion(groups));
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void populateDuplicatesAccordion(List<DuplicateGroupView> groups) {
+        duplicatesAccordion.getPanes().setAll(groups.stream().map(this::buildDuplicateGroupPane).toList());
+        updateActionButtonsState();
+    }
+
+    private TitledPane buildDuplicateGroupPane(DuplicateGroupView group) {
+        List<DuplicateCell> cells = new ArrayList<>();
+        FlowPane cellsPane = new FlowPane(10.0, 10.0);
+        cellsPane.setPadding(new Insets(10.0));
+        for (PhotoWithThumbnail pwt : group.photos()) {
+            DuplicateCell cell = createDuplicateCell(pwt.photo(), pwt.thumbnail());
+            cells.add(cell);
+            cellsPane.getChildren().add(cell.container());
+        }
+
+        TitledPane pane = new TitledPane(buildGroupTitle(group), cellsPane);
+        pane.setUserData(new PaneData(group.groupId(), cells));
+        return pane;
+    }
+
+    private String buildGroupTitle(DuplicateGroupView group) {
+        String ext = group.extension() == null ? "—" : group.extension();
+        return "%s · %d photos".formatted(ext, group.photos().size());
+    }
+
+    /**
+     * One photo within a duplicate group: thumbnail, full metadata shown inline (not a hover
+     * tooltip — the whole point is comparing photos side by side), and a "keep" checkbox.
+     */
+    private DuplicateCell createDuplicateCell(PhotoRecord photo, ThumbnailRecord thumbnail) {
+        ImageView imageView = new ImageView(loadThumbnailImage(thumbnail));
+        imageView.setPreserveRatio(true);
+        imageView.setFitWidth(160.0);
+        imageView.setFitHeight(160.0);
+
+        Label infoLabel = new Label(buildPhotoDetailsText(photo));
+        infoLabel.setWrapText(true);
+        infoLabel.setMaxWidth(220.0);
+
+        CheckBox checkBox = new CheckBox("Keep");
+
+        VBox container = new VBox(6.0, imageView, infoLabel, checkBox);
+        container.setAlignment(Pos.TOP_CENTER);
+        container.setPadding(new Insets(8.0));
+        container.setMaxWidth(240.0);
+
+        DuplicateCell cell = new DuplicateCell(photo, checkBox, container);
+        checkBox.selectedProperty().addListener((obs, was, isNow) -> updateActionButtonsState());
+        return cell;
+    }
+
+    private PaneData activePaneData() {
+        TitledPane expanded = duplicatesAccordion.getExpandedPane();
+        return expanded == null ? null : (PaneData) expanded.getUserData();
+    }
+
+    /**
+     * Both buttons act on the currently expanded pane only, and are disabled with nothing checked.
+     */
+    private void updateActionButtonsState() {
+        PaneData active = activePaneData();
+        boolean anyChecked = active != null && active.cells().stream().anyMatch(c -> c.checkBox().isSelected());
+        keepSelectedButton.setDisable(!anyChecked);
+        deleteSelectedButton.setDisable(!anyChecked);
+    }
+
+    /**
+     * Hover preview: "Keep Selected" keeps the checked photos (green) and drops the unchecked
+     * ones (red); "Delete Selected" is the exact mirror image.
+     */
+    private void previewAction(boolean keepButtonHovered) {
+        PaneData active = activePaneData();
+        if (active == null) {
+            return;
+        }
+        for (DuplicateCell cell : active.cells()) {
+            boolean checked = cell.checkBox().isSelected();
+            boolean willBeKept = keepButtonHovered == checked;
+            ObservableList<String> styleClass = cell.container().getStyleClass();
+            styleClass.add(willBeKept ? CssClasses.KEEP_PREVIEW : CssClasses.DROP_PREVIEW);
+            styleClass.remove(willBeKept ? CssClasses.DROP_PREVIEW : CssClasses.KEEP_PREVIEW);
+        }
+    }
+
+    private void clearPreview() {
+        PaneData active = activePaneData();
+        if (active == null) {
+            return;
+        }
+        for (DuplicateCell cell : active.cells()) {
+            cell.container().getStyleClass().clear();
+        }
+    }
+
+    @FXML
+    public void onKeepSelectedClicked(ActionEvent event) {
+        resolveActivePane(true);
+    }
+
+    @FXML
+    public void onDeleteSelectedClicked(ActionEvent event) {
+        resolveActivePane(false);
+    }
+
+    /**
+     * @param keepChecked {@code true} for "Keep Selected" (drop the unchecked photos),
+     *                    {@code false} for "Delete Selected" (drop the checked photos)
+     */
+    private void resolveActivePane(boolean keepChecked) {
+        PaneData active = activePaneData();
+        if (active == null) {
+            return;
+        }
+        List<PhotoRecord> toDrop = active.cells().stream()
+                .filter(c -> c.checkBox().isSelected() != keepChecked)
+                .map(DuplicateCell::photo)
+                .toList();
+        if (toDrop.isEmpty()) {
+            return;
+        }
+
+        keepSelectedButton.setDisable(true);
+        deleteSelectedButton.setDisable(true);
+        Thread t = new Thread(() -> {
+            DuplicateResolutionService.Result result = duplicateResolutionService.resolve(active.groupId(), toDrop);
+            runOnFxThread(() -> {
+                if (!result.failures().isEmpty()) {
+                    showResolutionFailures(result.failures());
+                }
+                loadDuplicatesTab();
+            });
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void showResolutionFailures(List<DuplicateResolutionService.Failure> failures) {
+        StringBuilder sb = new StringBuilder();
+        for (DuplicateResolutionService.Failure failure : failures) {
+            sb.append("• ").append(failure.photo().getFilename()).append(" — ").append(failure.reason()).append('\n');
+        }
+        Alert alert = new Alert(Alert.AlertType.WARNING, sb.toString().strip(), ButtonType.OK);
+        alert.setHeaderText("Some photos couldn't be moved to the recycle bin and were left in place");
+        alert.showAndWait();
     }
 }

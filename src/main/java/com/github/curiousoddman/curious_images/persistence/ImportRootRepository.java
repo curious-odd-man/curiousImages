@@ -46,7 +46,6 @@ public class ImportRootRepository {
                 .execute();
     }
 
-    /** All import roots, ordered by path — the top level of the library tree. */
     public List<ImportRootRecord> findAll() {
         return dsl.selectFrom(IMPORT_ROOT)
                 .orderBy(IMPORT_ROOT.PATH)
