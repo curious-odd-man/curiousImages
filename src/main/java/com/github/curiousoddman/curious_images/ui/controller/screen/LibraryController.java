@@ -361,12 +361,11 @@ public class LibraryController implements Initializable {
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.initOwner(photoGridPane.getScene().getWindow());
 
-            LoadedFxml<SlideshowController> loaded = fxmlLoader.load(FxmlView.SLIDESHOW, new SlideshowBundle(photos, startIndex));
+            LoadedFxml<SlideshowController> loaded = fxmlLoader.load(FxmlView.SLIDESHOW, null);
             SlideshowController controller = loaded.controller();
             controller.initSlideshow(new SlideshowBundle(photos, startIndex));
 
             Scene scene = new Scene(loaded.parent());
-            scene.setFill(javafx.scene.paint.Color.BLACK);
             stage.setScene(scene);
             stage.setMaximized(true);
             stage.show();

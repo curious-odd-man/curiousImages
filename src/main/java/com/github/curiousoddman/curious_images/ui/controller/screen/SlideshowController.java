@@ -5,8 +5,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRec
 import com.github.curiousoddman.curious_images.model.bundle.SlideshowBundle;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import javafx.animation.FadeTransition;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
+import javafx.animation.PauseTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Bounds;
@@ -15,7 +14,6 @@ import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.util.Duration;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +26,8 @@ import java.io.File;
 import java.net.URL;
 import java.util.List;
 import java.util.ResourceBundle;
+
+import static com.sun.javafx.util.Utils.runOnFxThread;
 
 /**
  * Controller for the slideshow overlay.
@@ -72,8 +72,6 @@ public class SlideshowController implements Initializable {
     @FXML
     private Button nextButton;
     @FXML
-    private HBox topBar;
-    @FXML
     private Label photoNameLabel;
     @FXML
     private Label counterLabel;
@@ -99,9 +97,8 @@ public class SlideshowController implements Initializable {
     private double dragOriginX;
     private double dragOriginY;
 
-    // ── Overlay-hide timeline ────────────────────────────────────────────────
-    private static final long HIDE_DELAY_MS = 2_000;
-    private Timeline hideOverlayTimeline;
+
+    private final PauseTransition zoomLabelTimer = new PauseTransition(Duration.seconds(2));
 
     // ── Placeholder for missing thumbnail ───────────────────────────────────
     private Image noImageAvailable;
@@ -114,10 +111,8 @@ public class SlideshowController implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         noImageAvailable = new Image(getClass().getResourceAsStream("/img/noimage.png"));
 
-        //setupImagePaneResize();
         setupZoomAndPan();
         setupKeyboard();
-        setupOverlayAutoHide();
         setupButtons();
     }
 
@@ -133,6 +128,7 @@ public class SlideshowController implements Initializable {
         this.photos = bundle.getPhotos();
         this.currentIndex = bundle.getStartIndex();
         showPhoto(currentIndex);
+        rootPane.requestFocus();
     }
 
     // ────────────────────────────────────────────────────────────────────────
@@ -181,8 +177,8 @@ public class SlideshowController implements Initializable {
                     // Only apply if the user hasn't navigated away
                     if (photos.get(currentIndex) == photo) {
                         fullImageView.setImage(fullImage);
-                        //fitImageViews();
                         crossFadeToFull();
+                        runOnFxThread(() -> rootPane.requestFocus());
                     }
                 }
             });
@@ -245,7 +241,7 @@ public class SlideshowController implements Initializable {
             translateY = mouseY - (mouseY - translateY) * (newZoom / oldZoom);
 
             zoomFactor = newZoom;
-            applyTransform();
+            applyTransform(true);
             e.consume();
         });
 
@@ -267,11 +263,11 @@ public class SlideshowController implements Initializable {
             }
             translateX = dragOriginX + (e.getSceneX() - dragStartX);
             translateY = dragOriginY + (e.getSceneY() - dragStartY);
-            applyTransform();
+            applyTransform(false);
         });
     }
 
-    private void applyTransform() {
+    private void applyTransform(boolean isZoomChanged) {
         // Both ImageViews share the same logical transform
         double tx = (zoomFactor <= 1.0) ? 0 : clampTranslate(translateX, zoomFactor, imagesPane.getWidth(), getFitWidth());
         double ty = (zoomFactor <= 1.0) ? 0 : clampTranslate(translateY, zoomFactor, imagesPane.getHeight(), getFitHeight());
@@ -283,8 +279,15 @@ public class SlideshowController implements Initializable {
             iv.setTranslateY(ty);
         }
 
-        int pct = (int) Math.round(zoomFactor * 100);
-        zoomLabel.setText(pct + "%  ");
+        if (isZoomChanged) {
+            int pct = (int) Math.round(zoomFactor * 100);
+            zoomLabel.setText(pct + "%  ");
+            zoomLabel.setVisible(true);
+
+            zoomLabelTimer.stop();
+            zoomLabelTimer.setOnFinished(e -> zoomLabel.setVisible(false));
+            zoomLabelTimer.playFromStart();
+        }
     }
 
     /**
@@ -303,7 +306,7 @@ public class SlideshowController implements Initializable {
         zoomFactor = 1.0;
         translateX = 0.0;
         translateY = 0.0;
-        applyTransform();
+        applyTransform(false);
     }
 
     // ────────────────────────────────────────────────────────────────────────
@@ -328,8 +331,6 @@ public class SlideshowController implements Initializable {
     // ────────────────────────────────────────────────────────────────────────
 
     private void setupKeyboard() {
-        // Key events are wired on the scene in initSlideshow so the pane is focused.
-        // We do it here via rootPane's scene once the pane is shown; see initSlideshow.
         rootPane.sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene != null) {
                 newScene.setOnKeyPressed(e -> {
@@ -346,34 +347,7 @@ public class SlideshowController implements Initializable {
                 });
             }
         });
-    }
-
-    // ────────────────────────────────────────────────────────────────────────
-    // Overlay auto-hide on mouse inactivity
-    // ────────────────────────────────────────────────────────────────────────
-
-    private void setupOverlayAutoHide() {
-        hideOverlayTimeline = new Timeline(
-                new KeyFrame(Duration.millis(HIDE_DELAY_MS), e -> setOverlayVisible(false))
-        );
-
-        rootPane.setOnMouseMoved(e -> {
-            log.info("Mouse moved {}", e);
-            setOverlayVisible(true);
-            hideOverlayTimeline.playFromStart();
-        });
-        rootPane.setOnMouseEntered(e -> {
-            log.info("Mouse entered {}", e);
-            setOverlayVisible(true);
-            hideOverlayTimeline.playFromStart();
-        });
-        rootPane.setOnMouseExited(e -> setOverlayVisible(false));
-    }
-
-    private void setOverlayVisible(boolean visible) {
-        prevButton.setVisible(visible);
-        nextButton.setVisible(visible);
-        topBar.setVisible(visible);
+        rootPane.requestFocus();
     }
 
     // ────────────────────────────────────────────────────────────────────────

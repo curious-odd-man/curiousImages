@@ -65,7 +65,7 @@
          <Font size="28.0" />
       </font>
      </Button>
-       <Label fx:id="zoomLabel" text="100 %" StackPane.alignment="CENTER">
+       <Label fx:id="zoomLabel" text="100 %" visible="false" StackPane.alignment="CENTER">
       <font>
          <Font name="Consolas" size="74.0" />
       </font>
