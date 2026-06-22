@@ -232,16 +232,17 @@ public class SlideshowController implements Initializable {
                 return;
             }
 
-            // Cursor position in pane coordinates
-            double mouseX = e.getX();
-            double mouseY = e.getY();
+            double mouseX = e.getX() - imagesPane.getWidth() / 2.0;
+            double mouseY = e.getY() - imagesPane.getHeight() / 2.0;
 
-            // Adjust translation so the point under the cursor stays fixed
-            translateX = mouseX - (mouseX - translateX) * (newZoom / oldZoom);
-            translateY = mouseY - (mouseY - translateY) * (newZoom / oldZoom);
+            double scaleRatio = newZoom / oldZoom;
+
+            translateX = scaleRatio * translateX + (1 - scaleRatio) * mouseX;
+            translateY = scaleRatio * translateY + (1 - scaleRatio) * mouseY;
 
             zoomFactor = newZoom;
             applyTransform(true);
+            log.info("zoom={} tx={} ty={}", zoomFactor, translateX, translateY);
             e.consume();
         });
 
@@ -268,9 +269,10 @@ public class SlideshowController implements Initializable {
     }
 
     private void applyTransform(boolean isZoomChanged) {
-        // Both ImageViews share the same logical transform
-        double tx = (zoomFactor <= 1.0) ? 0 : clampTranslate(translateX, zoomFactor, imagesPane.getWidth(), getFitWidth());
-        double ty = (zoomFactor <= 1.0) ? 0 : clampTranslate(translateY, zoomFactor, imagesPane.getHeight(), getFitHeight());
+        double fitWidth = fullImageView.getLayoutBounds().getWidth();
+        double tx = (zoomFactor <= 1.0) ? 0 : clampTranslate(translateX, zoomFactor, imagesPane.getWidth(), fitWidth);
+        double fitHeight = fullImageView.getLayoutBounds().getHeight();
+        double ty = (zoomFactor <= 1.0) ? 0 : clampTranslate(translateY, zoomFactor, imagesPane.getHeight(), fitHeight);
 
         for (ImageView iv : new ImageView[]{thumbnailImageView, fullImageView}) {
             iv.setScaleX(zoomFactor);
@@ -307,23 +309,6 @@ public class SlideshowController implements Initializable {
         translateX = 0.0;
         translateY = 0.0;
         applyTransform(false);
-    }
-
-    // ────────────────────────────────────────────────────────────────────────
-    // ImageView sizing — fit both views to the pane, centred
-    // ────────────────────────────────────────────────────────────────────────
-
-    /**
-     * Returns the rendered (fitted) width of the full-res (or thumbnail) ImageView.
-     */
-    private double getFitWidth() {
-        Bounds b = fullImageView.getBoundsInParent();
-        return b.getWidth();
-    }
-
-    private double getFitHeight() {
-        Bounds b = fullImageView.getBoundsInParent();
-        return b.getHeight();
     }
 
     // ────────────────────────────────────────────────────────────────────────
