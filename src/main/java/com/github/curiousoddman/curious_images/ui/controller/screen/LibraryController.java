@@ -11,6 +11,7 @@ import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateResolution
 import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferencesService;
 import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
+import com.github.curiousoddman.curious_images.event.LibraryUpdatedEvent;
 import com.github.curiousoddman.curious_images.model.DuplicateGroupView;
 import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
@@ -37,6 +38,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +62,7 @@ import static com.sun.javafx.util.Utils.runOnFxThread;
 @Component
 @RequiredArgsConstructor
 public class LibraryController implements Initializable {
+    public static final Font CONSOLAS = new Font("Consolas", 15);
     private final ApplicationEventPublisher eventPublisher;
     private final FxmlLoader fxmlLoader;
     private final UserPreferencesService userPreferencesService;
@@ -115,7 +118,7 @@ public class LibraryController implements Initializable {
         noImageAvailable = new Image(getClass().getResourceAsStream("/img/noimage.png"));
         libraryTreeView.getSelectionModel().selectedItemProperty()
                 .addListener((obs, oldItem, newItem) -> onTreeSelectionChanged(newItem));
-        onLibraryDataUpdated();
+        onLibraryDataUpdated(null);
 
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             if (newTab == duplicatesTab) {
@@ -150,7 +153,6 @@ public class LibraryController implements Initializable {
                         userPreferencesService.saveSplitPositions(librarySplitPane.getDividerPositions()));
 
         librarySplitPane.getDividers().getFirst().positionProperty().addListener(splitPanePositionListener);
-        librarySplitPane.getDividers().getLast().positionProperty().addListener(splitPanePositionListener);
     }
 
     @EventListener
@@ -172,7 +174,8 @@ public class LibraryController implements Initializable {
     }
 
     @SneakyThrows
-    private void onLibraryDataUpdated() {
+    @EventListener
+    public void onLibraryDataUpdated(LibraryUpdatedEvent event) {
         log.info("Loading library tree in separate thread");
         Thread t = new Thread(() -> {
             List<TreeItem<LibraryTreeNode>> rootItems = buildImportRootItems();
@@ -291,23 +294,23 @@ public class LibraryController implements Initializable {
         StringBuilder sb = new StringBuilder();
         sb.append(photo.getFilename()).append('\n');
         sb.append(photo.getAbsolutePath()).append('\n');
-        sb.append("Extension: ").append(photo.getExtension() == null ? "—" : photo.getExtension()).append('\n');
-        sb.append("Size: ").append(formatFileSize(photo.getFileSize())).append('\n');
+        sb.append("Extension:  ").append(photo.getExtension() == null ? "—" : photo.getExtension()).append('\n');
+        sb.append("Size:       ").append(formatFileSize(photo.getFileSize())).append('\n');
         if (photo.getImageWidth() != null && photo.getImageHeight() != null) {
             sb.append("Dimensions: ").append(photo.getImageWidth()).append(" x ").append(photo.getImageHeight()).append('\n');
         }
         if (photo.getCaptureDate() != null) {
-            sb.append("Captured: ").append(photo.getCaptureDate());
+            sb.append("Captured:    ").append(photo.getCaptureDate());
             if (photo.getCaptureDateSource() != null) {
                 sb.append(" (").append(photo.getCaptureDateSource()).append(')');
             }
             sb.append('\n');
         }
         if (photo.getImportedAt() != null) {
-            sb.append("Imported: ").append(photo.getImportedAt()).append('\n');
+            sb.append("Imported:    ").append(photo.getImportedAt()).append('\n');
         }
         if (photo.getLastSeenAt() != null) {
-            sb.append("Last seen: ").append(photo.getLastSeenAt());
+            sb.append("Last seen:    ").append(photo.getLastSeenAt());
         }
         return sb.toString().strip();
     }
@@ -370,7 +373,11 @@ public class LibraryController implements Initializable {
     }
 
     private void populateDuplicatesAccordion(List<DuplicateGroupView> groups) {
-        duplicatesAccordion.getPanes().setAll(groups.stream().map(this::buildDuplicateGroupPane).toList());
+        ObservableList<TitledPane> panes = duplicatesAccordion.getPanes();
+        panes.setAll(groups.stream().map(this::buildDuplicateGroupPane).toList());
+        if (!panes.isEmpty()) {
+            duplicatesAccordion.setExpandedPane(panes.getFirst());
+        }
         updateActionButtonsState();
     }
 
@@ -407,6 +414,7 @@ public class LibraryController implements Initializable {
         Label infoLabel = new Label(buildPhotoDetailsText(photo));
         infoLabel.setWrapText(true);
         infoLabel.setMaxWidth(220.0);
+        infoLabel.setFont(CONSOLAS);
 
         CheckBox checkBox = new CheckBox("Keep");
 

@@ -6,6 +6,8 @@ import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
+import java.awt.Graphics2D;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -17,7 +19,9 @@ import java.util.Optional;
  * <p>
  * Decoding itself (including the CR2-embedded-preview special case) now lives in
  * {@link SourceImageDecoder}, shared with duplicate detection's pixel hashing — this class is
- * just "decode, resize, write to cache path".
+ * "decode, rotate to the correct orientation, resize, write to cache path". Rotation is baked
+ * into the cached file: nothing that displays a thumbnail (grid, duplicates review) needs to
+ * apply its own rotation transform.
  */
 @Slf4j
 @Component
@@ -32,19 +36,21 @@ public class ThumbnailGenerator {
     }
 
     /**
-     * Decodes {@code sourceFile}, resizes it (longest edge = {@value #LONGEST_EDGE}px, aspect
-     * ratio preserved) and writes it to this photo's deterministic shard path. Returns empty if
-     * no image could be decoded at all (e.g. a CR2 with no usable embedded preview) — the caller
+     * Decodes {@code sourceFile}, rotates it clockwise by {@code rotationDegrees} (must be one of
+     * 0/90/180/270 — see {@code PhotoMetadataExtractor}'s EXIF Orientation mapping, the only
+     * producer of this value), resizes it (longest edge = {@value #LONGEST_EDGE}px, aspect ratio
+     * preserved) and writes it to this photo's deterministic shard path. Returns empty if no
+     * image could be decoded at all (e.g. a CR2 with no usable embedded preview) — the caller
      * should simply not create a THUMBNAIL row in that case and let the UI fall back to
      * {@code img/noimage.png}, rather than failing the whole file's import.
      */
-    public Optional<GeneratedThumbnail> generate(long photoId, Path sourceFile, String extension) {
+    public Optional<GeneratedThumbnail> generate(long photoId, Path sourceFile, String extension, int rotationDegrees) {
         BufferedImage source = imageDecoder.decode(sourceFile, extension).orElse(null);
         if (source == null) {
             return Optional.empty();
         }
         try {
-            return Optional.of(writeThumbnail(photoId, source, sourceFile));
+            return Optional.of(writeThumbnail(photoId, source, sourceFile, rotationDegrees));
         } catch (IOException e) {
             log.warn("Failed to write thumbnail for {}", sourceFile, e);
             return Optional.empty();
@@ -57,25 +63,30 @@ public class ThumbnailGenerator {
      * always generates fresh thumbnails via {@link #generate}, so it won't usually hit this path;
      * this method exists for the Grid view, which calls it on every thumbnail load.
      *
+     * @param rotationDegrees the photo's stored {@code ORIENTATION} (clockwise degrees) — callers
+     *                        have a {@code PhotoRecord} in hand at the point they call this, so
+     *                        pass {@code photo.getOrientation()} through rather than re-deriving it
      * @return {@code true} if a thumbnail was (re)generated, {@code false} if one already existed
      * on disk and nothing needed to be done
      */
-    public boolean ensureThumbnail(long photoId, Path sourceFile, String extension) {
+    public boolean ensureThumbnail(long photoId, Path sourceFile, String extension, int rotationDegrees) {
         Path resolved = cachePaths.resolve(sourceFile);
         if (Files.exists(resolved)) {
             return false;
         }
-        return generate(photoId, sourceFile, extension).isPresent();
+        return generate(photoId, sourceFile, extension, rotationDegrees).isPresent();
     }
 
-    private GeneratedThumbnail writeThumbnail(long photoId, BufferedImage source, Path sourceFile) throws IOException {
+    private GeneratedThumbnail writeThumbnail(long photoId, BufferedImage source, Path sourceFile, int rotationDegrees) throws IOException {
         Path target = cachePaths.resolve(sourceFile);
         Files.createDirectories(target.getParent());
 
+        BufferedImage oriented = rotate(source, rotationDegrees);
+
         // Thumbnailator's size(w, h) with keepAspectRatio(true) constrains the *longest* edge to
         // the given box while preserving aspect ratio — exactly the "longest edge = 512px"
-        // requirement from the product spec.
-        BufferedImage resized = Thumbnails.of(source)
+        // requirement from the product spec. Rotation already happened above, so this just resizes.
+        BufferedImage resized = Thumbnails.of(oriented)
                 .size(LONGEST_EDGE, LONGEST_EDGE)
                 .keepAspectRatio(true)
                 .asBufferedImage();
@@ -83,5 +94,40 @@ public class ThumbnailGenerator {
         ImageIO.write(resized, "jpg", target.toFile());
 
         return new GeneratedThumbnail(target.toString(), resized.getWidth(), resized.getHeight());
+    }
+
+    /**
+     * Rotates {@code source} clockwise by {@code degrees}, swapping canvas dimensions for 90/270.
+     * {@code degrees} outside {0, 90, 180, 270} is normalized into that set first; values are
+     * always one of these in practice (see {@code PhotoMetadataExtractor}) but normalizing keeps
+     * this method safe to call with an arbitrary stored value too.
+     */
+    private BufferedImage rotate(BufferedImage source, int degrees) {
+        int normalized = ((degrees % 360) + 360) % 360;
+        if (normalized != 90 && normalized != 180 && normalized != 270) {
+            return source;
+        }
+
+        int sourceWidth = source.getWidth();
+        int sourceHeight = source.getHeight();
+        boolean swapDimensions = normalized == 90 || normalized == 270;
+        int targetWidth = swapDimensions ? sourceHeight : sourceWidth;
+        int targetHeight = swapDimensions ? sourceWidth : sourceHeight;
+
+        int imageType = source.getType() == BufferedImage.TYPE_CUSTOM ? BufferedImage.TYPE_INT_RGB : source.getType();
+        BufferedImage rotated = new BufferedImage(targetWidth, targetHeight, imageType);
+
+        AffineTransform transform = new AffineTransform();
+        transform.translate(targetWidth / 2.0, targetHeight / 2.0);
+        transform.rotate(Math.toRadians(normalized));
+        transform.translate(-sourceWidth / 2.0, -sourceHeight / 2.0);
+
+        Graphics2D g = rotated.createGraphics();
+        try {
+            g.drawImage(source, transform, null);
+        } finally {
+            g.dispose();
+        }
+        return rotated;
     }
 }

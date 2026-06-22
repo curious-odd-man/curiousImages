@@ -5,6 +5,7 @@ import com.github.curiousoddman.curious_images.domain.common.thumbnail.Thumbnail
 import com.github.curiousoddman.curious_images.domain.imports.metadata.ExtractedMetadata;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
 import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
+import com.github.curiousoddman.curious_images.event.LibraryUpdatedEvent;
 import com.github.curiousoddman.curious_images.event.RescanLibraryEvent;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
@@ -128,6 +129,7 @@ public class ImportService extends AbstractBackgroundJob {
             log.info("Import scan of {} completed: {} imported/updated, {} skipped, {} errors",
                     rootPathString, imported, skipped, errors);
             publishEnded("Imported/updated %d, skipped %d unchanged, %d errors".formatted(imported, skipped, errors));
+            applicationEventPublisher.publishEvent(new LibraryUpdatedEvent(this));
         } catch (Exception e) {
             log.error("Import scan of {} failed", rootPathString, e);
             publishFailed(e);
@@ -170,19 +172,24 @@ public class ImportService extends AbstractBackgroundJob {
         if (existing.isPresent()) {
             long photoId = existing.get().getId();
             buffer.add(photoRepository.updateMetadataQuery(photoId, fileSize, metadata.width(), metadata.height(),
-                    metadata.captureDate(), metadata.captureDateSource(), now));
-            queueThumbnail(photoId, file, extension, now, buffer);
+                    metadata.captureDate(), metadata.captureDateSource(),
+                    metadata.orientationDegrees(), metadata.cameraMake(), metadata.cameraModel(), metadata.lensModel(),
+                    metadata.exifExtraJson(), now));
+            queueThumbnail(photoId, file, extension, metadata.orientationDegrees(), now, buffer);
             return ImportOutcome.UPDATED;
         }
 
         long photoId = photoRepository.insert(folderId, absolutePath, filename, extension, fileSize,
-                metadata.width(), metadata.height(), metadata.captureDate(), metadata.captureDateSource(), now);
-        queueThumbnail(photoId, file, extension, now, buffer);
+                metadata.width(), metadata.height(), metadata.captureDate(), metadata.captureDateSource(),
+                metadata.orientationDegrees(), metadata.cameraMake(), metadata.cameraModel(), metadata.lensModel(),
+                metadata.exifExtraJson(), now);
+        queueThumbnail(photoId, file, extension, metadata.orientationDegrees(), now, buffer);
         return ImportOutcome.IMPORTED;
     }
 
-    private void queueThumbnail(long photoId, Path file, String extension, LocalDateTime now, List<Query> buffer) {
-        thumbnailGenerator.generate(photoId, file, extension)
+    private void queueThumbnail(long photoId, Path file, String extension, int rotationDegrees,
+                                LocalDateTime now, List<Query> buffer) {
+        thumbnailGenerator.generate(photoId, file, extension, rotationDegrees)
                 .ifPresent(thumbnail -> buffer.add(thumbnailRepository.upsertQuery(
                         photoId, thumbnail.cachePath(), thumbnail.width(), thumbnail.height(), now)));
         // If generate() returned empty (no embedded preview, corrupt file, unsupported format),

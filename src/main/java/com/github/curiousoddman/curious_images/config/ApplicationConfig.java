@@ -1,5 +1,6 @@
 package com.github.curiousoddman.curious_images.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.curiousoddman.curious_images.util.VersionService;
 import javafx.stage.Stage;
 import lombok.RequiredArgsConstructor;
@@ -25,5 +26,10 @@ public class ApplicationConfig {
         return new StageManager(fxmlLoader, stage,
                 applicationTitle + "   -   " + versionService.getVersionLabel(),
                 eventPublisher);
+    }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
     }
 }

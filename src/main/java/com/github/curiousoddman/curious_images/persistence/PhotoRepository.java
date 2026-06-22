@@ -5,6 +5,7 @@ import com.github.curiousoddman.curious_images.domain.dedupe.PhotoForHashing;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.CaptureDateSource;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
+import org.jooq.JSON;
 import org.jooq.Query;
 import org.springframework.stereotype.Repository;
 
@@ -45,7 +46,8 @@ public class PhotoRepository {
     public long insert(long folderId, String absolutePath, String filename, String extension,
                        long fileSize, Integer width, Integer height,
                        LocalDateTime captureDate, CaptureDateSource captureDateSource,
-                       LocalDateTime now) {
+                       int orientationDegrees, String cameraMake, String cameraModel, String lensModel,
+                       String exifExtraJson, LocalDateTime now) {
         return dsl.insertInto(PHOTO)
                 .set(PHOTO.FOLDER_ID, folderId)
                 .set(PHOTO.ABSOLUTE_PATH, absolutePath)
@@ -56,6 +58,11 @@ public class PhotoRepository {
                 .set(PHOTO.IMAGE_HEIGHT, height)
                 .set(PHOTO.CAPTURE_DATE, captureDate)
                 .set(PHOTO.CAPTURE_DATE_SOURCE, sourceName(captureDateSource))
+                .set(PHOTO.ORIENTATION, orientationDegrees)
+                .set(PHOTO.CAMERA_MAKE, cameraMake)
+                .set(PHOTO.CAMERA_MODEL, cameraModel)
+                .set(PHOTO.LENS_MODEL, lensModel)
+                .set(PHOTO.EXIF_EXTRA, toJson(exifExtraJson))
                 .set(PHOTO.IMPORTED_AT, now)
                 .set(PHOTO.LAST_SEEN_AT, now)
                 .returning(PHOTO.ID)
@@ -77,13 +84,19 @@ public class PhotoRepository {
      */
     public Query updateMetadataQuery(long photoId, long fileSize, Integer width, Integer height,
                                      LocalDateTime captureDate, CaptureDateSource captureDateSource,
-                                     LocalDateTime now) {
+                                     int orientationDegrees, String cameraMake, String cameraModel, String lensModel,
+                                     String exifExtraJson, LocalDateTime now) {
         return dsl.update(PHOTO)
                 .set(PHOTO.FILE_SIZE, fileSize)
                 .set(PHOTO.IMAGE_WIDTH, width)
                 .set(PHOTO.IMAGE_HEIGHT, height)
                 .set(PHOTO.CAPTURE_DATE, captureDate)
                 .set(PHOTO.CAPTURE_DATE_SOURCE, sourceName(captureDateSource))
+                .set(PHOTO.ORIENTATION, orientationDegrees)
+                .set(PHOTO.CAMERA_MAKE, cameraMake)
+                .set(PHOTO.CAMERA_MODEL, cameraModel)
+                .set(PHOTO.LENS_MODEL, lensModel)
+                .set(PHOTO.EXIF_EXTRA, toJson(exifExtraJson))
                 .set(PHOTO.LAST_SEEN_AT, now)
                 .where(PHOTO.ID.eq(photoId));
     }
@@ -101,6 +114,10 @@ public class PhotoRepository {
 
     private String sourceName(CaptureDateSource captureDateSource) {
         return captureDateSource == null ? null : captureDateSource.name();
+    }
+
+    private JSON toJson(String json) {
+        return json == null ? null : JSON.valueOf(json);
     }
 
     public List<PhotoForHashing> findAllForHashing() {
