@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<!--
+  Root is a StackPane so the image layer and the UI-overlay layer sit on top of each other.
+  The controller is responsible for wiring mouse / keyboard / scroll handlers in code.
+-->
+
+<StackPane fx:id="rootPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="768.0" minWidth="1024.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController">
+   <StackPane fx:id="imagesPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
+      <children>
+            <!-- Thumbnail shown immediately while the full-res image loads -->
+            <ImageView fx:id="thumbnailImageView" opacity="1.0" preserveRatio="true" smooth="true">
+            <viewport>
+               <Rectangle2D />
+            </viewport>
+         </ImageView>
+            <!-- Full-resolution image, fades in once loaded -->
+            <ImageView fx:id="fullImageView" opacity="0.0" preserveRatio="true" smooth="true" />
+      </children>
+   </StackPane>
+
+     <!-- Top bar: filename + counter + close -->
+     <HBox fx:id="topBar" alignment="TOP_CENTER" fillHeight="false" spacing="12.0" StackPane.alignment="TOP_CENTER">
+         <children>
+             <Label fx:id="photoNameLabel" maxWidth="1.7976931348623157E308" text="Photo name .jpg" HBox.hgrow="ALWAYS">
+            <font>
+               <Font size="24.0" />
+            </font></Label>
+             <Label fx:id="counterLabel" alignment="CENTER_RIGHT" text="img 1 of 123" textAlignment="RIGHT">
+            <font>
+               <Font size="24.0" />
+            </font></Label>
+         </children>
+      <StackPane.margin>
+         <Insets left="12.0" right="50.0" top="12.0" />
+      </StackPane.margin>
+     </HBox>
+       <Button fx:id="closeButton" text="✕" StackPane.alignment="TOP_RIGHT">
+      <StackPane.margin>
+         <Insets right="12.0" top="12.0" />
+      </StackPane.margin></Button>
+
+     <!-- Prev button - left edge -->
+     <Button fx:id="prevButton" text="❮" StackPane.alignment="CENTER_LEFT">
+         <StackPane.margin>
+             <Insets left="12.0" />
+         </StackPane.margin>
+      <font>
+         <Font size="28.0" />
+      </font>
+     </Button>
+
+     <!-- Next button - right edge -->
+     <Button fx:id="nextButton" text="❯" StackPane.alignment="CENTER_RIGHT">
+         <StackPane.margin>
+             <Insets right="12.0" />
+         </StackPane.margin>
+      <font>
+         <Font size="28.0" />
+      </font>
+     </Button>
+       <Label fx:id="zoomLabel" text="100 %" StackPane.alignment="CENTER">
+      <font>
+         <Font name="Consolas" size="74.0" />
+      </font>
+      <StackPane.margin>
+         <Insets />
+      </StackPane.margin>
+   </Label>
+        <Label fx:id="fileNotFoundPathLabel" alignment="BOTTOM_CENTER" contentDisplay="CENTER" text="File not found" textAlignment="CENTER" textFill="RED" visible="false" wrapText="true" StackPane.alignment="BOTTOM_CENTER">
+      <font>
+         <Font size="52.0" />
+      </font>
+      <padding>
+         <Insets bottom="12.0" />
+      </padding>
+   </Label>
+
+</StackPane>

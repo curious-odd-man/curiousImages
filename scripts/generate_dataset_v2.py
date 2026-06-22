@@ -91,11 +91,26 @@ def exif_blob(rng, with_gps=True):
     })
 
 def create_image(np_rng, cluster):
-    w,h=np_rng.choice([640,800,1024,1920]),np_rng.choice([480,600,768,1080])
-    arr=np_rng.integers(0,255,(h,w,3),dtype=np.uint8)
-    img=Image.fromarray(arr)
-    d=ImageDraw.Draw(img)
-    d.text((20,20), cluster, fill=(255,255,255))
+    w, h = (
+        np_rng.choice([640, 800, 1024, 1920]),
+        np_rng.choice([480, 600, 768, 1080]),
+    )
+
+    stripe_width = np_rng.integers(5, 15)
+    n_stripes = (w + stripe_width - 1) // stripe_width
+
+    colors = np_rng.integers(
+        0, 256, (n_stripes, 3), dtype=np.uint8
+    )
+
+    arr = np.repeat(colors, stripe_width, axis=0)[:w]
+    arr = np.tile(arr[None, :, :], (h, 1, 1))
+
+    img = Image.fromarray(arr)
+
+    d = ImageDraw.Draw(img)
+    d.text((20, 20), cluster, fill=(255, 255, 255))
+
     return img
 
 def save(img, path, rng, gps=True):

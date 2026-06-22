@@ -13,8 +13,10 @@ import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.LibraryUpdatedEvent;
 import com.github.curiousoddman.curious_images.model.DuplicateGroupView;
+import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
+import com.github.curiousoddman.curious_images.model.bundle.SlideshowBundle;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
@@ -41,6 +43,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -55,6 +58,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController.getImage;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
 @Lazy
@@ -276,18 +280,26 @@ public class LibraryController implements Initializable {
         tooltip.setShowDelay(javafx.util.Duration.millis(500));
         Tooltip.install(cell, tooltip);
 
+        // Capture the photo list from the grid at click time (already loaded into the pane).
+        cell.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 1) {
+                List<PhotoRecord> currentPhotos = photoGridPane.getChildren().stream()
+                        .map(node -> (PhotoRecord) node.getUserData())
+                        .filter(Objects::nonNull)
+                        .toList();
+                int idx = currentPhotos.indexOf(photo);
+                if (idx >= 0) {
+                    openSlideshow(currentPhotos, idx);
+                }
+            }
+        });
+        cell.setUserData(photo);   // ← tag each cell so the list above can recover it
+
         return cell;
     }
 
     private Image loadThumbnailImage(ThumbnailRecord thumbnail) {
-        if (thumbnail != null && thumbnail.getCachePath() != null) {
-            File file = new File(thumbnail.getCachePath());
-            if (file.isFile()) {
-                // backgroundLoading=true: decode happens off the FX thread.
-                return new Image(file.toURI().toString(), 0, 0, true, true, true);
-            }
-        }
-        return noImageAvailable;
+        return getImage(thumbnail, noImageAvailable);
     }
 
     private String buildPhotoDetailsText(PhotoRecord photo) {
@@ -341,6 +353,28 @@ public class LibraryController implements Initializable {
         stage.showAndWait();
     }
 
+    private void openSlideshow(List<PhotoRecord> photos, int startIndex) {
+        try {
+            Stage stage = new Stage();
+            stage.setTitle("Slideshow");
+            stage.initStyle(StageStyle.UNDECORATED);
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.initOwner(photoGridPane.getScene().getWindow());
+
+            LoadedFxml<SlideshowController> loaded = fxmlLoader.load(FxmlView.SLIDESHOW, new SlideshowBundle(photos, startIndex));
+            SlideshowController controller = loaded.controller();
+            controller.initSlideshow(new SlideshowBundle(photos, startIndex));
+
+            Scene scene = new Scene(loaded.parent());
+            scene.setFill(javafx.scene.paint.Color.BLACK);
+            stage.setScene(scene);
+            stage.setMaximized(true);
+            stage.show();
+        } catch (Exception ex) {
+            log.error("Failed to open slideshow", ex);
+        }
+    }
+
     // ----------------------------------------------------------------------------------------
     // Duplicates tab
     // ----------------------------------------------------------------------------------------
@@ -386,9 +420,21 @@ public class LibraryController implements Initializable {
         FlowPane cellsPane = new FlowPane(10.0, 10.0);
         cellsPane.setPadding(new Insets(10.0));
         for (PhotoWithThumbnail pwt : group.photos()) {
-            DuplicateCell cell = createDuplicateCell(pwt.photo(), pwt.thumbnail());
+            DuplicateCell cell = createDuplicateCell(cells, pwt.photo(), pwt.thumbnail());
             cells.add(cell);
-            cellsPane.getChildren().add(cell.container());
+            VBox container = cell.container();
+            cellsPane.getChildren().add(container);
+        }
+
+        // Wire slideshow click for each cell in this duplicate group
+        List<PhotoRecord> groupPhotos = cells.stream().map(DuplicateCell::photo).toList();
+        for (int i = 0; i < cells.size(); i++) {
+            final int idx = i;
+            cells.get(i).container().setOnMouseClicked(e -> {
+                if (e.getClickCount() == 1) {
+                    openSlideshow(groupPhotos, idx);
+                }
+            });
         }
 
         TitledPane pane = new TitledPane(buildGroupTitle(group), cellsPane);
@@ -405,7 +451,7 @@ public class LibraryController implements Initializable {
      * One photo within a duplicate group: thumbnail, full metadata shown inline (not a hover
      * tooltip — the whole point is comparing photos side by side), and a "keep" checkbox.
      */
-    private DuplicateCell createDuplicateCell(PhotoRecord photo, ThumbnailRecord thumbnail) {
+    private DuplicateCell createDuplicateCell(List<DuplicateCell> cells, PhotoRecord photo, ThumbnailRecord thumbnail) {
         ImageView imageView = new ImageView(loadThumbnailImage(thumbnail));
         imageView.setPreserveRatio(true);
         imageView.setFitWidth(160.0);
