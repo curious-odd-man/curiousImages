@@ -7,26 +7,20 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRe
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateDetectionService;
-import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateResolutionService;
 import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferencesService;
 import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.LibraryUpdatedEvent;
-import com.github.curiousoddman.curious_images.model.DuplicateGroupView;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
-import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
 import com.github.curiousoddman.curious_images.model.bundle.SlideshowBundle;
-import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeNode;
-import com.github.curiousoddman.curious_images.ui.styles.CssClasses;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import javafx.beans.InvalidationListener;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -52,7 +46,6 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
 import java.net.URL;
 import java.time.Duration;
 import java.util.*;
@@ -75,8 +68,6 @@ public class LibraryController implements Initializable {
     private final PhotoRepository photoRepository;
     private final ThumbnailRepository thumbnailRepository;
     private final DuplicateDetectionService duplicateDetectionService;
-    private final DuplicateGroupRepository duplicateGroupRepository;
-    private final DuplicateResolutionService duplicateResolutionService;
 
     @FXML
     public SplitPane librarySplitPane;
@@ -89,7 +80,7 @@ public class LibraryController implements Initializable {
     @FXML
     public Slider thumbnailSizeSlider;
 
-    // Import status bar (§11).
+    // Import status bar.
     @FXML
     public Label importProgressLabel;
     @FXML
@@ -99,22 +90,19 @@ public class LibraryController implements Initializable {
     @FXML
     public Button backgroundProcessCancelButton;
 
-    // Duplicates review.
+    // Duplicates tab — content is loaded from duplicates.fxml; controller injected via FxmlLoader.
     @FXML
     public TabPane mainTabPane;
     @FXML
     public Tab duplicatesTab;
-    @FXML
-    public Accordion duplicatesAccordion;
-    @FXML
-    public Button keepSelectedButton;
-    @FXML
-    public Button deleteSelectedButton;
 
     /**
      * Shown in place of a thumbnail when no {@code THUMBNAIL} row/file exists yet for a photo.
      */
     private Image noImageAvailable;
+
+    /** Controller for the embedded duplicates.fxml, resolved after the tab content is loaded. */
+    private DuplicatesController duplicatesController;
 
     @Override
     @SneakyThrows
@@ -124,16 +112,16 @@ public class LibraryController implements Initializable {
                 .addListener((obs, oldItem, newItem) -> onTreeSelectionChanged(newItem));
         onLibraryDataUpdated(null);
 
+        // Load duplicates.fxml into the tab and keep a reference to its controller.
+        LoadedFxml<DuplicatesController> loaded = fxmlLoader.load(FxmlView.DUPLICATES, null);
+        duplicatesTab.setContent(loaded.parent());
+        duplicatesController = loaded.controller();
+
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             if (newTab == duplicatesTab) {
-                loadDuplicatesTab();
+                duplicatesController.activate(noImageAvailable);
             }
         });
-        duplicatesAccordion.expandedPaneProperty().addListener((obs, oldPane, newPane) -> updateActionButtonsState());
-        keepSelectedButton.setOnMouseEntered(e -> previewAction(true));
-        keepSelectedButton.setOnMouseExited(e -> clearPreview());
-        deleteSelectedButton.setOnMouseEntered(e -> previewAction(false));
-        deleteSelectedButton.setOnMouseExited(e -> clearPreview());
     }
 
     public void setUserPrefs(Stage primaryStage) {
@@ -262,14 +250,14 @@ public class LibraryController implements Initializable {
      * tooltip (0.5s delay) listing everything the schema currently has on the photo.
      */
     private Node createPhotoCell(PhotoRecord photo, ThumbnailRecord thumbnail) {
-        ImageView imageView = new ImageView(loadThumbnailImage(thumbnail));
+        ImageView imageView = new ImageView(getImage(thumbnail, noImageAvailable));
         imageView.setPreserveRatio(true);
         imageView.fitWidthProperty().bind(thumbnailSizeSlider.valueProperty());
         imageView.fitHeightProperty().bind(thumbnailSizeSlider.valueProperty());
 
         Label nameLabel = new Label(photo.getFilename());
         nameLabel.setWrapText(true);
-        nameLabel.setAlignment(Pos.CENTER);
+        nameLabel.setAlignment(javafx.geometry.Pos.CENTER);
         nameLabel.setMaxWidth(160.0);
 
         VBox cell = new VBox(4.0, imageView, nameLabel);
@@ -297,10 +285,6 @@ public class LibraryController implements Initializable {
         cell.setUserData(photo);   // ← tag each cell so the list above can recover it
 
         return cell;
-    }
-
-    private Image loadThumbnailImage(ThumbnailRecord thumbnail) {
-        return getImage(thumbnail, noImageAvailable);
     }
 
     private String buildPhotoDetailsText(PhotoRecord photo) {
@@ -355,217 +339,6 @@ public class LibraryController implements Initializable {
     }
 
     private void openSlideshow(List<PhotoRecord> photos, int startIndex) {
-        try {
-            Stage stage = new Stage();
-            stage.setTitle("Slideshow");
-            stage.initStyle(StageStyle.UNDECORATED);
-            stage.initModality(Modality.APPLICATION_MODAL);
-            stage.initOwner(photoGridPane.getScene().getWindow());
-
-            LoadedFxml<SlideshowController> loaded = fxmlLoader.load(FxmlView.SLIDESHOW, null);
-            SlideshowController controller = loaded.controller();
-            controller.initSlideshow(new SlideshowBundle(photos, startIndex));
-
-            Scene scene = new Scene(loaded.parent());
-            stage.setScene(scene);
-            stage.setMaximized(true);
-            stage.show();
-        } catch (Exception ex) {
-            log.error("Failed to open slideshow", ex);
-        }
-    }
-
-    // ----------------------------------------------------------------------------------------
-    // Duplicates tab
-    // ----------------------------------------------------------------------------------------
-
-    /**
-     * One photo's accordion-pane cell: the live checkbox + the container node that gets the
-     * red/green preview border, kept together so hover preview and button actions can read/style
-     * them without walking the scene graph.
-     */
-    private record DuplicateCell(PhotoRecord photo, CheckBox checkBox, VBox container) {
-    }
-
-    /**
-     * Stashed as a {@code TitledPane}'s user data so actions know which group + cells are "open".
-     */
-    private record PaneData(long groupId, List<DuplicateCell> cells) {
-    }
-
-    /**
-     * Reloads the Duplicates tab from the DB. Called whenever the tab is selected, and again
-     * after a keep/delete action completes so the view reflects what's left.
-     */
-    private void loadDuplicatesTab() {
-        Thread t = new Thread(() -> {
-            List<DuplicateGroupView> groups = duplicateGroupRepository.findAllGroupsWithMembers();
-            runOnFxThread(() -> populateDuplicatesAccordion(groups));
-        });
-        t.setDaemon(true);
-        t.start();
-    }
-
-    private void populateDuplicatesAccordion(List<DuplicateGroupView> groups) {
-        ObservableList<TitledPane> panes = duplicatesAccordion.getPanes();
-        panes.setAll(groups.stream().map(this::buildDuplicateGroupPane).toList());
-        if (!panes.isEmpty()) {
-            duplicatesAccordion.setExpandedPane(panes.getFirst());
-        }
-        updateActionButtonsState();
-    }
-
-    private TitledPane buildDuplicateGroupPane(DuplicateGroupView group) {
-        List<DuplicateCell> cells = new ArrayList<>();
-        FlowPane cellsPane = new FlowPane(10.0, 10.0);
-        cellsPane.setPadding(new Insets(10.0));
-        for (PhotoWithThumbnail pwt : group.photos()) {
-            DuplicateCell cell = createDuplicateCell(cells, pwt.photo(), pwt.thumbnail());
-            cells.add(cell);
-            VBox container = cell.container();
-            cellsPane.getChildren().add(container);
-        }
-
-        // Wire slideshow click for each cell in this duplicate group
-        List<PhotoRecord> groupPhotos = cells.stream().map(DuplicateCell::photo).toList();
-        for (int i = 0; i < cells.size(); i++) {
-            final int idx = i;
-            cells.get(i).container().setOnMouseClicked(e -> {
-                if (e.getClickCount() == 1) {
-                    openSlideshow(groupPhotos, idx);
-                }
-            });
-        }
-
-        TitledPane pane = new TitledPane(buildGroupTitle(group), cellsPane);
-        pane.setUserData(new PaneData(group.groupId(), cells));
-        return pane;
-    }
-
-    private String buildGroupTitle(DuplicateGroupView group) {
-        String ext = group.extension() == null ? "—" : group.extension();
-        return "%s · %d photos".formatted(ext, group.photos().size());
-    }
-
-    /**
-     * One photo within a duplicate group: thumbnail, full metadata shown inline (not a hover
-     * tooltip — the whole point is comparing photos side by side), and a "keep" checkbox.
-     */
-    private DuplicateCell createDuplicateCell(List<DuplicateCell> cells, PhotoRecord photo, ThumbnailRecord thumbnail) {
-        ImageView imageView = new ImageView(loadThumbnailImage(thumbnail));
-        imageView.setPreserveRatio(true);
-        imageView.setFitWidth(160.0);
-        imageView.setFitHeight(160.0);
-
-        Label infoLabel = new Label(buildPhotoDetailsText(photo));
-        infoLabel.setWrapText(true);
-        infoLabel.setMaxWidth(220.0);
-        infoLabel.setFont(CONSOLAS);
-
-        CheckBox checkBox = new CheckBox("Keep");
-
-        VBox container = new VBox(6.0, imageView, infoLabel, checkBox);
-        container.setAlignment(Pos.TOP_CENTER);
-        container.setPadding(new Insets(8.0));
-        container.setMaxWidth(240.0);
-
-        DuplicateCell cell = new DuplicateCell(photo, checkBox, container);
-        checkBox.selectedProperty().addListener((obs, was, isNow) -> updateActionButtonsState());
-        return cell;
-    }
-
-    private PaneData activePaneData() {
-        TitledPane expanded = duplicatesAccordion.getExpandedPane();
-        return expanded == null ? null : (PaneData) expanded.getUserData();
-    }
-
-    /**
-     * Both buttons act on the currently expanded pane only, and are disabled with nothing checked.
-     */
-    private void updateActionButtonsState() {
-        PaneData active = activePaneData();
-        boolean anyChecked = active != null && active.cells().stream().anyMatch(c -> c.checkBox().isSelected());
-        keepSelectedButton.setDisable(!anyChecked);
-        deleteSelectedButton.setDisable(!anyChecked);
-    }
-
-    /**
-     * Hover preview: "Keep Selected" keeps the checked photos (green) and drops the unchecked
-     * ones (red); "Delete Selected" is the exact mirror image.
-     */
-    private void previewAction(boolean keepButtonHovered) {
-        PaneData active = activePaneData();
-        if (active == null) {
-            return;
-        }
-        for (DuplicateCell cell : active.cells()) {
-            boolean checked = cell.checkBox().isSelected();
-            boolean willBeKept = keepButtonHovered == checked;
-            ObservableList<String> styleClass = cell.container().getStyleClass();
-            styleClass.add(willBeKept ? CssClasses.KEEP_PREVIEW : CssClasses.DROP_PREVIEW);
-            styleClass.remove(willBeKept ? CssClasses.DROP_PREVIEW : CssClasses.KEEP_PREVIEW);
-        }
-    }
-
-    private void clearPreview() {
-        PaneData active = activePaneData();
-        if (active == null) {
-            return;
-        }
-        for (DuplicateCell cell : active.cells()) {
-            cell.container().getStyleClass().clear();
-        }
-    }
-
-    @FXML
-    public void onKeepSelectedClicked(ActionEvent event) {
-        resolveActivePane(true);
-    }
-
-    @FXML
-    public void onDeleteSelectedClicked(ActionEvent event) {
-        resolveActivePane(false);
-    }
-
-    /**
-     * @param keepChecked {@code true} for "Keep Selected" (drop the unchecked photos),
-     *                    {@code false} for "Delete Selected" (drop the checked photos)
-     */
-    private void resolveActivePane(boolean keepChecked) {
-        PaneData active = activePaneData();
-        if (active == null) {
-            return;
-        }
-        List<PhotoRecord> toDrop = active.cells().stream()
-                .filter(c -> c.checkBox().isSelected() != keepChecked)
-                .map(DuplicateCell::photo)
-                .toList();
-        if (toDrop.isEmpty()) {
-            return;
-        }
-
-        keepSelectedButton.setDisable(true);
-        deleteSelectedButton.setDisable(true);
-        Thread t = new Thread(() -> {
-            DuplicateResolutionService.Result result = duplicateResolutionService.resolve(active.groupId(), toDrop);
-            runOnFxThread(() -> {
-                if (!result.failures().isEmpty()) {
-                    showResolutionFailures(result.failures());
-                }
-                loadDuplicatesTab();
-            });
-        });
-        t.setDaemon(true);
-        t.start();
-    }
-
-    private void showResolutionFailures(List<DuplicateResolutionService.Failure> failures) {
-        StringBuilder sb = new StringBuilder();
-        for (DuplicateResolutionService.Failure failure : failures) {
-            sb.append("• ").append(failure.photo().getFilename()).append(" — ").append(failure.reason()).append('\n');
-        }
-        Alert alert = new Alert(Alert.AlertType.WARNING, sb.toString().strip(), ButtonType.OK);
-        alert.setHeaderText("Some photos couldn't be moved to the recycle bin and were left in place");
-        alert.showAndWait();
+        DuplicatesController.openSlideshow(photos, startIndex, photoGridPane.getScene(), fxmlLoader, log);
     }
 }
