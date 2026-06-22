@@ -161,6 +161,9 @@ dependencies {
     implementation "org.openjfx:javafx-fxml:${javafxVersion}"
     implementation "org.openjfx:javafx-media:${javafxVersion}"
 
+    implementation 'org.kordamp.ikonli:ikonli-javafx:12.3.1'
+    implementation 'org.kordamp.ikonli:ikonli-materialdesign2-pack:12.3.1'
+
     implementation 'com.drewnoakes:metadata-extractor:2.20.0'
     implementation 'net.coobird:thumbnailator:0.4.21'
     implementation 'com.fasterxml.jackson.core:jackson-databind'

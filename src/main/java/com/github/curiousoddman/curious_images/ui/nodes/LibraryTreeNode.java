@@ -1,30 +1,43 @@
 package com.github.curiousoddman.curious_images.ui.nodes;
 
+import org.kordamp.ikonli.Ikon;
+import org.kordamp.ikonli.materialdesign2.*;
+
 /**
  * Value object backing nodes in the library {@link javafx.scene.control.TreeView}.
- * <p>
- * Deliberately generic rather than tied 1:1 to {@code IMPORT_ROOT} / {@code FOLDER} rows: a future
- * grouping layer ("collections") is expected to sit between an import root and its folder tree
- * (root -&gt; collections -&gt; ... -&gt; folders). Any node — regardless of {@link NodeType} — can carry
- * a {@code folderId} to load photos for, and any node can have children, so introducing the new
- * type later should only mean adding a case to the tree-building code in {@code LibraryController},
- * not reshaping it.
  *
  * @param displayName text shown in the tree
- * @param folderId    id of the {@code FOLDER} row whose photos should be shown when this node is
- *                    selected, or {@code null} if this node has no photos of its own (e.g. a pure
- *                    grouping node, or an import root that hasn't been scanned yet)
- * @param type        kind of node, for future use (icons, context menus, etc.)
+ * @param payload     what to load when this node is selected, or {@code null} for pure grouping
+ *                    nodes (FOLDERS_ROOT, TIMELINE_ROOT, TIMELINE_YEAR) that show nothing
+ * @param type        kind of node — drives icon selection and selection behaviour
  */
-public record LibraryTreeNode(String displayName, Long folderId, NodeType type) {
+public record LibraryTreeNode(String displayName, NodePayload payload, NodeType type) {
 
     public enum NodeType {
+        FOLDERS_ROOT,
         IMPORT_ROOT,
         FOLDER,
-        /**
-         * Reserved: a future user-defined grouping layer between import roots and folders.
-         */
-        COLLECTION
+        TIMELINE_ROOT,
+        TIMELINE_YEAR,
+        TIMELINE_MONTH,
+        TIMELINE_DAY,
+        TIMELINE_UNDATED
+    }
+
+    /**
+     * Returns the Ikonli icon for this node type.
+     */
+    public Ikon icon() {
+        return switch (type) {
+            case FOLDERS_ROOT -> MaterialDesignF.FOLDER_MULTIPLE;
+            case IMPORT_ROOT -> MaterialDesignD.DATABASE;
+            case FOLDER -> MaterialDesignF.FOLDER;
+            case TIMELINE_ROOT -> MaterialDesignC.CLOCK_OUTLINE;
+            case TIMELINE_YEAR -> MaterialDesignC.CALENDAR_BLANK;
+            case TIMELINE_MONTH -> MaterialDesignC.CALENDAR;
+            case TIMELINE_DAY -> MaterialDesignC.CALENDAR_TODAY;
+            case TIMELINE_UNDATED -> MaterialDesignC.CALENDAR_REMOVE;
+        };
     }
 
     @Override

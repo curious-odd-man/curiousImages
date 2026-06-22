@@ -3,10 +3,12 @@ package com.github.curiousoddman.curious_images.persistence;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.domain.dedupe.PhotoForHashing;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.CaptureDateSource;
+import com.github.curiousoddman.curious_images.model.TimelineData;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.JSON;
 import org.jooq.Query;
+import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -125,5 +127,71 @@ public class PhotoRepository {
                 .from(PHOTO)
                 .fetch(r -> new PhotoForHashing(
                         r.get(PHOTO.ID), r.get(PHOTO.ABSOLUTE_PATH), r.get(PHOTO.EXTENSION), r.get(PHOTO.FILE_SIZE)));
+    }
+
+    // ── Timeline queries ──────────────────────────────────────────────────────────
+
+    /**
+     * Returns every distinct (year, month, day) that has at least one photo with a non-null
+     * {@code capture_date}, together with a per-day photo count and the total count of photos
+     * whose {@code capture_date} IS NULL — all in a single query via UNION ALL.
+     */
+    public TimelineData findTimelineData() {
+        // Day-level counts
+        var dayRows = dsl.select(
+                        DSL.year(PHOTO.CAPTURE_DATE).as("yr"),
+                        DSL.month(PHOTO.CAPTURE_DATE).as("mo"),
+                        DSL.day(PHOTO.CAPTURE_DATE).as("dy"),
+                        DSL.count().as("cnt"))
+                .from(PHOTO)
+                .where(PHOTO.CAPTURE_DATE.isNotNull())
+                .groupBy(DSL.year(PHOTO.CAPTURE_DATE),
+                        DSL.month(PHOTO.CAPTURE_DATE),
+                        DSL.day(PHOTO.CAPTURE_DATE))
+                .orderBy(DSL.year(PHOTO.CAPTURE_DATE),
+                        DSL.month(PHOTO.CAPTURE_DATE),
+                        DSL.day(PHOTO.CAPTURE_DATE))
+                .fetch();
+
+        List<TimelineData.TimelineDay> days = dayRows.stream()
+                .map(r -> new TimelineData.TimelineDay(
+                        r.get("yr", Integer.class),
+                        r.get("mo", Integer.class),
+                        r.get("dy", Integer.class),
+                        r.get("cnt", Integer.class)))
+                .toList();
+
+        int undatedCount = dsl.fetchCount(PHOTO, PHOTO.CAPTURE_DATE.isNull());
+
+        return new TimelineData(days, undatedCount);
+    }
+
+    /**
+     * Photos for a TIMELINE_MONTH or TIMELINE_DAY node.
+     * Pass {@code day = null} to get the whole month.
+     */
+    public List<PhotoRecord> findByCaptureDate(int year, int month, Integer day) {
+        var condition = PHOTO.CAPTURE_DATE.isNotNull()
+                .and(DSL.year(PHOTO.CAPTURE_DATE).eq(year))
+                .and(DSL.month(PHOTO.CAPTURE_DATE).eq(month));
+
+        if (day != null) {
+            condition = condition.and(DSL.day(PHOTO.CAPTURE_DATE).eq(day));
+        }
+
+        return dsl.selectFrom(PHOTO)
+                .where(condition)
+                .orderBy(PHOTO.CAPTURE_DATE, PHOTO.FILENAME)
+                .fetch();
+    }
+
+    /**
+     * Photos whose {@code capture_date} is NULL — feeds the Undated node.
+     */
+    public List<PhotoRecord> findByNullCaptureDate() {
+        return dsl.selectFrom(PHOTO)
+                .where(PHOTO.CAPTURE_DATE.isNull())
+                .orderBy(PHOTO.FILENAME)
+                .fetch();
     }
 }

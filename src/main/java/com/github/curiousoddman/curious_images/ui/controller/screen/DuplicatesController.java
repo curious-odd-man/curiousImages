@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 
+import static com.github.curiousoddman.curious_images.ui.controller.screen.LibraryController.humanReadableSize;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController.getImage;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
@@ -323,17 +324,7 @@ public class DuplicatesController implements Initializable {
     }
 
     private static String formatFileSize(Long bytes) {
-        if (bytes == null) {
-            return "unknown";
-        }
-        double size = bytes;
-        String[] units = {"B", "KB", "MB", "GB"};
-        int unitIndex = 0;
-        while (size >= 1024.0 && unitIndex < units.length - 1) {
-            size /= 1024.0;
-            unitIndex++;
-        }
-        return String.format("%.1f %s", size, units[unitIndex]);
+        return humanReadableSize(bytes);
     }
 
     // ----------------------------------------------------------------------------------------
