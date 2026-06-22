@@ -278,6 +278,7 @@ public class LibraryController implements Initializable {
 
         Tooltip tooltip = new Tooltip(buildPhotoDetailsText(photo));
         tooltip.setShowDelay(javafx.util.Duration.millis(500));
+        tooltip.setFont(CONSOLAS);
         Tooltip.install(cell, tooltip);
 
         // Capture the photo list from the grid at click time (already loaded into the pane).
