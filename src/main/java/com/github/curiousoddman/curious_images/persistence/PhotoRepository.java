@@ -194,4 +194,11 @@ public class PhotoRepository {
                 .orderBy(PHOTO.FILENAME)
                 .fetch();
     }
+
+    public Optional<PhotoRecord> findById(long photoId) {
+        return Optional.ofNullable(
+                dsl.selectFrom(PHOTO)
+                        .where(PHOTO.ID.eq(photoId))
+                        .fetchOne());
+    }
 }

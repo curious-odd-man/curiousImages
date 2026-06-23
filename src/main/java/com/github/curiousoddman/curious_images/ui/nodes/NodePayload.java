@@ -7,10 +7,7 @@ package com.github.curiousoddman.curious_images.ui.nodes;
  * {@link TimelinePayload} — node maps to a calendar slice; selecting it loads photos by date range.
  * {@link UndatedPayload}  — node maps to photos whose {@code capture_date} is NULL.
  */
-public sealed interface NodePayload
-        permits NodePayload.FolderPayload,
-        NodePayload.TimelinePayload,
-        NodePayload.UndatedPayload {
+public interface NodePayload {
 
     /**
      * Carries a {@code FOLDER.id}; used by IMPORT_ROOT and FOLDER nodes.
@@ -33,5 +30,11 @@ public sealed interface NodePayload
      * Photos whose {@code capture_date} is NULL.
      */
     record UndatedPayload() implements NodePayload {
+    }
+
+    record AlbumPayload(long albumId) implements NodePayload {
+    }
+
+    record PersonPayload(long personId) implements NodePayload {
     }
 }

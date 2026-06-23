@@ -1,0 +1,76 @@
+package com.github.curiousoddman.curious_images.persistence;
+
+import com.github.curiousoddman.curious_images.dbobj.tables.records.ClipEmbeddingRecord;
+import lombok.RequiredArgsConstructor;
+import org.jooq.DSLContext;
+import org.jooq.Query;
+import org.springframework.stereotype.Repository;
+
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.List;
+import java.util.Optional;
+
+import static com.github.curiousoddman.curious_images.dbobj.Tables.CLIP_EMBEDDING;
+
+/**
+ * Hand-written jOOQ repository for {@code clip_embedding}.
+ * Embeddings are stored as raw little-endian float32 bytes: 512 floats × 4 bytes = 2048 bytes.
+ */
+@Repository
+@RequiredArgsConstructor
+public class ClipEmbeddingRepository {
+
+    private final DSLContext dsl;
+
+    /**
+     * Returns an unexecuted MERGE (upsert) for a CLIP embedding row.
+     *
+     * @param photoId      the photo row id
+     * @param embedding    512-dim float array, already L2-normalised
+     * @param modelVersion e.g. {@code "clip_vit_b32"}
+     */
+    public Query upsertQuery(long photoId, float[] embedding, String modelVersion) {
+        byte[] bytes = toBytes(embedding);
+        return dsl.mergeInto(CLIP_EMBEDDING)
+                .using(dsl.selectOne())
+                .on(CLIP_EMBEDDING.PHOTO_ID.eq(photoId))
+                .whenMatchedThenUpdate()
+                .set(CLIP_EMBEDDING.EMBEDDING, bytes)
+                .set(CLIP_EMBEDDING.MODEL_VER, modelVersion)
+                .whenNotMatchedThenInsert(
+                        CLIP_EMBEDDING.PHOTO_ID,
+                        CLIP_EMBEDDING.EMBEDDING,
+                        CLIP_EMBEDDING.MODEL_VER)
+                .values(photoId, bytes, modelVersion);
+    }
+
+    public Optional<ClipEmbeddingRecord> findByPhotoId(long photoId) {
+        return Optional.ofNullable(
+                dsl.selectFrom(CLIP_EMBEDDING)
+                        .where(CLIP_EMBEDDING.PHOTO_ID.eq(photoId))
+                        .fetchOne());
+    }
+
+    /**
+     * Loads all CLIP embeddings — used by album generation (similarity clustering).
+     */
+    public List<ClipEmbeddingRecord> findAll() {
+        return dsl.selectFrom(CLIP_EMBEDDING).fetch();
+    }
+
+    // ── Serialisation helpers ─────────────────────────────────────────────────
+
+    public static byte[] toBytes(float[] embedding) {
+        ByteBuffer buf = ByteBuffer.allocate(embedding.length * 4).order(ByteOrder.LITTLE_ENDIAN);
+        for (float v : embedding) buf.putFloat(v);
+        return buf.array();
+    }
+
+    public static float[] toFloats(byte[] bytes) {
+        ByteBuffer buf = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
+        float[] out = new float[bytes.length / 4];
+        for (int i = 0; i < out.length; i++) out[i] = buf.getFloat();
+        return out;
+    }
+}

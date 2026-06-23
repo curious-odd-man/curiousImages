@@ -1,5 +1,6 @@
 package com.github.curiousoddman.curious_images.domain.common.thumbnail;
 
+import com.github.curiousoddman.curious_images.util.ImageUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
@@ -12,6 +13,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -80,6 +82,10 @@ public class ThumbnailGenerator {
     private GeneratedThumbnail writeThumbnail(long photoId, BufferedImage source, Path sourceFile, int rotationDegrees) throws IOException {
         Path target = cachePaths.resolve(sourceFile);
         Files.createDirectories(target.getParent());
+        List<Integer> allowedDegrees = List.of(0, 90, 180, 270);
+        if (!allowedDegrees.contains(Math.abs(rotationDegrees))) {
+            log.error("Unknown rotation degrees!!!");
+        }
 
         BufferedImage oriented = rotate(source, rotationDegrees);
 
@@ -108,23 +114,16 @@ public class ThumbnailGenerator {
             return source;
         }
 
-        int sourceWidth = source.getWidth();
-        int sourceHeight = source.getHeight();
-        boolean swapDimensions = normalized == 90 || normalized == 270;
-        int targetWidth = swapDimensions ? sourceHeight : sourceWidth;
-        int targetHeight = swapDimensions ? sourceWidth : sourceHeight;
-
-        int imageType = source.getType() == BufferedImage.TYPE_CUSTOM ? BufferedImage.TYPE_INT_RGB : source.getType();
-        BufferedImage rotated = new BufferedImage(targetWidth, targetHeight, imageType);
-
-        AffineTransform transform = new AffineTransform();
-        transform.translate(targetWidth / 2.0, targetHeight / 2.0);
-        transform.rotate(Math.toRadians(normalized));
-        transform.translate(-sourceWidth / 2.0, -sourceHeight / 2.0);
+        BufferedImage rotated = switch (normalized) {
+            case 90 -> ImageUtils.rotate90(source);
+            case 180 -> ImageUtils.rotate180(source);
+            case 270 -> ImageUtils.rotate270(source);
+            default -> source;
+        };
 
         Graphics2D g = rotated.createGraphics();
         try {
-            g.drawImage(source, transform, null);
+            g.drawImage(rotated, null, null);
         } finally {
             g.dispose();
         }

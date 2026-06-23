@@ -2,29 +2,20 @@ package com.github.curiousoddman.curious_images.ui.controller.screen;
 
 import com.github.curiousoddman.curious_images.config.FxmlLoader;
 import com.github.curiousoddman.curious_images.config.FxmlView;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.FolderRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.*;
 import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateDetectionService;
+import com.github.curiousoddman.curious_images.domain.search.SearchService;
 import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferencesService;
-import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
-import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
-import com.github.curiousoddman.curious_images.event.LibraryUpdatedEvent;
+import com.github.curiousoddman.curious_images.event.*;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.TimelineData;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
-import com.github.curiousoddman.curious_images.persistence.FolderRepository;
-import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
-import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
-import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
+import com.github.curiousoddman.curious_images.persistence.*;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeCell;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeNode;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeNode.NodeType;
 import com.github.curiousoddman.curious_images.ui.nodes.NodePayload;
-import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.FolderPayload;
-import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.TimelinePayload;
-import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.UndatedPayload;
+import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.*;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import javafx.beans.InvalidationListener;
 import javafx.event.ActionEvent;
@@ -38,6 +29,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
@@ -46,7 +38,6 @@ import javafx.stage.Stage;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.kordamp.ikonli.javafx.FontIcon;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.EventListener;
@@ -69,6 +60,8 @@ import static com.sun.javafx.util.Utils.runOnFxThread;
 public class LibraryController implements Initializable {
     public static final Font CONSOLAS = new Font("Consolas", 15);
 
+    private static final int SEARCH_TOP_K = 50;
+
     private final ApplicationEventPublisher eventPublisher;
     private final FxmlLoader fxmlLoader;
     private final UserPreferencesService userPreferencesService;
@@ -76,7 +69,12 @@ public class LibraryController implements Initializable {
     private final FolderRepository folderRepository;
     private final PhotoRepository photoRepository;
     private final ThumbnailRepository thumbnailRepository;
+    private final AlbumRepository albumRepository;
+    private final AlbumPhotoRepository albumPhotoRepository;
+    private final PersonRepository personRepository;
     private final DuplicateDetectionService duplicateDetectionService;
+    private final SearchService searchService;
+    private final FaceRepository faceRepository;
 
     @FXML
     public SplitPane librarySplitPane;
@@ -93,11 +91,19 @@ public class LibraryController implements Initializable {
     @FXML
     public Label importElapsedLabel;
     @FXML
+    public Label photoCountLabel;
+    @FXML
     public Button backgroundProcessCancelButton;
     @FXML
     public TabPane mainTabPane;
     @FXML
     public Tab duplicatesTab;
+    @FXML
+    public TextField searchField;
+    @FXML
+    public Button searchButton;
+    @FXML
+    public Button clearSearchButton;
 
     private Image noImageAvailable;
     private DuplicatesController duplicatesController;
@@ -112,6 +118,11 @@ public class LibraryController implements Initializable {
         libraryTreeView.setCellFactory(tv -> new LibraryTreeCell());
         libraryTreeView.getSelectionModel().selectedItemProperty()
                 .addListener((obs, oldItem, newItem) -> onTreeSelectionChanged(newItem));
+
+        // Allow pressing Enter in the search field to trigger search
+        searchField.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.ENTER) onSearchClicked(null);
+        });
 
         onLibraryDataUpdated(null);
 
@@ -171,6 +182,10 @@ public class LibraryController implements Initializable {
 
     // ── Tree building ─────────────────────────────────────────────────────────
 
+    /**
+     * Full tree rebuild. Called on startup and after each {@link LibraryUpdatedEvent}.
+     * Albums / persons sections are included if data exists (gracefully empty otherwise).
+     */
     @SneakyThrows
     @EventListener
     public void onLibraryDataUpdated(LibraryUpdatedEvent event) {
@@ -178,6 +193,8 @@ public class LibraryController implements Initializable {
         Thread t = new Thread(() -> {
             List<TreeItem<LibraryTreeNode>> folderItems = buildImportRootItems();
             List<TreeItem<LibraryTreeNode>> timelineItems = buildTimelineItems();
+            List<TreeItem<LibraryTreeNode>> albumItems = buildAlbumItems();
+            List<TreeItem<LibraryTreeNode>> personItems = buildPersonItems();
 
             runOnFxThread(() -> {
                 TreeItem<LibraryTreeNode> foldersRoot = treeItem(
@@ -190,14 +207,48 @@ public class LibraryController implements Initializable {
                 timelineRoot.getChildren().setAll(timelineItems);
                 timelineRoot.setExpanded(true);
 
+                TreeItem<LibraryTreeNode> albumsRoot = treeItem(
+                        new LibraryTreeNode("Albums", null, NodeType.ALBUMS_ROOT));
+                albumsRoot.getChildren().setAll(albumItems);
+                albumsRoot.setExpanded(!albumItems.isEmpty());
+
+                TreeItem<LibraryTreeNode> personsRoot = treeItem(
+                        new LibraryTreeNode("People", null, NodeType.PERSONS_ROOT));
+                personsRoot.getChildren().setAll(personItems);
+                personsRoot.setExpanded(!personItems.isEmpty());
+
                 TreeItem<LibraryTreeNode> invisibleRoot = new TreeItem<>();
-                invisibleRoot.getChildren().setAll(foldersRoot, timelineRoot);
+                invisibleRoot.getChildren().setAll(foldersRoot, timelineRoot, albumsRoot, personsRoot);
                 libraryTreeView.setRoot(invisibleRoot);
             });
         });
         t.setDaemon(true);
         t.start();
     }
+
+    /**
+     * Refreshes the Albums and People sections of the tree when the AI pipeline completes.
+     * Cheaper than a full rebuild: leaves the Folders and Timeline sections untouched.
+     */
+    @EventListener
+    public void onAiPipelineComplete(AiPipelineCompleteEvent event) {
+        log.info("AI pipeline complete — refreshing Albums and People tree sections");
+        Thread t = new Thread(() -> {
+            List<TreeItem<LibraryTreeNode>> albumItems = buildAlbumItems();
+            List<TreeItem<LibraryTreeNode>> personItems = buildPersonItems();
+            runOnFxThread(() -> {
+                // Navigate to the Albums and People roots by position (indices 2 and 3)
+                TreeItem<LibraryTreeNode> root = libraryTreeView.getRoot();
+                if (root == null || root.getChildren().size() < 4) return;
+                root.getChildren().get(2).getChildren().setAll(albumItems);
+                root.getChildren().get(3).getChildren().setAll(personItems);
+            });
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
+    // ── Tree builders ─────────────────────────────────────────────────────────
 
     private List<TreeItem<LibraryTreeNode>> buildImportRootItems() {
         List<TreeItem<LibraryTreeNode>> rootItems = new ArrayList<>();
@@ -231,8 +282,6 @@ public class LibraryController implements Initializable {
     private List<TreeItem<LibraryTreeNode>> buildTimelineItems() {
         TimelineData data = photoRepository.findTimelineData();
 
-        // Group days by year → month
-        // LinkedHashMap preserves the DB ordering (already sorted by year, month, day)
         Map<Integer, Map<Integer, List<TimelineData.TimelineDay>>> byYearMonth = new LinkedHashMap<>();
         for (TimelineData.TimelineDay day : data.days()) {
             byYearMonth
@@ -290,6 +339,44 @@ public class LibraryController implements Initializable {
         return items;
     }
 
+    private List<TreeItem<LibraryTreeNode>> buildAlbumItems() {
+        List<TreeItem<LibraryTreeNode>> items = new ArrayList<>();
+        // Group by type for sub-headers
+        Map<String, List<AlbumRecord>> byType = new LinkedHashMap<>();
+        for (AlbumRecord album : albumRepository.findAll()) {
+            byType.computeIfAbsent(album.getType(), k -> new ArrayList<>()).add(album);
+        }
+        for (var entry : byType.entrySet()) {
+            NodeType nodeType = switch (entry.getKey()) {
+                case "EVENT" -> NodeType.ALBUM_EVENT;
+                case "LOCATION" -> NodeType.ALBUM_LOCATION;
+                case "SIMILARITY" -> NodeType.ALBUM_SIMILARITY;
+                default -> NodeType.ALBUM_EVENT;
+            };
+            for (AlbumRecord album : entry.getValue()) {
+                items.add(treeItem(new LibraryTreeNode(
+                        album.getName(),
+                        new AlbumPayload(album.getId()),
+                        nodeType)));
+            }
+        }
+        return items;
+    }
+
+    private List<TreeItem<LibraryTreeNode>> buildPersonItems() {
+        List<TreeItem<LibraryTreeNode>> items = new ArrayList<>();
+        for (PersonRecord person : personRepository.findAll()) {
+            String label = person.getName() != null
+                    ? person.getName()
+                    : "Person #" + person.getId();
+            items.add(treeItem(new LibraryTreeNode(
+                    label,
+                    new PersonPayload(person.getId()),
+                    NodeType.PERSON)));
+        }
+        return items;
+    }
+
     // ── Tree selection ────────────────────────────────────────────────────────
 
     private void onTreeSelectionChanged(TreeItem<LibraryTreeNode> selectedItem) {
@@ -302,12 +389,16 @@ public class LibraryController implements Initializable {
             clearPhotoGrid();
             return;
         }
+        // Clear any active search when navigating the tree
+        clearSearchState();
         switch (payload) {
             case FolderPayload fp -> loadPhotosForFolder(fp.folderId());
-            case TimelinePayload tp when
-                    tp.month() != null -> loadPhotosForTimeline(tp.year(), tp.month(), tp.day());
-            case TimelinePayload ignored -> clearPhotoGrid(); // year-only: no grid
+            case TimelinePayload tp when tp.month() != null -> loadPhotosForTimeline(tp.year(), tp.month(), tp.day());
+            case TimelinePayload ignored -> clearPhotoGrid();
             case UndatedPayload ignored -> loadPhotosUndated();
+            case AlbumPayload ap -> loadPhotosForAlbum(ap.albumId());
+            case PersonPayload pp -> loadPhotosForPerson(pp.personId());
+            default -> throw new IllegalStateException("Unexpected value: " + payload);
         }
     }
 
@@ -346,6 +437,83 @@ public class LibraryController implements Initializable {
         t.start();
     }
 
+    private void loadPhotosForAlbum(long albumId) {
+        Thread t = new Thread(() -> {
+            List<Long> photoIds = albumPhotoRepository.findPhotoIdsByAlbumId(albumId);
+            List<PhotoRecord> photos = photoIds.stream()
+                    .map(id -> photoRepository.findById(id).orElse(null))
+                    .filter(Objects::nonNull)
+                    .toList();
+            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(photoIds);
+            runOnFxThread(() -> populatePhotoGrid(photos, thumbs));
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void loadPhotosForPerson(long personId) {
+        Thread t = new Thread(() -> {
+            List<Long> photoIds = new ArrayList<>(
+                    new LinkedHashSet<>(
+                            faceRepository.findByPersonId(personId)
+                                    .stream()
+                                    .map(FaceRecord::getPhotoId)
+                                    .toList()));
+            List<PhotoRecord> photos = photoIds.stream()
+                    .map(id -> photoRepository.findById(id).orElse(null))
+                    .filter(Objects::nonNull)
+                    .toList();
+            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(photoIds);
+            runOnFxThread(() -> populatePhotoGrid(photos, thumbs));
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
+    // ── Search ────────────────────────────────────────────────────────────────
+
+    @FXML
+    public void onSearchClicked(ActionEvent event) {
+        String query = searchField.getText();
+        if (query == null || query.isBlank()) return;
+
+        clearSearchButton.setVisible(true);
+        // Deselect the tree while showing search results
+        libraryTreeView.getSelectionModel().clearSelection();
+
+        Thread t = new Thread(() -> {
+            try {
+                List<Long> photoIds = searchService.semanticSearch(query, SEARCH_TOP_K);
+                List<PhotoRecord> photos = photoIds.stream()
+                        .map(id -> photoRepository.findById(id).orElse(null))
+                        .filter(Objects::nonNull)
+                        .toList();
+                Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(photoIds);
+                runOnFxThread(() -> {
+                    populatePhotoGrid(photos, thumbs);
+                    photoCountLabel.setText("Search: " + photos.size() + " results");
+                });
+            } catch (Exception e) {
+                log.error("Semantic search failed for query '{}'", query, e);
+                runOnFxThread(() -> photoCountLabel.setText("Search error: " + e.getMessage()));
+            }
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
+    @FXML
+    public void onClearSearchClicked(ActionEvent event) {
+        clearSearchState();
+        clearPhotoGrid();
+    }
+
+    private void clearSearchState() {
+        searchField.clear();
+        clearSearchButton.setVisible(false);
+        photoCountLabel.setText("");
+    }
+
     // ── Photo grid ────────────────────────────────────────────────────────────
 
     private void populatePhotoGrid(List<PhotoRecord> photos, Map<Long, ThumbnailRecord> thumbnailsByPhotoId) {
@@ -353,10 +521,12 @@ public class LibraryController implements Initializable {
                 photos.stream()
                         .map(photo -> createPhotoCell(photo, thumbnailsByPhotoId.get(photo.getId())))
                         .toList());
+        photoCountLabel.setText(photos.size() + " photo" + (photos.size() == 1 ? "" : "s"));
     }
 
     private void clearPhotoGrid() {
         photoGridPane.getChildren().clear();
+        photoCountLabel.setText("");
     }
 
     private Node createPhotoCell(PhotoRecord photo, ThumbnailRecord thumbnail) {
@@ -392,7 +562,6 @@ public class LibraryController implements Initializable {
             }
         });
         cell.setUserData(photo);
-
         return cell;
     }
 
@@ -408,17 +577,17 @@ public class LibraryController implements Initializable {
             sb.append("Dimensions: ").append(photo.getImageWidth()).append(" x ").append(photo.getImageHeight()).append('\n');
         }
         if (photo.getCaptureDate() != null) {
-            sb.append("Captured:    ").append(photo.getCaptureDate());
+            sb.append("Captured:   ").append(photo.getCaptureDate());
             if (photo.getCaptureDateSource() != null) {
                 sb.append(" (").append(photo.getCaptureDateSource()).append(')');
             }
             sb.append('\n');
         }
         if (photo.getImportedAt() != null) {
-            sb.append("Imported:    ").append(photo.getImportedAt()).append('\n');
+            sb.append("Imported:   ").append(photo.getImportedAt()).append('\n');
         }
         if (photo.getLastSeenAt() != null) {
-            sb.append("Last seen:    ").append(photo.getLastSeenAt());
+            sb.append("Last seen:  ").append(photo.getLastSeenAt());
         }
         return sb.toString().strip();
     }
@@ -460,6 +629,11 @@ public class LibraryController implements Initializable {
     @FXML
     public void onFindDuplicates(ActionEvent event) {
         duplicateDetectionService.start();
+    }
+
+    @FXML
+    public void onTriggerAiPipeline(ActionEvent event) {
+        eventPublisher.publishEvent(new RunAiPipelineEvent(this));
     }
 
     private void openSlideshow(List<PhotoRecord> photos, int startIndex) {

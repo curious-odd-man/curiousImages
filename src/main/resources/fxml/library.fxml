@@ -18,20 +18,35 @@
                                         <TreeView fx:id="libraryTreeView" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" showRoot="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
                                     </children>
                                 </AnchorPane>
-                                <!-- Right: photo grid for the selected folder, with a thumbnail-size slider -->
+                                <!-- Right: photo grid for the selected folder / album / search results -->
                                 <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0">
                                     <children>
                                         <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                                             <top>
-                                                <HBox alignment="CENTER_LEFT" spacing="8.0" BorderPane.alignment="CENTER">
-                                                    <padding>
-                                                        <Insets bottom="6.0" left="10.0" right="10.0" top="6.0" />
-                                                    </padding>
-                                                    <children>
-                                                        <Label text="Thumbnail size:" />
-                                                        <Slider fx:id="thumbnailSizeSlider" blockIncrement="16.0" max="320.0" min="64.0" prefWidth="200.0" value="128.0" />
-                                                    </children>
-                                                </HBox>
+                                                <VBox spacing="0.0" BorderPane.alignment="CENTER">
+                                                    <!-- Search bar row -->
+                                                    <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                                        <padding>
+                                                            <Insets bottom="4.0" left="10.0" right="10.0" top="6.0" />
+                                                        </padding>
+                                                        <children>
+                                                            <TextField fx:id="searchField" promptText="Search photos... (semantic / AI)" HBox.hgrow="ALWAYS" />
+                                                            <Button fx:id="searchButton" mnemonicParsing="false" onAction="#onSearchClicked" text="Search" />
+                                                            <Button fx:id="clearSearchButton" mnemonicParsing="false" onAction="#onClearSearchClicked" text="✕" visible="false" />
+                                                        </children>
+                                                    </HBox>
+                                                    <!-- Thumbnail-size row -->
+                                                    <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                                        <padding>
+                                                            <Insets bottom="6.0" left="10.0" right="10.0" top="4.0" />
+                                                        </padding>
+                                                        <children>
+                                                            <Label text="Thumbnail size:" />
+                                                            <Slider fx:id="thumbnailSizeSlider" blockIncrement="16.0" max="320.0" min="64.0" prefWidth="200.0" value="128.0" />
+                                                            <Label fx:id="photoCountLabel" text="" />
+                                                        </children>
+                                                    </HBox>
+                                                </VBox>
                                             </top>
                                             <center>
                                                 <ScrollPane fitToWidth="true" hbarPolicy="NEVER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" BorderPane.alignment="CENTER">
@@ -63,6 +78,7 @@
                     <items>
                         <MenuItem mnemonicParsing="false" onAction="#onRescanMenuClicked" text="Rescan library..." />
                         <MenuItem mnemonicParsing="false" onAction="#onFindDuplicates" text="Find duplicates" />
+                  <MenuItem mnemonicParsing="false" onAction="#onTriggerAiPipeline" text="Trigger AI pipeline" />
                         <MenuItem mnemonicParsing="false" text="Close" />
                     </items>
                 </Menu>
