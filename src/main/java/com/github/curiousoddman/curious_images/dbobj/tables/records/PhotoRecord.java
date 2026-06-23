@@ -269,6 +269,48 @@ public class PhotoRecord extends UpdatableRecordImpl<PhotoRecord> {
         return (JSON) get(16);
     }
 
+    /**
+     * Setter for <code>public.PHOTO.GPS_LAT</code>.
+     */
+    public void setGpsLat(Double value) {
+        set(17, value);
+    }
+
+    /**
+     * Getter for <code>public.PHOTO.GPS_LAT</code>.
+     */
+    public Double getGpsLat() {
+        return (Double) get(17);
+    }
+
+    /**
+     * Setter for <code>public.PHOTO.GPS_LON</code>.
+     */
+    public void setGpsLon(Double value) {
+        set(18, value);
+    }
+
+    /**
+     * Getter for <code>public.PHOTO.GPS_LON</code>.
+     */
+    public Double getGpsLon() {
+        return (Double) get(18);
+    }
+
+    /**
+     * Setter for <code>public.PHOTO.GPS_ALTITUDE</code>.
+     */
+    public void setGpsAltitude(Double value) {
+        set(19, value);
+    }
+
+    /**
+     * Getter for <code>public.PHOTO.GPS_ALTITUDE</code>.
+     */
+    public Double getGpsAltitude() {
+        return (Double) get(19);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -292,7 +334,7 @@ public class PhotoRecord extends UpdatableRecordImpl<PhotoRecord> {
     /**
      * Create a detached, initialised PhotoRecord
      */
-    public PhotoRecord(Long id, Long folderId, String absolutePath, String filename, String extension, Long fileSize, Integer imageWidth, Integer imageHeight, LocalDateTime captureDate, String captureDateSource, LocalDateTime importedAt, LocalDateTime lastSeenAt, Integer orientation, String cameraMake, String cameraModel, String lensModel, JSON exifExtra) {
+    public PhotoRecord(Long id, Long folderId, String absolutePath, String filename, String extension, Long fileSize, Integer imageWidth, Integer imageHeight, LocalDateTime captureDate, String captureDateSource, LocalDateTime importedAt, LocalDateTime lastSeenAt, Integer orientation, String cameraMake, String cameraModel, String lensModel, JSON exifExtra, Double gpsLat, Double gpsLon, Double gpsAltitude) {
         super(Photo.PHOTO);
 
         setId(id);
@@ -312,6 +354,9 @@ public class PhotoRecord extends UpdatableRecordImpl<PhotoRecord> {
         setCameraModel(cameraModel);
         setLensModel(lensModel);
         setExifExtra(exifExtra);
+        setGpsLat(gpsLat);
+        setGpsLon(gpsLon);
+        setGpsAltitude(gpsAltitude);
         resetChangedOnNotNull();
     }
 }

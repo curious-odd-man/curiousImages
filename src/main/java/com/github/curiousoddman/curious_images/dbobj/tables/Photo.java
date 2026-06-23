@@ -7,8 +7,13 @@ package com.github.curiousoddman.curious_images.dbobj.tables;
 import com.github.curiousoddman.curious_images.dbobj.Indexes;
 import com.github.curiousoddman.curious_images.dbobj.Keys;
 import com.github.curiousoddman.curious_images.dbobj.Public;
+import com.github.curiousoddman.curious_images.dbobj.tables.AiProcessingStatus.AiProcessingStatusPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.Album.AlbumPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.AlbumPhoto.AlbumPhotoPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.ClipEmbedding.ClipEmbeddingPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroup.DuplicateGroupPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroupMember.DuplicateGroupMemberPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.Face.FacePath;
 import com.github.curiousoddman.curious_images.dbobj.tables.Folder.FolderPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash.PhotoHashPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail.ThumbnailPath;
@@ -160,6 +165,21 @@ public class Photo extends TableImpl<PhotoRecord> {
      */
     public final TableField<PhotoRecord, JSON> EXIF_EXTRA = createField(DSL.name("EXIF_EXTRA"), SQLDataType.JSON, this, "");
 
+    /**
+     * The column <code>public.PHOTO.GPS_LAT</code>.
+     */
+    public final TableField<PhotoRecord, Double> GPS_LAT = createField(DSL.name("GPS_LAT"), SQLDataType.DOUBLE, this, "");
+
+    /**
+     * The column <code>public.PHOTO.GPS_LON</code>.
+     */
+    public final TableField<PhotoRecord, Double> GPS_LON = createField(DSL.name("GPS_LON"), SQLDataType.DOUBLE, this, "");
+
+    /**
+     * The column <code>public.PHOTO.GPS_ALTITUDE</code>.
+     */
+    public final TableField<PhotoRecord, Double> GPS_ALTITUDE = createField(DSL.name("GPS_ALTITUDE"), SQLDataType.DOUBLE, this, "");
+
     private Photo(Name alias, Table<PhotoRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }
@@ -272,6 +292,30 @@ public class Photo extends TableImpl<PhotoRecord> {
         return _folder;
     }
 
+    private transient FacePath _face;
+
+    /**
+     * Get the implicit to-many join path to the <code>public.FACE</code> table
+     */
+    public FacePath face() {
+        if (_face == null)
+            _face = new FacePath(this, null, Keys.CONSTRAINT_20C.getInverseKey());
+
+        return _face;
+    }
+
+    private transient AlbumPath _album;
+
+    /**
+     * Get the implicit to-many join path to the <code>public.ALBUM</code> table
+     */
+    public AlbumPath album() {
+        if (_album == null)
+            _album = new AlbumPath(this, null, Keys.CONSTRAINT_3B.getInverseKey());
+
+        return _album;
+    }
+
     private transient PhotoHashPath _photoHash;
 
     /**
@@ -283,6 +327,45 @@ public class Photo extends TableImpl<PhotoRecord> {
             _photoHash = new PhotoHashPath(this, null, Keys.CONSTRAINT_66.getInverseKey());
 
         return _photoHash;
+    }
+
+    private transient AlbumPhotoPath _albumPhoto;
+
+    /**
+     * Get the implicit to-many join path to the <code>public.ALBUM_PHOTO</code>
+     * table
+     */
+    public AlbumPhotoPath albumPhoto() {
+        if (_albumPhoto == null)
+            _albumPhoto = new AlbumPhotoPath(this, null, Keys.CONSTRAINT_9B2.getInverseKey());
+
+        return _albumPhoto;
+    }
+
+    private transient AiProcessingStatusPath _aiProcessingStatus;
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>public.AI_PROCESSING_STATUS</code> table
+     */
+    public AiProcessingStatusPath aiProcessingStatus() {
+        if (_aiProcessingStatus == null)
+            _aiProcessingStatus = new AiProcessingStatusPath(this, null, Keys.CONSTRAINT_9C.getInverseKey());
+
+        return _aiProcessingStatus;
+    }
+
+    private transient ClipEmbeddingPath _clipEmbedding;
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>public.CLIP_EMBEDDING</code> table
+     */
+    public ClipEmbeddingPath clipEmbedding() {
+        if (_clipEmbedding == null)
+            _clipEmbedding = new ClipEmbeddingPath(this, null, Keys.CONSTRAINT_9E7.getInverseKey());
+
+        return _clipEmbedding;
     }
 
     private transient DuplicateGroupMemberPath _duplicateGroupMember;

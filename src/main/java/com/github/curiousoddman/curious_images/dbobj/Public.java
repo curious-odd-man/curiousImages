@@ -4,13 +4,20 @@
 package com.github.curiousoddman.curious_images.dbobj;
 
 
+import com.github.curiousoddman.curious_images.dbobj.tables.AiProcessingStatus;
+import com.github.curiousoddman.curious_images.dbobj.tables.Album;
+import com.github.curiousoddman.curious_images.dbobj.tables.AlbumPhoto;
+import com.github.curiousoddman.curious_images.dbobj.tables.ClipEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroup;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroupMember;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateJob;
+import com.github.curiousoddman.curious_images.dbobj.tables.Face;
+import com.github.curiousoddman.curious_images.dbobj.tables.FaceEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.FlywaySchemaHistory;
 import com.github.curiousoddman.curious_images.dbobj.tables.Folder;
 import com.github.curiousoddman.curious_images.dbobj.tables.ImportRoot;
 import com.github.curiousoddman.curious_images.dbobj.tables.PendingAction;
+import com.github.curiousoddman.curious_images.dbobj.tables.Person;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail;
@@ -48,6 +55,26 @@ public class Public extends SchemaImpl {
     public static final Public PUBLIC = new Public();
 
     /**
+     * The table <code>public.AI_PROCESSING_STATUS</code>.
+     */
+    public final AiProcessingStatus AI_PROCESSING_STATUS = AiProcessingStatus.AI_PROCESSING_STATUS;
+
+    /**
+     * The table <code>public.ALBUM</code>.
+     */
+    public final Album ALBUM = Album.ALBUM;
+
+    /**
+     * The table <code>public.ALBUM_PHOTO</code>.
+     */
+    public final AlbumPhoto ALBUM_PHOTO = AlbumPhoto.ALBUM_PHOTO;
+
+    /**
+     * The table <code>public.CLIP_EMBEDDING</code>.
+     */
+    public final ClipEmbedding CLIP_EMBEDDING = ClipEmbedding.CLIP_EMBEDDING;
+
+    /**
      * The table <code>public.DUPLICATE_GROUP</code>.
      */
     public final DuplicateGroup DUPLICATE_GROUP = DuplicateGroup.DUPLICATE_GROUP;
@@ -61,6 +88,16 @@ public class Public extends SchemaImpl {
      * The table <code>public.DUPLICATE_JOB</code>.
      */
     public final DuplicateJob DUPLICATE_JOB = DuplicateJob.DUPLICATE_JOB;
+
+    /**
+     * The table <code>public.FACE</code>.
+     */
+    public final Face FACE = Face.FACE;
+
+    /**
+     * The table <code>public.FACE_EMBEDDING</code>.
+     */
+    public final FaceEmbedding FACE_EMBEDDING = FaceEmbedding.FACE_EMBEDDING;
 
     /**
      * The table <code>public.flyway_schema_history</code>.
@@ -81,6 +118,11 @@ public class Public extends SchemaImpl {
      * The table <code>public.PENDING_ACTION</code>.
      */
     public final PendingAction PENDING_ACTION = PendingAction.PENDING_ACTION;
+
+    /**
+     * The table <code>public.PERSON</code>.
+     */
+    public final Person PERSON = Person.PERSON;
 
     /**
      * The table <code>public.PHOTO</code>.
@@ -118,13 +160,20 @@ public class Public extends SchemaImpl {
     @Override
     public final List<Table<?>> getTables() {
         return Arrays.asList(
+            AiProcessingStatus.AI_PROCESSING_STATUS,
+            Album.ALBUM,
+            AlbumPhoto.ALBUM_PHOTO,
+            ClipEmbedding.CLIP_EMBEDDING,
             DuplicateGroup.DUPLICATE_GROUP,
             DuplicateGroupMember.DUPLICATE_GROUP_MEMBER,
             DuplicateJob.DUPLICATE_JOB,
+            Face.FACE,
+            FaceEmbedding.FACE_EMBEDDING,
             FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY,
             Folder.FOLDER,
             ImportRoot.IMPORT_ROOT,
             PendingAction.PENDING_ACTION,
+            Person.PERSON,
             Photo.PHOTO,
             PhotoHash.PHOTO_HASH,
             Thumbnail.THUMBNAIL,

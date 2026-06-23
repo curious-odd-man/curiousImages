@@ -4,13 +4,20 @@
 package com.github.curiousoddman.curious_images.dbobj;
 
 
+import com.github.curiousoddman.curious_images.dbobj.tables.AiProcessingStatus;
+import com.github.curiousoddman.curious_images.dbobj.tables.Album;
+import com.github.curiousoddman.curious_images.dbobj.tables.AlbumPhoto;
+import com.github.curiousoddman.curious_images.dbobj.tables.ClipEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroup;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroupMember;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateJob;
+import com.github.curiousoddman.curious_images.dbobj.tables.Face;
+import com.github.curiousoddman.curious_images.dbobj.tables.FaceEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.FlywaySchemaHistory;
 import com.github.curiousoddman.curious_images.dbobj.tables.Folder;
 import com.github.curiousoddman.curious_images.dbobj.tables.ImportRoot;
 import com.github.curiousoddman.curious_images.dbobj.tables.PendingAction;
+import com.github.curiousoddman.curious_images.dbobj.tables.Person;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail;
@@ -34,6 +41,26 @@ import javax.annotation.processing.Generated;
 public class Tables {
 
     /**
+     * The table <code>public.AI_PROCESSING_STATUS</code>.
+     */
+    public static final AiProcessingStatus AI_PROCESSING_STATUS = AiProcessingStatus.AI_PROCESSING_STATUS;
+
+    /**
+     * The table <code>public.ALBUM</code>.
+     */
+    public static final Album ALBUM = Album.ALBUM;
+
+    /**
+     * The table <code>public.ALBUM_PHOTO</code>.
+     */
+    public static final AlbumPhoto ALBUM_PHOTO = AlbumPhoto.ALBUM_PHOTO;
+
+    /**
+     * The table <code>public.CLIP_EMBEDDING</code>.
+     */
+    public static final ClipEmbedding CLIP_EMBEDDING = ClipEmbedding.CLIP_EMBEDDING;
+
+    /**
      * The table <code>public.DUPLICATE_GROUP</code>.
      */
     public static final DuplicateGroup DUPLICATE_GROUP = DuplicateGroup.DUPLICATE_GROUP;
@@ -47,6 +74,16 @@ public class Tables {
      * The table <code>public.DUPLICATE_JOB</code>.
      */
     public static final DuplicateJob DUPLICATE_JOB = DuplicateJob.DUPLICATE_JOB;
+
+    /**
+     * The table <code>public.FACE</code>.
+     */
+    public static final Face FACE = Face.FACE;
+
+    /**
+     * The table <code>public.FACE_EMBEDDING</code>.
+     */
+    public static final FaceEmbedding FACE_EMBEDDING = FaceEmbedding.FACE_EMBEDDING;
 
     /**
      * The table <code>public.flyway_schema_history</code>.
@@ -67,6 +104,11 @@ public class Tables {
      * The table <code>public.PENDING_ACTION</code>.
      */
     public static final PendingAction PENDING_ACTION = PendingAction.PENDING_ACTION;
+
+    /**
+     * The table <code>public.PERSON</code>.
+     */
+    public static final Person PERSON = Person.PERSON;
 
     /**
      * The table <code>public.PHOTO</code>.

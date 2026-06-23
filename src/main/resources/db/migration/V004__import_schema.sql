@@ -32,8 +32,17 @@ CREATE TABLE photo
     capture_date        TIMESTAMP,
     capture_date_source VARCHAR(20), -- EXIF_ORIGINAL | EXIF_DIGITIZED | FILESYSTEM
     imported_at         TIMESTAMP,
-    last_seen_at        TIMESTAMP
+    last_seen_at        TIMESTAMP,
+    orientation         INT NOT NULL DEFAULT 0,
+    camera_make         VARCHAR(100),
+    camera_model        VARCHAR(100),
+    lens_model          VARCHAR(150),
+    exif_extra          JSON,
+    gps_lat             DOUBLE,
+    gps_lon             DOUBLE,
+    gps_altitude        DOUBLE
 );
+
 CREATE INDEX idx_photo_folder ON photo (folder_id);
 CREATE INDEX idx_photo_capture_date ON photo (capture_date);
 
