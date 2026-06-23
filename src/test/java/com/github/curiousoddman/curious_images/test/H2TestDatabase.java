@@ -20,10 +20,10 @@ public final class H2TestDatabase {
         String jdbcUrl = "jdbc:h2:mem:" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1";
 
         Flyway.configure()
-                .dataSource(jdbcUrl, "sa", "sa")
-                .locations("classpath:db/migration")
-                .load()
-                .migrate();
+              .dataSource(jdbcUrl, "sa", "sa")
+              .locations("classpath:db/migration")
+              .load()
+              .migrate();
 
         return DSL.using(jdbcUrl, "sa", "sa");
     }

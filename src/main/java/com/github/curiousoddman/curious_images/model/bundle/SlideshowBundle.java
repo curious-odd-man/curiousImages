@@ -15,7 +15,7 @@ import java.util.ListResourceBundle;
 @RequiredArgsConstructor
 public class SlideshowBundle extends ListResourceBundle {
     private final List<PhotoRecord> photos;
-    private final int startIndex;
+    private final int               startIndex;
 
     @Override
     protected Object[][] getContents() {

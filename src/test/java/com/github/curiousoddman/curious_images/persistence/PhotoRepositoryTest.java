@@ -7,7 +7,10 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static com.github.curiousoddman.curious_images.dbobj.Tables.PHOTO;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PhotoRepositoryTest extends AbstractRepositoryH2Test {
 
@@ -20,15 +23,16 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
     void findByAbsolutePathReturnsEmptyWhenNotImportedYet() {
         PhotoRepository repository = new PhotoRepository(dsl);
 
-        assertTrue(repository.findByAbsolutePath("D:\\Photos\\a.jpg").isEmpty());
+        assertTrue(repository.findByAbsolutePath("D:\\Photos\\a.jpg")
+                             .isEmpty());
     }
 
     @Test
     void insertThenFindByAbsolutePathRoundTrips() {
-        PhotoRepository repository = new PhotoRepository(dsl);
-        long folderId = aFolderId();
-        LocalDateTime now = LocalDateTime.of(2024, 6, 1, 12, 0);
-        LocalDateTime captureDate = LocalDateTime.of(2023, 6, 15, 14, 30);
+        PhotoRepository repository  = new PhotoRepository(dsl);
+        long            folderId    = aFolderId();
+        LocalDateTime   now         = LocalDateTime.of(2024, 6, 1, 12, 0);
+        LocalDateTime   captureDate = LocalDateTime.of(2023, 6, 15, 14, 30);
 
         long photoId = repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg",
                 12345L, 800, 600, captureDate, CaptureDateSource.EXIF_ORIGINAL, now);
@@ -36,7 +40,9 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
         Optional<?> found = repository.findByAbsolutePath("D:\\Photos\\a.jpg");
         assertTrue(found.isPresent());
 
-        var record = dsl.selectFrom(PHOTO).where(PHOTO.ID.eq(photoId)).fetchOne();
+        var record = dsl.selectFrom(PHOTO)
+                        .where(PHOTO.ID.eq(photoId))
+                        .fetchOne();
         assertNotNull(record);
         assertEquals("a.jpg", record.getFilename());
         assertEquals("jpg", record.getExtension());
@@ -52,8 +58,8 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
     @Test
     void absolutePathIsUniqueAcrossInserts() {
         PhotoRepository repository = new PhotoRepository(dsl);
-        long folderId = aFolderId();
-        LocalDateTime now = LocalDateTime.now();
+        long            folderId   = aFolderId();
+        LocalDateTime   now        = LocalDateTime.now();
 
         repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg", 100L, 1, 1, null, null, now);
 
@@ -64,15 +70,18 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
     @Test
     void touchLastSeenAtQueryOnlyUpdatesThatColumn() {
         PhotoRepository repository = new PhotoRepository(dsl);
-        long folderId = aFolderId();
-        LocalDateTime importedAt = LocalDateTime.of(2024, 1, 1, 0, 0);
+        long            folderId   = aFolderId();
+        LocalDateTime   importedAt = LocalDateTime.of(2024, 1, 1, 0, 0);
         long photoId = repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg",
                 100L, 800, 600, null, null, importedAt);
 
         LocalDateTime rescannedAt = LocalDateTime.of(2024, 6, 1, 0, 0);
-        repository.touchLastSeenAtQuery(photoId, rescannedAt).execute();
+        repository.touchLastSeenAtQuery(photoId, rescannedAt)
+                  .execute();
 
-        var record = dsl.selectFrom(PHOTO).where(PHOTO.ID.eq(photoId)).fetchOne();
+        var record = dsl.selectFrom(PHOTO)
+                        .where(PHOTO.ID.eq(photoId))
+                        .fetchOne();
         assertEquals(rescannedAt, record.getLastSeenAt());
         assertEquals(100L, record.getFileSize(), "unrelated columns must be untouched");
         assertEquals(importedAt, record.getImportedAt());
@@ -81,16 +90,19 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
     @Test
     void updateMetadataQueryUpdatesFileSizeDimensionsAndCaptureDate() {
         PhotoRepository repository = new PhotoRepository(dsl);
-        long folderId = aFolderId();
+        long            folderId   = aFolderId();
         long photoId = repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg",
                 100L, 800, 600, null, null, LocalDateTime.now());
 
-        LocalDateTime now = LocalDateTime.of(2024, 6, 1, 0, 0);
+        LocalDateTime now            = LocalDateTime.of(2024, 6, 1, 0, 0);
         LocalDateTime newCaptureDate = LocalDateTime.of(2024, 5, 1, 9, 0);
         repository.updateMetadataQuery(photoId, 999L, 1024, 768, newCaptureDate,
-                CaptureDateSource.FILESYSTEM, now).execute();
+                          CaptureDateSource.FILESYSTEM, now)
+                  .execute();
 
-        var record = dsl.selectFrom(PHOTO).where(PHOTO.ID.eq(photoId)).fetchOne();
+        var record = dsl.selectFrom(PHOTO)
+                        .where(PHOTO.ID.eq(photoId))
+                        .fetchOne();
         assertEquals(999L, record.getFileSize());
         assertEquals(1024, record.getImageWidth());
         assertEquals(768, record.getImageHeight());

@@ -32,7 +32,7 @@ public class ThumbnailGenerator {
     private static final int LONGEST_EDGE = 512;
 
     private final ThumbnailCachePaths cachePaths;
-    private final SourceImageDecoder imageDecoder;
+    private final SourceImageDecoder  imageDecoder;
 
     public record GeneratedThumbnail(String cachePath, int width, int height) {
     }
@@ -47,7 +47,8 @@ public class ThumbnailGenerator {
      * {@code img/noimage.png}, rather than failing the whole file's import.
      */
     public Optional<GeneratedThumbnail> generate(long photoId, Path sourceFile, String extension, int rotationDegrees) {
-        BufferedImage source = imageDecoder.decode(sourceFile, extension).orElse(null);
+        BufferedImage source = imageDecoder.decode(sourceFile, extension)
+                                           .orElse(null);
         if (source == null) {
             return Optional.empty();
         }
@@ -93,9 +94,9 @@ public class ThumbnailGenerator {
         // the given box while preserving aspect ratio — exactly the "longest edge = 512px"
         // requirement from the product spec. Rotation already happened above, so this just resizes.
         BufferedImage resized = Thumbnails.of(oriented)
-                .size(LONGEST_EDGE, LONGEST_EDGE)
-                .keepAspectRatio(true)
-                .asBufferedImage();
+                                          .size(LONGEST_EDGE, LONGEST_EDGE)
+                                          .keepAspectRatio(true)
+                                          .asBufferedImage();
 
         ImageIO.write(resized, "jpg", target.toFile());
 

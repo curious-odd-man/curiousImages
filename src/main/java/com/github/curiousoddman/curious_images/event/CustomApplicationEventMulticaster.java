@@ -23,22 +23,25 @@ public class CustomApplicationEventMulticaster extends SimpleApplicationEventMul
     // Only difference is that we log listeners invocations
     @Override
     public void multicastEvent(ApplicationEvent event, @Nullable ResolvableType eventType) {
-        ResolvableType type = (eventType != null ? eventType : ResolvableType.forInstance(event));
-        Executor executor = getTaskExecutor();
+        ResolvableType                     type                 = (eventType != null ? eventType : ResolvableType.forInstance(event));
+        Executor                           executor             = getTaskExecutor();
         Collection<ApplicationListener<?>> applicationListeners = getApplicationListeners(event, type);
         if (applicationListeners.isEmpty()) {
             if (EXCLUSIONS.contains(event.getClass())) {
                 return;
             }
-            log.error("🔕 No listeners defined for the event: {}", event.getClass().getSimpleName());
+            log.error("🔕 No listeners defined for the event: {}", event.getClass()
+                                                                       .getSimpleName());
         } else {
-            log.info("🖖 Handling event: {} ", event.getClass().getSimpleName());
+            log.info("🖖 Handling event: {} ", event.getClass()
+                                                   .getSimpleName());
         }
         for (ApplicationListener<?> listener : applicationListeners) {
             if (listener instanceof ApplicationListenerMethodAdapter adapter) {
                 log.info("\t- {}", adapter);
             } else {
-                log.info("\t- {}", listener.getClass().getSimpleName());
+                log.info("\t- {}", listener.getClass()
+                                           .getSimpleName());
             }
             if (executor != null && listener.supportsAsyncExecution()) {
                 try {

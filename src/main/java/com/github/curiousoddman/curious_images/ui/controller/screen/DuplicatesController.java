@@ -18,7 +18,13 @@ import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Accordion;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.TitledPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
@@ -50,22 +56,23 @@ public class DuplicatesController implements Initializable {
 
     public static final Font CONSOLAS = new Font("Consolas", 15);
 
-    private final FxmlLoader fxmlLoader;
-    private final DuplicateGroupRepository duplicateGroupRepository;
+    private final FxmlLoader                 fxmlLoader;
+    private final DuplicateGroupRepository   duplicateGroupRepository;
     private final DuplicateResolutionService duplicateResolutionService;
 
     @FXML
     public Accordion duplicatesAccordion;
     @FXML
-    public Button keepSelectedButton;
+    public Button    keepSelectedButton;
     @FXML
-    public Button deleteSelectedButton;
+    public Button    deleteSelectedButton;
 
     private Image noImageAvailable;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        duplicatesAccordion.expandedPaneProperty().addListener((obs, oldPane, newPane) -> updateActionButtonsState());
+        duplicatesAccordion.expandedPaneProperty()
+                           .addListener((obs, oldPane, newPane) -> updateActionButtonsState());
         keepSelectedButton.setOnMouseEntered(e -> previewAction(true));
         keepSelectedButton.setOnMouseExited(e -> clearPreview());
         deleteSelectedButton.setOnMouseEntered(e -> previewAction(false));
@@ -100,7 +107,9 @@ public class DuplicatesController implements Initializable {
 
     private void populateDuplicatesAccordion(List<DuplicateGroupView> groups) {
         ObservableList<TitledPane> panes = duplicatesAccordion.getPanes();
-        panes.setAll(groups.stream().map(this::buildDuplicateGroupPane).toList());
+        panes.setAll(groups.stream()
+                           .map(this::buildDuplicateGroupPane)
+                           .toList());
         if (!panes.isEmpty()) {
             duplicatesAccordion.setExpandedPane(panes.getFirst());
         }
@@ -108,25 +117,30 @@ public class DuplicatesController implements Initializable {
     }
 
     private TitledPane buildDuplicateGroupPane(DuplicateGroupView group) {
-        List<DuplicateCell> cells = new ArrayList<>();
-        FlowPane cellsPane = new FlowPane(10.0, 10.0);
+        List<DuplicateCell> cells     = new ArrayList<>();
+        FlowPane            cellsPane = new FlowPane(10.0, 10.0);
         cellsPane.setPadding(new Insets(10.0));
         for (PhotoWithThumbnail pwt : group.photos()) {
             DuplicateCell cell = createDuplicateCell(cells, pwt.photo(), pwt.thumbnail());
             cells.add(cell);
             VBox container = cell.container();
-            cellsPane.getChildren().add(container);
+            cellsPane.getChildren()
+                     .add(container);
         }
 
         // Wire slideshow click for each cell in this duplicate group
-        List<PhotoRecord> groupPhotos = cells.stream().map(DuplicateCell::photo).toList();
+        List<PhotoRecord> groupPhotos = cells.stream()
+                                             .map(DuplicateCell::photo)
+                                             .toList();
         for (int i = 0; i < cells.size(); i++) {
             final int idx = i;
-            cells.get(i).container().setOnMouseClicked(e -> {
-                if (e.getClickCount() == 1) {
-                    openSlideshow(groupPhotos, idx);
-                }
-            });
+            cells.get(i)
+                 .container()
+                 .setOnMouseClicked(e -> {
+                     if (e.getClickCount() == 1) {
+                         openSlideshow(groupPhotos, idx);
+                     }
+                 });
         }
 
         TitledPane pane = new TitledPane(buildGroupTitle(group), cellsPane);
@@ -136,7 +150,8 @@ public class DuplicatesController implements Initializable {
 
     private String buildGroupTitle(DuplicateGroupView group) {
         String ext = group.extension() == null ? "—" : group.extension();
-        return "%s · %d photos".formatted(ext, group.photos().size());
+        return "%s · %d photos".formatted(ext, group.photos()
+                                                    .size());
     }
 
     /**
@@ -162,7 +177,8 @@ public class DuplicatesController implements Initializable {
         container.setMaxWidth(240.0);
 
         DuplicateCell cell = new DuplicateCell(photo, checkBox, container);
-        checkBox.selectedProperty().addListener((obs, was, isNow) -> updateActionButtonsState());
+        checkBox.selectedProperty()
+                .addListener((obs, was, isNow) -> updateActionButtonsState());
         return cell;
     }
 
@@ -180,7 +196,10 @@ public class DuplicatesController implements Initializable {
      */
     private void updateActionButtonsState() {
         PaneData active = activePaneData();
-        boolean anyChecked = active != null && active.cells().stream().anyMatch(c -> c.checkBox().isSelected());
+        boolean anyChecked = active != null && active.cells()
+                                                     .stream()
+                                                     .anyMatch(c -> c.checkBox()
+                                                                     .isSelected());
         keepSelectedButton.setDisable(!anyChecked);
         deleteSelectedButton.setDisable(!anyChecked);
     }
@@ -195,9 +214,11 @@ public class DuplicatesController implements Initializable {
             return;
         }
         for (DuplicateCell cell : active.cells()) {
-            boolean checked = cell.checkBox().isSelected();
+            boolean checked = cell.checkBox()
+                                  .isSelected();
             boolean willBeKept = keepButtonHovered == checked;
-            ObservableList<String> styleClass = cell.container().getStyleClass();
+            ObservableList<String> styleClass = cell.container()
+                                                    .getStyleClass();
             styleClass.add(willBeKept ? CssClasses.KEEP_PREVIEW : CssClasses.DROP_PREVIEW);
             styleClass.remove(willBeKept ? CssClasses.DROP_PREVIEW : CssClasses.KEEP_PREVIEW);
         }
@@ -209,7 +230,9 @@ public class DuplicatesController implements Initializable {
             return;
         }
         for (DuplicateCell cell : active.cells()) {
-            cell.container().getStyleClass().clear();
+            cell.container()
+                .getStyleClass()
+                .clear();
         }
     }
 
@@ -232,10 +255,12 @@ public class DuplicatesController implements Initializable {
         if (active == null) {
             return;
         }
-        List<PhotoRecord> toDrop = active.cells().stream()
-                .filter(c -> c.checkBox().isSelected() != keepChecked)
-                .map(DuplicateCell::photo)
-                .toList();
+        List<PhotoRecord> toDrop = active.cells()
+                                         .stream()
+                                         .filter(c -> c.checkBox()
+                                                       .isSelected() != keepChecked)
+                                         .map(DuplicateCell::photo)
+                                         .toList();
         if (toDrop.isEmpty()) {
             return;
         }
@@ -245,7 +270,8 @@ public class DuplicatesController implements Initializable {
         Thread t = new Thread(() -> {
             DuplicateResolutionService.Result result = duplicateResolutionService.resolve(active.groupId(), toDrop);
             runOnFxThread(() -> {
-                if (!result.failures().isEmpty()) {
+                if (!result.failures()
+                           .isEmpty()) {
                     showResolutionFailures(result.failures());
                 }
                 loadDuplicatesTab();
@@ -258,9 +284,15 @@ public class DuplicatesController implements Initializable {
     private void showResolutionFailures(List<DuplicateResolutionService.Failure> failures) {
         StringBuilder sb = new StringBuilder();
         for (DuplicateResolutionService.Failure failure : failures) {
-            sb.append("• ").append(failure.photo().getFilename()).append(" — ").append(failure.reason()).append('\n');
+            sb.append("• ")
+              .append(failure.photo()
+                             .getFilename())
+              .append(" — ")
+              .append(failure.reason())
+              .append('\n');
         }
-        Alert alert = new Alert(Alert.AlertType.WARNING, sb.toString().strip(), ButtonType.OK);
+        Alert alert = new Alert(Alert.AlertType.WARNING, sb.toString()
+                                                           .strip(), ButtonType.OK);
         alert.setHeaderText("Some photos couldn't be moved to the recycle bin and were left in place");
         alert.showAndWait();
     }
@@ -281,8 +313,8 @@ public class DuplicatesController implements Initializable {
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.initOwner(scene2.getWindow());
 
-            LoadedFxml<SlideshowController> loaded = fxmlLoader.load(FxmlView.SLIDESHOW, null);
-            SlideshowController controller = loaded.controller();
+            LoadedFxml<SlideshowController> loaded     = fxmlLoader.load(FxmlView.SLIDESHOW, null);
+            SlideshowController             controller = loaded.controller();
             controller.initSlideshow(new SlideshowBundle(photos, startIndex));
 
             Scene scene = new Scene(loaded.parent());
@@ -299,28 +331,49 @@ public class DuplicatesController implements Initializable {
     // ----------------------------------------------------------------------------------------
 
     private String buildPhotoDetailsText(PhotoRecord photo) {
+        return getPhotoDetailsText(photo, formatFileSize(photo.getFileSize()));
+    }
+
+    static String getPhotoDetailsText(PhotoRecord photo, String s) {
         StringBuilder sb = new StringBuilder();
-        sb.append(photo.getFilename()).append('\n');
-        sb.append(photo.getAbsolutePath()).append('\n');
-        sb.append("Extension:  ").append(photo.getExtension() == null ? "—" : photo.getExtension()).append('\n');
-        sb.append("Size:       ").append(formatFileSize(photo.getFileSize())).append('\n');
+        sb.append(photo.getFilename())
+          .append('\n');
+        sb.append(photo.getAbsolutePath())
+          .append('\n');
+        sb.append("Extension:  ")
+          .append(photo.getExtension() == null ? "—" : photo.getExtension())
+          .append('\n');
+        sb.append("Size:       ")
+          .append(s)
+          .append('\n');
         if (photo.getImageWidth() != null && photo.getImageHeight() != null) {
-            sb.append("Dimensions: ").append(photo.getImageWidth()).append(" x ").append(photo.getImageHeight()).append('\n');
+            sb.append("Dimensions: ")
+              .append(photo.getImageWidth())
+              .append(" x ")
+              .append(photo.getImageHeight())
+              .append('\n');
         }
         if (photo.getCaptureDate() != null) {
-            sb.append("Captured:    ").append(photo.getCaptureDate());
+            sb.append("Captured:    ")
+              .append(photo.getCaptureDate());
             if (photo.getCaptureDateSource() != null) {
-                sb.append(" (").append(photo.getCaptureDateSource()).append(')');
+                sb.append(" (")
+                  .append(photo.getCaptureDateSource())
+                  .append(')');
             }
             sb.append('\n');
         }
         if (photo.getImportedAt() != null) {
-            sb.append("Imported:    ").append(photo.getImportedAt()).append('\n');
+            sb.append("Imported:    ")
+              .append(photo.getImportedAt())
+              .append('\n');
         }
         if (photo.getLastSeenAt() != null) {
-            sb.append("Last seen:    ").append(photo.getLastSeenAt());
+            sb.append("Last seen:    ")
+              .append(photo.getLastSeenAt());
         }
-        return sb.toString().strip();
+        return sb.toString()
+                 .strip();
     }
 
     private static String formatFileSize(Long bytes) {

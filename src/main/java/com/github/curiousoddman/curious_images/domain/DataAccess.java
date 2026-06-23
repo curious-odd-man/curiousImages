@@ -19,13 +19,13 @@ public class DataAccess {
 
     public void setUserPref(UserPrefKey key, String value) {
         dsl.mergeInto(USER_PREFERENCES)
-                .using(dsl.selectOne())
-                .on(USER_PREFERENCES.PREF_KEY.eq(key.getKey()))
-                .whenMatchedThenUpdate()
-                .set(USER_PREFERENCES.PREF_VALUE, val(value))
-                .whenNotMatchedThenInsert(USER_PREFERENCES.PREF_KEY, USER_PREFERENCES.PREF_VALUE)
-                .values(val(key.getKey()), val(value))
-                .execute();
+           .using(dsl.selectOne())
+           .on(USER_PREFERENCES.PREF_KEY.eq(key.getKey()))
+           .whenMatchedThenUpdate()
+           .set(USER_PREFERENCES.PREF_VALUE, val(value))
+           .whenNotMatchedThenInsert(USER_PREFERENCES.PREF_KEY, USER_PREFERENCES.PREF_VALUE)
+           .values(val(key.getKey()), val(value))
+           .execute();
 
         log.debug("Saved pref [{}] = {}", key.getKey(), value);
     }

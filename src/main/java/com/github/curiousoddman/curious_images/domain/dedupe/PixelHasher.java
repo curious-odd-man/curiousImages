@@ -33,7 +33,8 @@ public class PixelHasher {
      * thumbnail generation skipping undecodable files during import.
      */
     public PhotoHashResult hash(long photoId, Path file, String extension, long fileSize) {
-        BufferedImage image = imageDecoder.decode(file, extension).orElse(null);
+        BufferedImage image = imageDecoder.decode(file, extension)
+                                          .orElse(null);
         if (image == null) {
             return new PhotoHashResult(photoId, extension, fileSize, file.toString(), null);
         }
@@ -41,22 +42,27 @@ public class PixelHasher {
     }
 
     private String hashPixels(BufferedImage image) {
-        int width = image.getWidth();
+        int width  = image.getWidth();
         int height = image.getHeight();
         // Dimensions are folded into the hash so two different-sized images can never collide
         // purely by coincidence of getRGB() output.
         int[] pixels = image.getRGB(0, 0, width, height, null, 0, width);
 
         MessageDigest digest = sha256();
-        ByteBuffer header = ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN);
-        header.putInt(width).putInt(height);
+        ByteBuffer header = ByteBuffer.allocate(8)
+                                      .order(ByteOrder.BIG_ENDIAN);
+        header.putInt(width)
+              .putInt(height);
         digest.update(header.array());
 
-        ByteBuffer pixelBytes = ByteBuffer.allocate(pixels.length * 4).order(ByteOrder.BIG_ENDIAN);
-        pixelBytes.asIntBuffer().put(pixels);
+        ByteBuffer pixelBytes = ByteBuffer.allocate(pixels.length * 4)
+                                          .order(ByteOrder.BIG_ENDIAN);
+        pixelBytes.asIntBuffer()
+                  .put(pixels);
         digest.update(pixelBytes.array());
 
-        return HexFormat.of().formatHex(digest.digest());
+        return HexFormat.of()
+                        .formatHex(digest.digest());
     }
 
     private static MessageDigest sha256() {

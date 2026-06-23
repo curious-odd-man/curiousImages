@@ -25,21 +25,21 @@ public class FolderRepository {
 
     public long findOrCreate(long importRootId, Long parentFolderId, String relativePath, String name) {
         FolderRecord existing = dsl.selectFrom(FOLDER)
-                .where(FOLDER.IMPORT_ROOT_ID.eq(importRootId))
-                .and(FOLDER.RELATIVE_PATH.eq(relativePath))
-                .fetchOne();
+                                   .where(FOLDER.IMPORT_ROOT_ID.eq(importRootId))
+                                   .and(FOLDER.RELATIVE_PATH.eq(relativePath))
+                                   .fetchOne();
         if (existing != null) {
             return existing.getId();
         }
 
         return dsl.insertInto(FOLDER)
-                .set(FOLDER.IMPORT_ROOT_ID, importRootId)
-                .set(FOLDER.PARENT_FOLDER_ID, parentFolderId)
-                .set(FOLDER.RELATIVE_PATH, relativePath)
-                .set(FOLDER.NAME, name)
-                .returning(FOLDER.ID)
-                .fetchOne()
-                .getId();
+                  .set(FOLDER.IMPORT_ROOT_ID, importRootId)
+                  .set(FOLDER.PARENT_FOLDER_ID, parentFolderId)
+                  .set(FOLDER.RELATIVE_PATH, relativePath)
+                  .set(FOLDER.NAME, name)
+                  .returning(FOLDER.ID)
+                  .fetchOne()
+                  .getId();
     }
 
     /**
@@ -51,9 +51,9 @@ public class FolderRepository {
     public Optional<FolderRecord> findRootFolder(long importRootId) {
         return Optional.ofNullable(
                 dsl.selectFrom(FOLDER)
-                        .where(FOLDER.IMPORT_ROOT_ID.eq(importRootId))
-                        .and(FOLDER.PARENT_FOLDER_ID.isNull())
-                        .fetchOne());
+                   .where(FOLDER.IMPORT_ROOT_ID.eq(importRootId))
+                   .and(FOLDER.PARENT_FOLDER_ID.isNull())
+                   .fetchOne());
     }
 
     /**
@@ -62,8 +62,8 @@ public class FolderRepository {
      */
     public List<FolderRecord> findChildren(long parentFolderId) {
         return dsl.selectFrom(FOLDER)
-                .where(FOLDER.PARENT_FOLDER_ID.eq(parentFolderId))
-                .orderBy(FOLDER.NAME)
-                .fetch();
+                  .where(FOLDER.PARENT_FOLDER_ID.eq(parentFolderId))
+                  .orderBy(FOLDER.NAME)
+                  .fetch();
     }
 }

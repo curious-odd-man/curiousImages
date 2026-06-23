@@ -9,7 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class TestApp extends Application {
-    private Stage stage;
+    private Stage    stage;
     private Runnable afterStartup = () -> {};
 
 

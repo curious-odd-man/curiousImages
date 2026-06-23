@@ -39,8 +39,8 @@ public class SourceImageDecoder {
         try {
             if (CR2_EXTENSION.equalsIgnoreCase(extension)) {
                 return metadataExtractor.extractEmbeddedPreviewBytes(sourceFile)
-                        .map(this::decodeBytes)
-                        .filter(Objects::nonNull);
+                                        .map(this::decodeBytes)
+                                        .filter(Objects::nonNull);
             }
             return Optional.ofNullable(ImageIO.read(sourceFile.toFile()));
         } catch (IOException e) {

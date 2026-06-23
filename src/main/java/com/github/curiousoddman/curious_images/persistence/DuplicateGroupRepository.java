@@ -37,12 +37,12 @@ public class DuplicateGroupRepository {
      */
     public long insertGroup(DSLContext ctx, long jobId, String extension, String pixelHash, LocalDateTime now) {
         return ctx.insertInto(DUPLICATE_GROUP)
-                .set(DUPLICATE_GROUP.DUPLICATE_JOB_ID, jobId)
-                .set(DUPLICATE_GROUP.EXTENSION, extension)
-                .set(DUPLICATE_GROUP.PIXEL_HASH, pixelHash)
-                .set(DUPLICATE_GROUP.CREATED_AT, now)
-                .returningResult(DUPLICATE_GROUP.ID)
-                .fetchOne(DUPLICATE_GROUP.ID);
+                  .set(DUPLICATE_GROUP.DUPLICATE_JOB_ID, jobId)
+                  .set(DUPLICATE_GROUP.EXTENSION, extension)
+                  .set(DUPLICATE_GROUP.PIXEL_HASH, pixelHash)
+                  .set(DUPLICATE_GROUP.CREATED_AT, now)
+                  .returningResult(DUPLICATE_GROUP.ID)
+                  .fetchOne(DUPLICATE_GROUP.ID);
     }
 
     public void insertMembers(DSLContext ctx, long groupId, List<Long> photoIds) {
@@ -64,14 +64,14 @@ public class DuplicateGroupRepository {
      */
     public void deleteGroupsNotInJob(DSLContext ctx, long currentJobId) {
         ctx.deleteFrom(DUPLICATE_GROUP_MEMBER)
-                .where(DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID.in(
-                        ctx.select(DUPLICATE_GROUP.ID)
-                                .from(DUPLICATE_GROUP)
-                                .where(DUPLICATE_GROUP.DUPLICATE_JOB_ID.ne(currentJobId))))
-                .execute();
+           .where(DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID.in(
+                   ctx.select(DUPLICATE_GROUP.ID)
+                      .from(DUPLICATE_GROUP)
+                      .where(DUPLICATE_GROUP.DUPLICATE_JOB_ID.ne(currentJobId))))
+           .execute();
         ctx.deleteFrom(DUPLICATE_GROUP)
-                .where(DUPLICATE_GROUP.DUPLICATE_JOB_ID.ne(currentJobId))
-                .execute();
+           .where(DUPLICATE_GROUP.DUPLICATE_JOB_ID.ne(currentJobId))
+           .execute();
     }
 
     /**
@@ -81,28 +81,32 @@ public class DuplicateGroupRepository {
      */
     public List<DuplicateGroupView> findAllGroupsWithMembers() {
         var rows = dsl.select(DUPLICATE_GROUP.ID, DUPLICATE_GROUP.EXTENSION, DUPLICATE_GROUP.PIXEL_HASH)
-                .select(PHOTO.fields())
-                .select(THUMBNAIL.fields())
-                .from(DUPLICATE_GROUP)
-                .join(DUPLICATE_GROUP_MEMBER).on(DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID.eq(DUPLICATE_GROUP.ID))
-                .join(PHOTO).on(PHOTO.ID.eq(DUPLICATE_GROUP_MEMBER.PHOTO_ID))
-                .leftJoin(THUMBNAIL).on(THUMBNAIL.PHOTO_ID.eq(PHOTO.ID))
-                .orderBy(DUPLICATE_GROUP.ID, PHOTO.FILENAME)
-                .fetch();
+                      .select(PHOTO.fields())
+                      .select(THUMBNAIL.fields())
+                      .from(DUPLICATE_GROUP)
+                      .join(DUPLICATE_GROUP_MEMBER)
+                      .on(DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID.eq(DUPLICATE_GROUP.ID))
+                      .join(PHOTO)
+                      .on(PHOTO.ID.eq(DUPLICATE_GROUP_MEMBER.PHOTO_ID))
+                      .leftJoin(THUMBNAIL)
+                      .on(THUMBNAIL.PHOTO_ID.eq(PHOTO.ID))
+                      .orderBy(DUPLICATE_GROUP.ID, PHOTO.FILENAME)
+                      .fetch();
 
         Map<Long, GroupAccumulator> byGroupId = new LinkedHashMap<>();
         for (var r : rows) {
             long groupId = r.get(DUPLICATE_GROUP.ID);
             GroupAccumulator acc = byGroupId.computeIfAbsent(groupId, id -> new GroupAccumulator(
                     id, r.get(DUPLICATE_GROUP.EXTENSION), r.get(DUPLICATE_GROUP.PIXEL_HASH)));
-            PhotoRecord photo = r.into(PHOTO);
+            PhotoRecord     photo     = r.into(PHOTO);
             ThumbnailRecord thumbnail = r.get(THUMBNAIL.PHOTO_ID) == null ? null : r.into(THUMBNAIL);
             acc.photos.add(new PhotoWithThumbnail(photo, thumbnail));
         }
 
-        return byGroupId.values().stream()
-                .map(acc -> new DuplicateGroupView(acc.groupId, acc.extension, acc.pixelHash, acc.photos))
-                .toList();
+        return byGroupId.values()
+                        .stream()
+                        .map(acc -> new DuplicateGroupView(acc.groupId, acc.extension, acc.pixelHash, acc.photos))
+                        .toList();
     }
 
     /**
@@ -112,9 +116,9 @@ public class DuplicateGroupRepository {
      */
     public void deleteMember(DSLContext ctx, long groupId, long photoId) {
         ctx.deleteFrom(DUPLICATE_GROUP_MEMBER)
-                .where(DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID.eq(groupId)
-                        .and(DUPLICATE_GROUP_MEMBER.PHOTO_ID.eq(photoId)))
-                .execute();
+           .where(DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID.eq(groupId)
+                                                           .and(DUPLICATE_GROUP_MEMBER.PHOTO_ID.eq(photoId)))
+           .execute();
     }
 
     /**
@@ -131,17 +135,17 @@ public class DuplicateGroupRepository {
      */
     public void deleteGroupCascade(DSLContext ctx, long groupId) {
         ctx.deleteFrom(DUPLICATE_GROUP_MEMBER)
-                .where(DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID.eq(groupId))
-                .execute();
+           .where(DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID.eq(groupId))
+           .execute();
         ctx.deleteFrom(DUPLICATE_GROUP)
-                .where(DUPLICATE_GROUP.ID.eq(groupId))
-                .execute();
+           .where(DUPLICATE_GROUP.ID.eq(groupId))
+           .execute();
     }
 
     private static final class GroupAccumulator {
-        private final long groupId;
-        private final String extension;
-        private final String pixelHash;
+        private final long                     groupId;
+        private final String                   extension;
+        private final String                   pixelHash;
         private final List<PhotoWithThumbnail> photos = new ArrayList<>();
 
         private GroupAccumulator(long groupId, String extension, String pixelHash) {

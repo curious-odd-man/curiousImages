@@ -17,10 +17,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -49,8 +49,8 @@ import java.util.Set;
 public class PhotoMetadataExtractor {
 
     private static final Set<String> JPEG_EXTENSIONS = Set.of("jpg", "jpeg");
-    private static final String PNG_EXTENSION = "png";
-    private static final String CR2_EXTENSION = "cr2";
+    private static final String      PNG_EXTENSION   = "png";
+    private static final String      CR2_EXTENSION   = "cr2";
 
     /**
      * EXIF Orientation tag values (1-8) mapped to the clockwise rotation, in degrees, needed to
@@ -111,7 +111,7 @@ public class PhotoMetadataExtractor {
         }
 
         CaptureDateAndSource captureDateAndSource = extractCaptureDate(metadata, file);
-        Dimensions dimensions = extractDimensions(metadata, extension, file);
+        Dimensions           dimensions           = extractDimensions(metadata, extension, file);
 
         return new ExtractedMetadata(dimensions.width(), dimensions.height(),
                 captureDateAndSource.date(), captureDateAndSource.source(),
@@ -133,7 +133,7 @@ public class PhotoMetadataExtractor {
      */
     public Optional<byte[]> extractEmbeddedPreviewBytes(Path file) {
         try {
-            Metadata metadata = ImageMetadataReader.readMetadata(file.toFile());
+            Metadata               metadata           = ImageMetadataReader.readMetadata(file.toFile());
             ExifThumbnailDirectory thumbnailDirectory = metadata.getFirstDirectoryOfType(ExifThumbnailDirectory.class);
             if (thumbnailDirectory == null) {
                 return Optional.empty();
@@ -326,7 +326,7 @@ public class PhotoMetadataExtractor {
                     continue;
                 }
                 grouped.computeIfAbsent(directory.getName(), k -> new LinkedHashMap<>())
-                        .put(tag.getTagName(), description);
+                       .put(tag.getTagName(), description);
             }
         }
         if (grouped.isEmpty()) {
@@ -346,7 +346,8 @@ public class PhotoMetadataExtractor {
 
     private LocalDateTime fileSystemDate(Path file) {
         try {
-            return LocalDateTime.ofInstant(Files.getLastModifiedTime(file).toInstant(), ZoneId.systemDefault());
+            return LocalDateTime.ofInstant(Files.getLastModifiedTime(file)
+                                                .toInstant(), ZoneId.systemDefault());
         } catch (IOException e) {
             log.warn("Could not read filesystem modified time for {}", file, e);
             return null;

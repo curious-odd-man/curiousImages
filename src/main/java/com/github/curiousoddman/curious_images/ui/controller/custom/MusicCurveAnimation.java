@@ -16,8 +16,8 @@ import java.util.Random;
 public class MusicCurveAnimation {
     private static final Random RND = new Random();
 
-    private static final String[] NOTES = {"♩", "♪", "♫", "♬", "𝄞"};
-    private AnimationTimer timer;
+    private static final String[]       NOTES = {"♩", "♪", "♫", "♬", "𝄞"};
+    private              AnimationTimer timer;
 
     enum OriginSide {LEFT, RIGHT}
 
@@ -25,9 +25,9 @@ public class MusicCurveAnimation {
         private final double width;
         private final double height;
         OriginSide originSide;
-        double progress;       // 0.0 → 1.0: traveling; 1.0 → 2.0: fading out
-        double speed;
-        Color color;
+        double     progress;       // 0.0 → 1.0: traveling; 1.0 → 2.0: fading out
+        double     speed;
+        Color      color;
 
         // Bezier control points
         double x0, y0;         // start
@@ -37,9 +37,9 @@ public class MusicCurveAnimation {
 
         // Note state
         boolean hasNote;
-        double noteT;          // where on curve (0-1) the note sits
-        double noteLife;       // countdown to remove note
-        String noteSymbol;
+        double  noteT;          // where on curve (0-1) the note sits
+        double  noteLife;       // countdown to remove note
+        String  noteSymbol;
 
         Curve(double width, double height, OriginSide originSide) {
             this.width = width;
@@ -80,8 +80,8 @@ public class MusicCurveAnimation {
         // Evaluate cubic bezier point at t
         double[] pointAt(double t) {
             double mt = 1 - t;
-            double x = mt * mt * mt * x0 + 3 * mt * mt * t * cx1 + 3 * mt * t * t * cx2 + t * t * t * x1;
-            double y = mt * mt * mt * y0 + 3 * mt * mt * t * cy1 + 3 * mt * t * t * cy2 + t * t * t * y1;
+            double x  = mt * mt * mt * x0 + 3 * mt * mt * t * cx1 + 3 * mt * t * t * cx2 + t * t * t * x1;
+            double y  = mt * mt * mt * y0 + 3 * mt * mt * t * cy1 + 3 * mt * t * t * cy2 + t * t * t * y1;
             return new double[]{x, y};
         }
 
@@ -90,7 +90,9 @@ public class MusicCurveAnimation {
         }
 
         double opacity() {
-            if (progress <= 1.0) return 1.0;
+            if (progress <= 1.0) {
+                return 1.0;
+            }
             return Math.max(0, 1.0 - (progress - 1.0)); // fade out over second half
         }
 
@@ -102,9 +104,9 @@ public class MusicCurveAnimation {
         }
     }
 
-    List<Curve> curves = new ArrayList<>();
-    long lastSpawn = 0;
-    long lastNote = 0;
+    List<Curve> curves    = new ArrayList<>();
+    long        lastSpawn = 0;
+    long        lastNote  = 0;
 
     void spawnCurve(double width, double height) {
         OriginSide[] originSides = OriginSide.values();
@@ -121,9 +123,9 @@ public class MusicCurveAnimation {
         // Periodically spawn notes on random curves
         if (now - lastNote > 800_000_000L) {
             curves.stream()
-                    .filter(c -> c.progress < 1.0 && !c.hasNote)
-                    .findAny()
-                    .ifPresent(Curve::spawnNote);
+                  .filter(c -> c.progress < 1.0 && !c.hasNote)
+                  .findAny()
+                  .ifPresent(Curve::spawnNote);
             lastNote = now;
         }
 
@@ -133,7 +135,9 @@ public class MusicCurveAnimation {
             c.progress += c.speed;
             if (c.hasNote) {
                 c.noteLife -= dt;
-                if (c.noteLife <= 0) c.hasNote = false;
+                if (c.noteLife <= 0) {
+                    c.hasNote = false;
+                }
             }
         });
 
@@ -152,15 +156,15 @@ public class MusicCurveAnimation {
 
         for (Curve c : curves) {
             double opacity = c.opacity();
-            double t = Math.min(c.progress, 1.0); // draw up to current progress
+            double t       = Math.min(c.progress, 1.0); // draw up to current progress
 
             // Draw the curve segment from 0 → t using polyline approximation
-            int segments = 80;
-            double[] xs = new double[segments + 1];
-            double[] ys = new double[segments + 1];
+            int      segments = 80;
+            double[] xs       = new double[segments + 1];
+            double[] ys       = new double[segments + 1];
 
             for (int i = 0; i <= segments; i++) {
-                double u = (i / (double) segments) * t;
+                double   u  = (i / (double) segments) * t;
                 double[] pt = c.pointAt(u);
                 xs[i] = pt[0];
                 ys[i] = pt[1];
@@ -185,9 +189,9 @@ public class MusicCurveAnimation {
 
             // Musical note
             if (c.hasNote) {
-                double[] npt = c.pointAt(c.noteT);
-                double noteOpacity = Math.min(1.0, c.noteLife / 0.5) * opacity;
-                double bounce = Math.sin(c.noteLife * 6) * 3; // subtle bounce
+                double[] npt         = c.pointAt(c.noteT);
+                double   noteOpacity = Math.min(1.0, c.noteLife / 0.5) * opacity;
+                double   bounce      = Math.sin(c.noteLife * 6) * 3; // subtle bounce
 
                 gc.setFill(Color.WHITE.deriveColor(0, 1, 1, noteOpacity));
                 gc.setFont(Font.font("serif", FontWeight.BOLD, 20));

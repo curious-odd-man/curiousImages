@@ -8,7 +8,6 @@
 <?import javafx.scene.shape.CubicCurveTo?>
 <?import javafx.scene.shape.MoveTo?>
 <?import javafx.scene.shape.Path?>
-
 <AnchorPane fx:id="rootPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
             xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.github.curiousoddman.curious_images.app.preloader.PreloaderController">

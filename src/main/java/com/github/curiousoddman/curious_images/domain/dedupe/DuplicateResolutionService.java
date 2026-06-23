@@ -29,22 +29,23 @@ import java.util.List;
 @Slf4j
 @RequiredArgsConstructor
 public class DuplicateResolutionService {
-    private final DSLContext dsl;
-    private final PhotoRepository photoRepository;
-    private final ThumbnailRepository thumbnailRepository;
+    private final DSLContext               dsl;
+    private final PhotoRepository          photoRepository;
+    private final ThumbnailRepository      thumbnailRepository;
     private final DuplicateGroupRepository duplicateGroupRepository;
 
     /**
      * @param groupId      the group these photos belong to
      * @param photosToDrop the photos to trash + delete — passed in directly (already loaded by
-     *                     the controller from {@link DuplicateGroupView}) to avoid a redundant fetch
+     *                     the controller from {@link com.github.curiousoddman.curious_images.model.DuplicateGroupView}) to avoid a redundant fetch
      */
     public Result resolve(long groupId, List<PhotoRecord> photosToDrop) {
-        List<Long> deletedPhotoIds = new ArrayList<>();
-        List<Failure> failures = new ArrayList<>();
+        List<Long>    deletedPhotoIds = new ArrayList<>();
+        List<Failure> failures        = new ArrayList<>();
 
         boolean trashSupported = Desktop.isDesktopSupported()
-                && Desktop.getDesktop().isSupported(Desktop.Action.MOVE_TO_TRASH);
+                && Desktop.getDesktop()
+                          .isSupported(Desktop.Action.MOVE_TO_TRASH);
         if (!trashSupported) {
             for (PhotoRecord photo : photosToDrop) {
                 failures.add(new Failure(photo, "Recycle bin is not supported on this system"));
@@ -54,7 +55,7 @@ public class DuplicateResolutionService {
         Desktop desktop = Desktop.getDesktop();
 
         for (PhotoRecord photo : photosToDrop) {
-            File file = new File(photo.getAbsolutePath());
+            File    file = new File(photo.getAbsolutePath());
             boolean trashed;
             try {
                 // A file that's already gone (e.g. removed outside the app) is treated as

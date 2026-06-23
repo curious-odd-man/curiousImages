@@ -8,7 +8,6 @@ import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.geometry.Bounds;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
@@ -55,7 +54,7 @@ public class SlideshowController implements Initializable {
     // ── Dependencies ────────────────────────────────────────────────────────
     private final ThumbnailRepository thumbnailRepository;
     @FXML
-    public StackPane imagesPane;
+    public        StackPane           imagesPane;
 
     // ── FXML nodes ──────────────────────────────────────────────────────────
     @FXML
@@ -65,28 +64,28 @@ public class SlideshowController implements Initializable {
     @FXML
     private ImageView fullImageView;
     @FXML
-    private Label fileNotFoundPathLabel;
+    private Label     fileNotFoundPathLabel;
 
     @FXML
     private Button prevButton;
     @FXML
     private Button nextButton;
     @FXML
-    private Label photoNameLabel;
+    private Label  photoNameLabel;
     @FXML
-    private Label counterLabel;
+    private Label  counterLabel;
     @FXML
-    private Label zoomLabel;
+    private Label  zoomLabel;
     @FXML
     private Button closeButton;
 
     // ── Slideshow state ─────────────────────────────────────────────────────
     private List<PhotoRecord> photos;
-    private int currentIndex;
+    private int               currentIndex;
 
     // ── Zoom / pan state ────────────────────────────────────────────────────
-    private static final double ZOOM_MIN = 1.0;
-    private static final double ZOOM_MAX = 10.0;
+    private static final double ZOOM_MIN  = 1.0;
+    private static final double ZOOM_MAX  = 10.0;
     private static final double ZOOM_STEP = 0.12; // fraction per scroll tick
 
     private double zoomFactor = 1.0;
@@ -157,7 +156,8 @@ public class SlideshowController implements Initializable {
         nextButton.setDisable(index == photos.size() - 1);
 
         // 1. Load and show thumbnail immediately
-        ThumbnailRecord thumbnailRecord = thumbnailRepository.findByPhotoId(photo.getId()).orElse(null);
+        ThumbnailRecord thumbnailRecord = thumbnailRepository.findByPhotoId(photo.getId())
+                                                             .orElse(null);
         Image thumb = loadThumbnailImage(thumbnailRecord);
         thumbnailImageView.setImage(thumb);
         thumbnailImageView.setOpacity(1.0);
@@ -166,28 +166,31 @@ public class SlideshowController implements Initializable {
 
         // 2. Try to load full-res original in background
         String absolutePath = photo.getAbsolutePath();
-        File sourceFile = absolutePath != null ? new File(absolutePath) : null;
+        File   sourceFile   = absolutePath != null ? new File(absolutePath) : null;
 
         if (sourceFile != null && sourceFile.isFile()) {
 
             // Background-loading: JavaFX decodes off the FX thread
-            Image fullImage = new Image(sourceFile.toURI().toString(), 0, 0, true, true, true);
-            fullImage.progressProperty().addListener((obs, oldVal, newVal) -> {
-                if (newVal.doubleValue() >= 1.0 && !fullImage.isError()) {
-                    // Only apply if the user hasn't navigated away
-                    if (photos.get(currentIndex) == photo) {
-                        fullImageView.setImage(fullImage);
-                        crossFadeToFull();
-                        runOnFxThread(() -> rootPane.requestFocus());
-                    }
-                }
-            });
-            fullImage.errorProperty().addListener((obs, was, isError) -> {
-                if (isError) {
-                    log.warn("Failed to decode full-res image: {}", absolutePath);
-                    // thumbnail stays visible; no warning — file exists but is unreadable
-                }
-            });
+            Image fullImage = new Image(sourceFile.toURI()
+                                                  .toString(), 0, 0, true, true, true);
+            fullImage.progressProperty()
+                     .addListener((obs, oldVal, newVal) -> {
+                         if (newVal.doubleValue() >= 1.0 && !fullImage.isError()) {
+                             // Only apply if the user hasn't navigated away
+                             if (photos.get(currentIndex) == photo) {
+                                 fullImageView.setImage(fullImage);
+                                 crossFadeToFull();
+                                 runOnFxThread(() -> rootPane.requestFocus());
+                             }
+                         }
+                     });
+            fullImage.errorProperty()
+                     .addListener((obs, was, isError) -> {
+                         if (isError) {
+                             log.warn("Failed to decode full-res image: {}", absolutePath);
+                             // thumbnail stays visible; no warning — file exists but is unreadable
+                         }
+                     });
         } else {
             // File missing from disk — keep thumbnail, show warning badge
             fileNotFoundPathLabel.setText(absolutePath != null ? absolutePath : "(path unknown)");
@@ -226,7 +229,7 @@ public class SlideshowController implements Initializable {
                 return;
             }
             double oldZoom = zoomFactor;
-            double delta = e.getDeltaY() > 0 ? (1 + ZOOM_STEP) : (1 / (1 + ZOOM_STEP));
+            double delta   = e.getDeltaY() > 0 ? (1 + ZOOM_STEP) : (1 / (1 + ZOOM_STEP));
             double newZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, oldZoom * delta));
             if (newZoom == oldZoom) {
                 return;
@@ -269,9 +272,11 @@ public class SlideshowController implements Initializable {
     }
 
     private void applyTransform(boolean isZoomChanged) {
-        double fitWidth = fullImageView.getLayoutBounds().getWidth();
+        double fitWidth = fullImageView.getLayoutBounds()
+                                       .getWidth();
         double tx = (zoomFactor <= 1.0) ? 0 : clampTranslate(translateX, zoomFactor, imagesPane.getWidth(), fitWidth);
-        double fitHeight = fullImageView.getLayoutBounds().getHeight();
+        double fitHeight = fullImageView.getLayoutBounds()
+                                        .getHeight();
         double ty = (zoomFactor <= 1.0) ? 0 : clampTranslate(translateY, zoomFactor, imagesPane.getHeight(), fitHeight);
 
         for (ImageView iv : new ImageView[]{thumbnailImageView, fullImageView}) {
@@ -316,22 +321,23 @@ public class SlideshowController implements Initializable {
     // ────────────────────────────────────────────────────────────────────────
 
     private void setupKeyboard() {
-        rootPane.sceneProperty().addListener((obs, oldScene, newScene) -> {
-            if (newScene != null) {
-                newScene.setOnKeyPressed(e -> {
-                    if (e.getCode() == KeyCode.LEFT || e.getCode() == KeyCode.KP_LEFT) {
-                        navigate(-1);
-                        e.consume();
-                    } else if (e.getCode() == KeyCode.RIGHT || e.getCode() == KeyCode.KP_RIGHT) {
-                        navigate(1);
-                        e.consume();
-                    } else if (e.getCode() == KeyCode.ESCAPE) {
-                        closeSlideshow();
-                        e.consume();
+        rootPane.sceneProperty()
+                .addListener((obs, oldScene, newScene) -> {
+                    if (newScene != null) {
+                        newScene.setOnKeyPressed(e -> {
+                            if (e.getCode() == KeyCode.LEFT || e.getCode() == KeyCode.KP_LEFT) {
+                                navigate(-1);
+                                e.consume();
+                            } else if (e.getCode() == KeyCode.RIGHT || e.getCode() == KeyCode.KP_RIGHT) {
+                                navigate(1);
+                                e.consume();
+                            } else if (e.getCode() == KeyCode.ESCAPE) {
+                                closeSlideshow();
+                                e.consume();
+                            }
+                        });
                     }
                 });
-            }
-        });
         rootPane.requestFocus();
     }
 
@@ -347,7 +353,9 @@ public class SlideshowController implements Initializable {
 
     private void closeSlideshow() {
         // The slideshow is shown as a modal dialog stage — close its window.
-        rootPane.getScene().getWindow().hide();
+        rootPane.getScene()
+                .getWindow()
+                .hide();
     }
 
     // ────────────────────────────────────────────────────────────────────────
@@ -362,7 +370,8 @@ public class SlideshowController implements Initializable {
         if (thumbnail != null && thumbnail.getCachePath() != null) {
             File file = new File(thumbnail.getCachePath());
             if (file.isFile()) {
-                return new Image(file.toURI().toString(), 0, 0, true, true, true);
+                return new Image(file.toURI()
+                                     .toString(), 0, 0, true, true, true);
             }
         }
         return noImageAvailable;

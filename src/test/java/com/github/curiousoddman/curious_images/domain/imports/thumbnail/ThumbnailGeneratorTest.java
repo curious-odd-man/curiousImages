@@ -13,7 +13,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ThumbnailGeneratorTest {
 
@@ -41,7 +43,8 @@ class ThumbnailGeneratorTest {
         assertEquals(512, thumbnail.width(), "longest edge (width, for landscape) must be 512");
         assertEquals(384, thumbnail.height(), "height must scale to preserve the 4:3 aspect ratio");
 
-        BufferedImage written = ImageIO.read(cacheDir.resolve(thumbnail.cachePath()).toFile());
+        BufferedImage written = ImageIO.read(cacheDir.resolve(thumbnail.cachePath())
+                                                     .toFile());
         assertEquals(512, written.getWidth());
         assertEquals(384, written.getHeight());
     }
@@ -67,8 +70,11 @@ class ThumbnailGeneratorTest {
 
         assertTrue(first.isPresent());
         assertTrue(second.isPresent());
-        assertEquals(first.get().cachePath(), second.get().cachePath());
-        assertEquals("345/12345.jpg", first.get().cachePath());
+        assertEquals(first.get()
+                          .cachePath(), second.get()
+                                              .cachePath());
+        assertEquals("345/12345.jpg", first.get()
+                                           .cachePath());
     }
 
     @Test

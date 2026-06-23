@@ -10,7 +10,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DelayedActionTest {
 
@@ -19,7 +21,7 @@ class DelayedActionTest {
         DelayedAction delayedAction = new DelayedAction(200, TimeUnit.MILLISECONDS);
 
         AtomicBoolean executed = new AtomicBoolean(false);
-        long start = System.nanoTime();
+        long          start    = System.nanoTime();
 
         delayedAction.reSchedule(() -> executed.set(true));
 
@@ -39,7 +41,8 @@ class DelayedActionTest {
 
         delayedAction.reSchedule(counter::incrementAndGet);
 
-        await().during(Duration.ofMillis(100)).until(() -> true);
+        await().during(Duration.ofMillis(100))
+               .until(() -> true);
 
         delayedAction.reSchedule(counter::incrementAndGet);
 
@@ -54,7 +57,7 @@ class DelayedActionTest {
     void shouldExecuteOnlyLatestScheduledAction() {
         DelayedAction delayedAction = new DelayedAction(200, TimeUnit.MILLISECONDS);
 
-        AtomicBoolean firstExecuted = new AtomicBoolean(false);
+        AtomicBoolean firstExecuted  = new AtomicBoolean(false);
         AtomicBoolean secondExecuted = new AtomicBoolean(false);
 
         delayedAction.reSchedule(() -> firstExecuted.set(true));

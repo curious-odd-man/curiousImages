@@ -13,12 +13,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 @RequiredArgsConstructor
 public class UserPreferencesService {
-    public static final double DEFAULT_WINDOW_X = 100;
-    public static final double DEFAULT_WINDOW_Y = 100;
-    public static final double DEFAULT_WINDOW_WIDTH = 1920;
+    public static final double DEFAULT_WINDOW_X      = 100;
+    public static final double DEFAULT_WINDOW_Y      = 100;
+    public static final double DEFAULT_WINDOW_WIDTH  = 1920;
     public static final double DEFAULT_WINDOW_HEIGHT = 1080;
-    public static final double DEFAULT_SPLIT_WIDTH = 0.26;
-    public static final double DEFAULT_FONT_SIZE = 12;
+    public static final double DEFAULT_SPLIT_WIDTH   = 0.26;
+    public static final double DEFAULT_FONT_SIZE     = 12;
 
     private final DataAccess dataAccess;
 
@@ -44,7 +44,9 @@ public class UserPreferencesService {
 
     private double getDouble(UserPrefKey key, double defaultValue) {
         String raw = dataAccess.getUserPref(key, null);
-        if (raw == null) return defaultValue;
+        if (raw == null) {
+            return defaultValue;
+        }
         try {
             return Double.parseDouble(raw);
         } catch (NumberFormatException e) {
@@ -59,7 +61,9 @@ public class UserPreferencesService {
 
     private boolean getBoolean(UserPrefKey key, boolean defaultValue) {
         String raw = dataAccess.getUserPref(key, null);
-        if (raw == null) return defaultValue;
+        if (raw == null) {
+            return defaultValue;
+        }
         return Boolean.parseBoolean(raw);
     }
 

@@ -1,7 +1,7 @@
 package com.github.curiousoddman.curious_images.retryable.actions.services;
 
-import com.github.curiousoddman.curious_images.retryable.actions.handler.DurableActionsHandler;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PendingActionRecord;
+import com.github.curiousoddman.curious_images.retryable.actions.handler.DurableActionsHandler;
 import com.github.curiousoddman.curious_images.util.StartupRunnable;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,7 +14,7 @@ import java.util.Map;
 @Slf4j
 @Service
 public class DurableActionService implements StartupRunnable {
-    private final DurableActionDao dao;
+    private final DurableActionDao                      dao;
     private final Map<String, DurableActionsHandler<?>> handlers;
 
     public DurableActionService(DurableActionDao dao, List<DurableActionsHandler<?>> handlerList) {
@@ -39,12 +39,6 @@ public class DurableActionService implements StartupRunnable {
         }
         log.info("Pending actions execution completed.");
     }
-
-/*    public void updateLyrics(String newLyrics, Path filePath) {
-        UpdateLyricsPayload payload = new UpdateLyricsPayload(newLyrics, filePath);
-        PendingActionRecord action = dao.newAction(payload);
-        process(action);
-    }*/
 
     private void process(PendingActionRecord action) {
         DurableActionsHandler<?> handler = handlers.get(action.getType());

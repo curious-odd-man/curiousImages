@@ -34,20 +34,20 @@ public class PhotoHashRepository {
      */
     public Map<Long, PhotoHashRecord> findAllAsMap() {
         return dsl.selectFrom(PHOTO_HASH)
-                .fetch()
-                .stream()
-                .collect(Collectors.toMap(PhotoHashRecord::getPhotoId, r -> r));
+                  .fetch()
+                  .stream()
+                  .collect(Collectors.toMap(PhotoHashRecord::getPhotoId, r -> r));
     }
 
     public Query upsertQuery(long photoId, String pixelHash, long hashedFileSize, LocalDateTime now) {
         return dsl.insertInto(PHOTO_HASH)
-                .set(PHOTO_HASH.PHOTO_ID, photoId)
-                .set(PHOTO_HASH.PIXEL_HASH, pixelHash)
-                .set(PHOTO_HASH.HASHED_FILE_SIZE, hashedFileSize)
-                .set(PHOTO_HASH.HASHED_AT, now)
-                .onDuplicateKeyUpdate()
-                .set(PHOTO_HASH.PIXEL_HASH, pixelHash)
-                .set(PHOTO_HASH.HASHED_FILE_SIZE, hashedFileSize)
-                .set(PHOTO_HASH.HASHED_AT, now);
+                  .set(PHOTO_HASH.PHOTO_ID, photoId)
+                  .set(PHOTO_HASH.PIXEL_HASH, pixelHash)
+                  .set(PHOTO_HASH.HASHED_FILE_SIZE, hashedFileSize)
+                  .set(PHOTO_HASH.HASHED_AT, now)
+                  .onDuplicateKeyUpdate()
+                  .set(PHOTO_HASH.PIXEL_HASH, pixelHash)
+                  .set(PHOTO_HASH.HASHED_FILE_SIZE, hashedFileSize)
+                  .set(PHOTO_HASH.HASHED_AT, now);
     }
 }
