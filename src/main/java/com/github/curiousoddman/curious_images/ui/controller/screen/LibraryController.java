@@ -2,22 +2,44 @@ package com.github.curiousoddman.curious_images.ui.controller.screen;
 
 import com.github.curiousoddman.curious_images.config.FxmlLoader;
 import com.github.curiousoddman.curious_images.config.FxmlView;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.*;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.AlbumRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.FolderRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateDetectionService;
 import com.github.curiousoddman.curious_images.domain.search.SearchService;
 import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferencesService;
-import com.github.curiousoddman.curious_images.event.*;
+import com.github.curiousoddman.curious_images.event.AiPipelineCompleteEvent;
+import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
+import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
+import com.github.curiousoddman.curious_images.event.LibraryUpdatedEvent;
+import com.github.curiousoddman.curious_images.event.RunAiPipelineEvent;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.TimelineData;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
-import com.github.curiousoddman.curious_images.persistence.*;
+import com.github.curiousoddman.curious_images.persistence.AlbumPhotoRepository;
+import com.github.curiousoddman.curious_images.persistence.AlbumRepository;
+import com.github.curiousoddman.curious_images.persistence.FaceRepository;
+import com.github.curiousoddman.curious_images.persistence.FolderRepository;
+import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
+import com.github.curiousoddman.curious_images.persistence.PersonRepository;
+import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
+import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeCell;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeNode;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeNode.NodeType;
 import com.github.curiousoddman.curious_images.ui.nodes.NodePayload;
-import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.*;
+import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.AlbumPayload;
+import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.FolderPayload;
+import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.PersonPayload;
+import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.TimelinePayload;
+import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.UndatedPayload;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import javafx.beans.InvalidationListener;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -32,6 +54,7 @@ import javafx.scene.control.Slider;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
@@ -57,6 +80,7 @@ import java.time.Month;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -84,12 +108,12 @@ public class LibraryController implements Initializable {
     private final FolderRepository          folderRepository;
     private final PhotoRepository           photoRepository;
     private final ThumbnailRepository       thumbnailRepository;
-    private final AlbumRepository albumRepository;
-    private final AlbumPhotoRepository albumPhotoRepository;
-    private final PersonRepository personRepository;
+    private final AlbumRepository           albumRepository;
+    private final AlbumPhotoRepository      albumPhotoRepository;
+    private final PersonRepository          personRepository;
     private final DuplicateDetectionService duplicateDetectionService;
-    private final SearchService searchService;
-    private final FaceRepository faceRepository;
+    private final SearchService             searchService;
+    private final FaceRepository            faceRepository;
 
     @FXML
     public SplitPane                 librarySplitPane;
@@ -106,7 +130,7 @@ public class LibraryController implements Initializable {
     @FXML
     public Label                     importElapsedLabel;
     @FXML
-    public Label photoCountLabel;
+    public Label                     photoCountLabel;
     @FXML
     public Button                    backgroundProcessCancelButton;
     @FXML
@@ -114,11 +138,11 @@ public class LibraryController implements Initializable {
     @FXML
     public Tab                       duplicatesTab;
     @FXML
-    public TextField searchField;
+    public TextField                 searchField;
     @FXML
-    public Button searchButton;
+    public Button                    searchButton;
     @FXML
-    public Button clearSearchButton;
+    public Button                    clearSearchButton;
 
     private Image                noImageAvailable;
     private DuplicatesController duplicatesController;
@@ -137,7 +161,9 @@ public class LibraryController implements Initializable {
 
         // Allow pressing Enter in the search field to trigger search
         searchField.setOnKeyPressed(e -> {
-            if (e.getCode() == KeyCode.ENTER) onSearchClicked(null);
+            if (e.getCode() == KeyCode.ENTER) {
+                onSearchClicked(null);
+            }
         });
 
         onLibraryDataUpdated(null);
@@ -221,8 +247,8 @@ public class LibraryController implements Initializable {
         Thread t = new Thread(() -> {
             List<TreeItem<LibraryTreeNode>> folderItems   = buildImportRootItems();
             List<TreeItem<LibraryTreeNode>> timelineItems = buildTimelineItems();
-            List<TreeItem<LibraryTreeNode>> albumItems = buildAlbumItems();
-            List<TreeItem<LibraryTreeNode>> personItems = buildPersonItems();
+            List<TreeItem<LibraryTreeNode>> albumItems    = buildAlbumItems();
+            List<TreeItem<LibraryTreeNode>> personItems   = buildPersonItems();
 
             runOnFxThread(() -> {
                 TreeItem<LibraryTreeNode> foldersRoot = treeItem(
@@ -239,12 +265,14 @@ public class LibraryController implements Initializable {
 
                 TreeItem<LibraryTreeNode> albumsRoot = treeItem(
                         new LibraryTreeNode("Albums", null, NodeType.ALBUMS_ROOT));
-                albumsRoot.getChildren().setAll(albumItems);
+                albumsRoot.getChildren()
+                          .setAll(albumItems);
                 albumsRoot.setExpanded(!albumItems.isEmpty());
 
                 TreeItem<LibraryTreeNode> personsRoot = treeItem(
                         new LibraryTreeNode("People", null, NodeType.PERSONS_ROOT));
-                personsRoot.getChildren().setAll(personItems);
+                personsRoot.getChildren()
+                           .setAll(personItems);
                 personsRoot.setExpanded(!personItems.isEmpty());
 
                 TreeItem<LibraryTreeNode> invisibleRoot = new TreeItem<>();
@@ -265,14 +293,28 @@ public class LibraryController implements Initializable {
     public void onAiPipelineComplete(AiPipelineCompleteEvent event) {
         log.info("AI pipeline complete — refreshing Albums and People tree sections");
         Thread t = new Thread(() -> {
-            List<TreeItem<LibraryTreeNode>> albumItems = buildAlbumItems();
+            List<TreeItem<LibraryTreeNode>> albumItems  = buildAlbumItems();
             List<TreeItem<LibraryTreeNode>> personItems = buildPersonItems();
             runOnFxThread(() -> {
                 // Navigate to the Albums and People roots by position (indices 2 and 3)
                 TreeItem<LibraryTreeNode> root = libraryTreeView.getRoot();
-                if (root == null || root.getChildren().size() < 4) return;
-                root.getChildren().get(2).getChildren().setAll(albumItems);
-                root.getChildren().get(3).getChildren().setAll(personItems);
+                if (root == null) {
+                    return;
+                }
+
+                ObservableList<TreeItem<LibraryTreeNode>> children = root.getChildren();
+                if (children.size() < 4) {
+                    return;
+                }
+
+                children
+                    .get(2)
+                    .getChildren()
+                    .setAll(albumItems);
+                children
+                    .get(3)
+                    .getChildren()
+                    .setAll(personItems);
             });
         });
         t.setDaemon(true);
@@ -385,7 +427,8 @@ public class LibraryController implements Initializable {
         // Group by type for sub-headers
         Map<String, List<AlbumRecord>> byType = new LinkedHashMap<>();
         for (AlbumRecord album : albumRepository.findAll()) {
-            byType.computeIfAbsent(album.getType(), k -> new ArrayList<>()).add(album);
+            byType.computeIfAbsent(album.getType(), k -> new ArrayList<>())
+                  .add(album);
         }
         for (var entry : byType.entrySet()) {
             NodeType nodeType = switch (entry.getKey()) {
@@ -489,9 +532,10 @@ public class LibraryController implements Initializable {
         Thread t = new Thread(() -> {
             List<Long> photoIds = albumPhotoRepository.findPhotoIdsByAlbumId(albumId);
             List<PhotoRecord> photos = photoIds.stream()
-                    .map(id -> photoRepository.findById(id).orElse(null))
-                    .filter(Objects::nonNull)
-                    .toList();
+                                               .map(id -> photoRepository.findById(id)
+                                                                         .orElse(null))
+                                               .filter(Objects::nonNull)
+                                               .toList();
             Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(photoIds);
             runOnFxThread(() -> populatePhotoGrid(photos, thumbs));
         });
@@ -504,13 +548,14 @@ public class LibraryController implements Initializable {
             List<Long> photoIds = new ArrayList<>(
                     new LinkedHashSet<>(
                             faceRepository.findByPersonId(personId)
-                                    .stream()
-                                    .map(FaceRecord::getPhotoId)
-                                    .toList()));
+                                          .stream()
+                                          .map(FaceRecord::getPhotoId)
+                                          .toList()));
             List<PhotoRecord> photos = photoIds.stream()
-                    .map(id -> photoRepository.findById(id).orElse(null))
-                    .filter(Objects::nonNull)
-                    .toList();
+                                               .map(id -> photoRepository.findById(id)
+                                                                         .orElse(null))
+                                               .filter(Objects::nonNull)
+                                               .toList();
             Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(photoIds);
             runOnFxThread(() -> populatePhotoGrid(photos, thumbs));
         });
@@ -523,19 +568,23 @@ public class LibraryController implements Initializable {
     @FXML
     public void onSearchClicked(ActionEvent event) {
         String query = searchField.getText();
-        if (query == null || query.isBlank()) return;
+        if (query == null || query.isBlank()) {
+            return;
+        }
 
         clearSearchButton.setVisible(true);
         // Deselect the tree while showing search results
-        libraryTreeView.getSelectionModel().clearSelection();
+        libraryTreeView.getSelectionModel()
+                       .clearSelection();
 
         Thread t = new Thread(() -> {
             try {
                 List<Long> photoIds = searchService.semanticSearch(query, SEARCH_TOP_K);
                 List<PhotoRecord> photos = photoIds.stream()
-                        .map(id -> photoRepository.findById(id).orElse(null))
-                        .filter(Objects::nonNull)
-                        .toList();
+                                                   .map(id -> photoRepository.findById(id)
+                                                                             .orElse(null))
+                                                   .filter(Objects::nonNull)
+                                                   .toList();
                 Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(photoIds);
                 runOnFxThread(() -> {
                     populatePhotoGrid(photos, thumbs);
