@@ -27,9 +27,9 @@ class RecordingEventPublisher implements ApplicationEventPublisher {
     List<BackgroundProcessEvent> backgroundProcessEvents() {
         synchronized (events) {
             return events.stream()
-                    .filter(BackgroundProcessEvent.class::isInstance)
-                    .map(BackgroundProcessEvent.class::cast)
-                    .toList();
+                         .filter(BackgroundProcessEvent.class::isInstance)
+                         .map(BackgroundProcessEvent.class::cast)
+                         .toList();
         }
     }
 }

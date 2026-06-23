@@ -1,9 +1,9 @@
 package com.github.curiousoddman.curious_images.domain.imports;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailCachePaths;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator;
+import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
 import com.github.curiousoddman.curious_images.event.RescanLibraryEvent;
 import com.github.curiousoddman.curious_images.event.types.BackgroundProcessEventType;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
@@ -22,9 +22,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.curiousoddman.curious_images.dbobj.Tables.FOLDER;
-import static com.github.curiousoddman.curious_images.dbobj.Tables.PHOTO;
-import static com.github.curiousoddman.curious_images.dbobj.Tables.THUMBNAIL;
+import static com.github.curiousoddman.curious_images.dbobj.Tables.*;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,17 +41,17 @@ class ImportServiceTest {
     Path thumbnailCacheDir;
 
     private RecordingEventPublisher eventPublisher;
-    private DSLContext dsl;
-    private FakeTimeProvider timeProvider;
-    private ImportService importService;
+    private DSLContext              dsl;
+    private FakeTimeProvider        timeProvider;
+    private ImportService           importService;
 
     private void setUp(PhotoMetadataExtractor metadataExtractor) {
         eventPublisher = new RecordingEventPublisher();
         dsl = H2TestDatabase.freshMigratedDatabase();
         timeProvider = new FakeTimeProvider();
 
-        ThumbnailCachePaths cachePaths = new ThumbnailCachePaths(thumbnailCacheDir.toString());
-        ThumbnailGenerator thumbnailGenerator = new ThumbnailGenerator(cachePaths, metadataExtractor);
+        ThumbnailCachePaths cachePaths         = new ThumbnailCachePaths(thumbnailCacheDir.toString());
+        ThumbnailGenerator  thumbnailGenerator = new ThumbnailGenerator(cachePaths, metadataExtractor);
 
         importService = new ImportService(
                 eventPublisher,
@@ -67,7 +65,9 @@ class ImportServiceTest {
                 timeProvider);
     }
 
-    /** a.jpg, b.png directly under the root, sub/c.jpg one level down, plus an ignored sidecar file. */
+    /**
+     * a.jpg, b.png directly under the root, sub/c.jpg one level down, plus an ignored sidecar file.
+     */
     private void populateLibraryWithThreeSupportedFilesAndOneSidecar() throws IOException {
         Files.copy(FIXTURES.resolve("with-exif-dates.jpg"), libraryRoot.resolve("a.jpg"));
         Files.copy(FIXTURES.resolve("plain.png"), libraryRoot.resolve("b.png"));
@@ -77,12 +77,14 @@ class ImportServiceTest {
     }
 
     private void awaitTerminalEvent(int expectedEndedCount) {
-        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
-            long endedCount = eventPublisher.backgroundProcessEvents().stream()
-                    .filter(e -> e.getEventType() == BackgroundProcessEventType.ENDED)
-                    .count();
-            assertEquals(expectedEndedCount, endedCount);
-        });
+        await().atMost(Duration.ofSeconds(15))
+               .untilAsserted(() -> {
+                   long endedCount = eventPublisher.backgroundProcessEvents()
+                                                   .stream()
+                                                   .filter(e -> e.getEventType() == BackgroundProcessEventType.ENDED)
+                                                   .count();
+                   assertEquals(expectedEndedCount, endedCount);
+               });
     }
 
     @Test
@@ -93,7 +95,8 @@ class ImportServiceTest {
         importService.onRescanEvent(new RescanLibraryEvent(this, libraryRoot.toString()));
         awaitTerminalEvent(1);
 
-        List<PhotoRecord> photos = dsl.selectFrom(PHOTO).fetch();
+        List<PhotoRecord> photos = dsl.selectFrom(PHOTO)
+                                      .fetch();
         assertEquals(3, photos.size(), "the .txt sidecar must be ignored by the extension filter");
 
         // root folder ("") + "sub" = 2 folder rows, no duplicates.
@@ -102,8 +105,9 @@ class ImportServiceTest {
         // All three fixtures are real, decodable images -> all three get a thumbnail.
         assertEquals(3, dsl.fetchCount(THUMBNAIL));
 
-        assertTrue(eventPublisher.backgroundProcessEvents().stream()
-                .anyMatch(e -> e.getEventType() == BackgroundProcessEventType.STARTED));
+        assertTrue(eventPublisher.backgroundProcessEvents()
+                                 .stream()
+                                 .anyMatch(e -> e.getEventType() == BackgroundProcessEventType.STARTED));
     }
 
     @Test
@@ -114,8 +118,10 @@ class ImportServiceTest {
         importService.onRescanEvent(new RescanLibraryEvent(this, libraryRoot.toString()));
         awaitTerminalEvent(1);
 
-        Map<String, java.time.LocalDateTime> lastSeenAfterFirstRun = dsl.selectFrom(PHOTO).fetch().stream()
-                .collect(java.util.stream.Collectors.toMap(PhotoRecord::getAbsolutePath, PhotoRecord::getLastSeenAt));
+        Map<String, java.time.LocalDateTime> lastSeenAfterFirstRun = dsl.selectFrom(PHOTO)
+                                                                        .fetch()
+                                                                        .stream()
+                                                                        .collect(java.util.stream.Collectors.toMap(PhotoRecord::getAbsolutePath, PhotoRecord::getLastSeenAt));
         int photoCountAfterFirstRun = dsl.fetchCount(PHOTO);
 
         importService.onRescanEvent(new RescanLibraryEvent(this, libraryRoot.toString()));
@@ -123,19 +129,21 @@ class ImportServiceTest {
 
         assertEquals(photoCountAfterFirstRun, dsl.fetchCount(PHOTO), "rescan of an unchanged library must not duplicate rows");
 
-        for (PhotoRecord photo : dsl.selectFrom(PHOTO).fetch()) {
+        for (PhotoRecord photo : dsl.selectFrom(PHOTO)
+                                    .fetch()) {
             java.time.LocalDateTime before = lastSeenAfterFirstRun.get(photo.getAbsolutePath());
             assertNotNull(before);
-            assertTrue(photo.getLastSeenAt().isAfter(before),
+            assertTrue(photo.getLastSeenAt()
+                            .isAfter(before),
                     "last_seen_at must advance on rescan even when the file itself is unchanged");
         }
     }
 
     @Test
     void aSingleFileFailureDoesNotAbortTheRestOfTheImport() throws IOException {
-        PhotoMetadataExtractor realExtractor = new PhotoMetadataExtractor();
+        PhotoMetadataExtractor realExtractor  = new PhotoMetadataExtractor();
         PhotoMetadataExtractor flakyExtractor = spy(realExtractor);
-        Path corruptFile = libraryRoot.resolve("corrupt.jpg");
+        Path                   corruptFile    = libraryRoot.resolve("corrupt.jpg");
 
         setUp(flakyExtractor);
         populateLibraryWithThreeSupportedFilesAndOneSidecar();
@@ -145,16 +153,18 @@ class ImportServiceTest {
         // exercise the per-file isolation try/catch in ImportService we force a hard failure for
         // this one file specifically, simulating e.g. an I/O error reading it mid-scan.
         doThrow(new RuntimeException("simulated unreadable file"))
-                .when(flakyExtractor).extract(eq(corruptFile), any());
+                .when(flakyExtractor)
+                .extract(eq(corruptFile), any());
 
         importService.onRescanEvent(new RescanLibraryEvent(this, libraryRoot.toString()));
         awaitTerminalEvent(1);
 
         assertEquals(3, dsl.fetchCount(PHOTO), "the 3 healthy files must still be imported");
         assertTrue(dsl.selectFrom(PHOTO)
-                .where(PHOTO.ABSOLUTE_PATH.eq(corruptFile.toAbsolutePath().toString()))
-                .fetchOptional()
-                .isEmpty(), "the file that threw must not have a partial row");
+                      .where(PHOTO.ABSOLUTE_PATH.eq(corruptFile.toAbsolutePath()
+                                                               .toString()))
+                      .fetchOptional()
+                      .isEmpty(), "the file that threw must not have a partial row");
     }
 
     @Test
@@ -170,10 +180,13 @@ class ImportServiceTest {
 
         awaitTerminalEvent(1);
         // Give a moment to make sure a second ENDED never shows up either.
-        await().pollDelay(Duration.ofMillis(300)).atMost(Duration.ofSeconds(2)).until(() -> true);
-        long endedCount = eventPublisher.backgroundProcessEvents().stream()
-                .filter(e -> e.getEventType() == BackgroundProcessEventType.ENDED)
-                .count();
+        await().pollDelay(Duration.ofMillis(300))
+               .atMost(Duration.ofSeconds(2))
+               .until(() -> true);
+        long endedCount = eventPublisher.backgroundProcessEvents()
+                                        .stream()
+                                        .filter(e -> e.getEventType() == BackgroundProcessEventType.ENDED)
+                                        .count();
         assertEquals(1, endedCount);
     }
 }
