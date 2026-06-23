@@ -14,9 +14,6 @@ spring:
   h2:
     console:
       enabled: ${H2_CONSOLE_ENABLED}
-  cache:
-    caffeine:
-      spec: "maximumSize=5,expireAfterAccess=600s"
 
 app:
   thumbnail-cache:

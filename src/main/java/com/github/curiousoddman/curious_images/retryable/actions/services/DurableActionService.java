@@ -40,12 +40,6 @@ public class DurableActionService implements StartupRunnable {
         log.info("Pending actions execution completed.");
     }
 
-/*    public void updateLyrics(String newLyrics, Path filePath) {
-        UpdateLyricsPayload payload = new UpdateLyricsPayload(newLyrics, filePath);
-        PendingActionRecord action = dao.newAction(payload);
-        process(action);
-    }*/
-
     private void process(PendingActionRecord action) {
         DurableActionsHandler<?> handler = handlers.get(action.getType());
         if (handler == null) {

@@ -124,9 +124,9 @@
                         <Font size="14.0"/>
                     </font>
                 </Button>
-                <Label fx:id="importProgressLabel" text=""/>
-                <Label fx:id="importCurrentFileLabel" maxWidth="1.7976931348623157E308" text="" HBox.hgrow="ALWAYS"/>
-                <Label fx:id="importElapsedLabel" text=""/>
+                <Label fx:id="importProgressLabel"/>
+                <Label fx:id="importCurrentFileLabel" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="importElapsedLabel"/>
             </children>
         </HBox>
     </bottom>

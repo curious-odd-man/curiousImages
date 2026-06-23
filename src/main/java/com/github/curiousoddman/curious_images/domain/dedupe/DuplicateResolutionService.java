@@ -37,7 +37,7 @@ public class DuplicateResolutionService {
     /**
      * @param groupId      the group these photos belong to
      * @param photosToDrop the photos to trash + delete — passed in directly (already loaded by
-     *                     the controller from {@link DuplicateGroupView}) to avoid a redundant fetch
+     *                     the controller from {@link com.github.curiousoddman.curious_images.model.DuplicateGroupView}) to avoid a redundant fetch
      */
     public Result resolve(long groupId, List<PhotoRecord> photosToDrop) {
         List<Long>    deletedPhotoIds = new ArrayList<>();

@@ -1,3 +1,2 @@
 DATABASE_FILE: cimages-test
 H2_CONSOLE_ENABLED: false
-SERVER_PORT: 0

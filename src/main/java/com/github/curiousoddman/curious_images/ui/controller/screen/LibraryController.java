@@ -72,6 +72,7 @@ import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.concurrent.TimeUnit;
 
+import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController.getImage;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
@@ -450,45 +451,7 @@ public class LibraryController implements Initializable {
     // ── Utilities ─────────────────────────────────────────────────────────────
 
     private String buildPhotoDetailsText(PhotoRecord photo) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(photo.getFilename())
-          .append('\n');
-        sb.append(photo.getAbsolutePath())
-          .append('\n');
-        sb.append("Extension:  ")
-          .append(photo.getExtension() == null ? "—" : photo.getExtension())
-          .append('\n');
-        sb.append("Size:       ")
-          .append(formatFileSize(photo.getFileSize()))
-          .append('\n');
-        if (photo.getImageWidth() != null && photo.getImageHeight() != null) {
-            sb.append("Dimensions: ")
-              .append(photo.getImageWidth())
-              .append(" x ")
-              .append(photo.getImageHeight())
-              .append('\n');
-        }
-        if (photo.getCaptureDate() != null) {
-            sb.append("Captured:    ")
-              .append(photo.getCaptureDate());
-            if (photo.getCaptureDateSource() != null) {
-                sb.append(" (")
-                  .append(photo.getCaptureDateSource())
-                  .append(')');
-            }
-            sb.append('\n');
-        }
-        if (photo.getImportedAt() != null) {
-            sb.append("Imported:    ")
-              .append(photo.getImportedAt())
-              .append('\n');
-        }
-        if (photo.getLastSeenAt() != null) {
-            sb.append("Last seen:    ")
-              .append(photo.getLastSeenAt());
-        }
-        return sb.toString()
-                 .strip();
+        return getPhotoDetailsText(photo, formatFileSize(photo.getFileSize()));
     }
 
     private static String formatFileSize(Long bytes) {

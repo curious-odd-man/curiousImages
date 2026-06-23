@@ -331,6 +331,10 @@ public class DuplicatesController implements Initializable {
     // ----------------------------------------------------------------------------------------
 
     private String buildPhotoDetailsText(PhotoRecord photo) {
+        return getPhotoDetailsText(photo, formatFileSize(photo.getFileSize()));
+    }
+
+    static String getPhotoDetailsText(PhotoRecord photo, String s) {
         StringBuilder sb = new StringBuilder();
         sb.append(photo.getFilename())
           .append('\n');
@@ -340,7 +344,7 @@ public class DuplicatesController implements Initializable {
           .append(photo.getExtension() == null ? "—" : photo.getExtension())
           .append('\n');
         sb.append("Size:       ")
-          .append(formatFileSize(photo.getFileSize()))
+          .append(s)
           .append('\n');
         if (photo.getImageWidth() != null && photo.getImageHeight() != null) {
             sb.append("Dimensions: ")

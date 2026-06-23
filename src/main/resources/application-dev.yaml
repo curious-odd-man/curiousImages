@@ -1,4 +1,3 @@
 DATABASE_FILE: cimages-dev
 #DATABASE_FILE: cimages-prod-copy
 H2_CONSOLE_ENABLED: true
-SERVER_PORT: 6666
