@@ -22,14 +22,17 @@ public class ThumbnailCachePaths {
 
     public Path resolve(Path originalPath) {
         Path absolutePath = originalPath.toAbsolutePath();
-        Path relativeToRoot = absolutePath.getRoot().relativize(absolutePath);
+        Path relativeToRoot = absolutePath.getRoot()
+                                          .relativize(absolutePath);
         return cacheRoot.resolve(relativeToRoot);
     }
 
     private static Path expandHome(String configuredPath) {
         if (configuredPath.startsWith("~")) {
-            return Path.of(System.getProperty("user.home"), configuredPath.substring(1)).toAbsolutePath();
+            return Path.of(System.getProperty("user.home"), configuredPath.substring(1))
+                       .toAbsolutePath();
         }
-        return Path.of(configuredPath).toAbsolutePath();
+        return Path.of(configuredPath)
+                   .toAbsolutePath();
     }
 }

@@ -51,18 +51,18 @@ import java.util.Set;
 public class ImportService extends AbstractBackgroundJob {
     public static final String IMPORT_SCAN = "Import Scan";
 
-    private static final Set<String> SUPPORTED_EXTENSIONS = Set.of("jpg", "jpeg", "png", "cr2");
-    private static final int DB_FLUSH_BATCH_SIZE = 200;
-    private static final int APPROXIMATE_LIBRARY_SIZE = 25_000;
+    private static final Set<String> SUPPORTED_EXTENSIONS     = Set.of("jpg", "jpeg", "png", "cr2");
+    private static final int         DB_FLUSH_BATCH_SIZE      = 200;
+    private static final int         APPROXIMATE_LIBRARY_SIZE = 25_000;
 
-    private final DSLContext dsl;
-    private final ImportRootRepository importRootRepository;
-    private final FolderRepository folderRepository;
-    private final PhotoRepository photoRepository;
-    private final ThumbnailRepository thumbnailRepository;
-    private final PhotoMetadataExtractor metadataExtractor;
-    private final ThumbnailGenerator thumbnailGenerator;
-    private final TimeProvider timeProvider;
+    private final DSLContext                dsl;
+    private final ImportRootRepository      importRootRepository;
+    private final FolderRepository          folderRepository;
+    private final PhotoRepository           photoRepository;
+    private final ThumbnailRepository       thumbnailRepository;
+    private final PhotoMetadataExtractor    metadataExtractor;
+    private final ThumbnailGenerator        thumbnailGenerator;
+    private final TimeProvider              timeProvider;
     private final ApplicationEventPublisher applicationEventPublisher;
 
     @EventListener
@@ -83,10 +83,10 @@ public class ImportService extends AbstractBackgroundJob {
         log.info("Starting import scan of {}", rootPathString);
         publishStarted("Discovering files...");
         int imported = 0;
-        int skipped = 0;
-        int errors = 0;
+        int skipped  = 0;
+        int errors   = 0;
         try {
-            Path rootPath = Path.of(rootPathString);
+            Path rootPath     = Path.of(rootPathString);
             long importRootId = importRootRepository.findOrCreate(rootPathString, timeProvider.now());
             // Caches folder ids per directory for this run only, so directories shared by many
             // files (the common case) are looked up/created once instead of once per file.
@@ -152,25 +152,30 @@ public class ImportService extends AbstractBackgroundJob {
                                         Path file, List<Query> buffer) throws IOException {
         long folderId = resolveFolderId(importRootId, rootPath, file.getParent(), folderIdCache);
 
-        String absolutePath = file.toAbsolutePath().toString();
-        String filename = file.getFileName().toString();
-        String extension = extensionOf(filename);
-        long fileSize = Files.size(file);
-        LocalDateTime now = timeProvider.now();
+        String absolutePath = file.toAbsolutePath()
+                                  .toString();
+        String filename = file.getFileName()
+                              .toString();
+        String        extension = extensionOf(filename);
+        long          fileSize  = Files.size(file);
+        LocalDateTime now       = timeProvider.now();
 
         Optional<PhotoRecord> existing = photoRepository.findByAbsolutePath(absolutePath);
 
-        if (existing.isPresent() && existing.get().getFileSize() == fileSize) {
+        if (existing.isPresent() && existing.get()
+                                            .getFileSize() == fileSize) {
             // Cheap rescan path: file unchanged since last scan. No metadata re-extraction, no
             // thumbnail regeneration
-            buffer.add(photoRepository.touchLastSeenAtQuery(existing.get().getId(), now));
+            buffer.add(photoRepository.touchLastSeenAtQuery(existing.get()
+                                                                    .getId(), now));
             return ImportOutcome.SKIPPED_UNCHANGED;
         }
 
         ExtractedMetadata metadata = metadataExtractor.extract(file, extension);
 
         if (existing.isPresent()) {
-            long photoId = existing.get().getId();
+            long photoId = existing.get()
+                                   .getId();
             buffer.add(photoRepository.updateMetadataQuery(photoId, fileSize, metadata.width(), metadata.height(),
                     metadata.captureDate(), metadata.captureDateSource(),
                     metadata.orientationDegrees(), metadata.cameraMake(), metadata.cameraModel(), metadata.lensModel(),
@@ -190,8 +195,8 @@ public class ImportService extends AbstractBackgroundJob {
     private void queueThumbnail(long photoId, Path file, String extension, int rotationDegrees,
                                 LocalDateTime now, List<Query> buffer) {
         thumbnailGenerator.generate(photoId, file, extension, rotationDegrees)
-                .ifPresent(thumbnail -> buffer.add(thumbnailRepository.upsertQuery(
-                        photoId, thumbnail.cachePath(), thumbnail.width(), thumbnail.height(), now)));
+                          .ifPresent(thumbnail -> buffer.add(thumbnailRepository.upsertQuery(
+                                  photoId, thumbnail.cachePath(), thumbnail.width(), thumbnail.height(), now)));
         // If generate() returned empty (no embedded preview, corrupt file, unsupported format),
         // we simply don't queue a THUMBNAIL row — the Grid view falls back to img/noimage.png for
         // photos with no thumbnail row. Not treated as an error.
@@ -211,12 +216,15 @@ public class ImportService extends AbstractBackgroundJob {
 
         long id;
         if (dir.equals(rootPath)) {
-            String rootName = rootPath.getFileName() != null ? rootPath.getFileName().toString() : rootPath.toString();
+            String rootName = rootPath.getFileName() != null ? rootPath.getFileName()
+                                                                       .toString() : rootPath.toString();
             id = folderRepository.findOrCreate(importRootId, null, "", rootName);
         } else {
             long parentId = resolveFolderId(importRootId, rootPath, dir.getParent(), folderIdCache);
-            String relativePath = rootPath.relativize(dir).toString();
-            id = folderRepository.findOrCreate(importRootId, parentId, relativePath, dir.getFileName().toString());
+            String relativePath = rootPath.relativize(dir)
+                                          .toString();
+            id = folderRepository.findOrCreate(importRootId, parentId, relativePath, dir.getFileName()
+                                                                                        .toString());
         }
         folderIdCache.put(dir, id);
         return id;
@@ -229,7 +237,9 @@ public class ImportService extends AbstractBackgroundJob {
         if (buffer.isEmpty()) {
             return;
         }
-        dsl.transaction(configuration -> DSL.using(configuration).batch(buffer).execute());
+        dsl.transaction(configuration -> DSL.using(configuration)
+                                            .batch(buffer)
+                                            .execute());
         buffer.clear();
     }
 
@@ -238,7 +248,8 @@ public class ImportService extends AbstractBackgroundJob {
         Files.walkFileTree(rootPath, new SimpleFileVisitor<>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                if (attrs.isRegularFile() && SUPPORTED_EXTENSIONS.contains(extensionOf(file.getFileName().toString()))) {
+                if (attrs.isRegularFile() && SUPPORTED_EXTENSIONS.contains(extensionOf(file.getFileName()
+                                                                                           .toString()))) {
                     found.add(file);
                 }
                 return FileVisitResult.CONTINUE;
@@ -249,7 +260,8 @@ public class ImportService extends AbstractBackgroundJob {
 
     private static String extensionOf(String filename) {
         int dot = filename.lastIndexOf('.');
-        return dot < 0 ? "" : filename.substring(dot + 1).toLowerCase(Locale.ROOT);
+        return dot < 0 ? "" : filename.substring(dot + 1)
+                                      .toLowerCase(Locale.ROOT);
     }
 
     @Override

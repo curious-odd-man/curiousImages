@@ -11,8 +11,8 @@ import org.springframework.context.ApplicationEventPublisher;
 @Slf4j
 public class StageManager {
     private final FxmlLoader fxmlLoader;
-    private final Stage primaryStage;
-    private final String applicationTitle;
+    private final Stage      primaryStage;
+    private final String     applicationTitle;
 
     public StageManager(FxmlLoader fxmlLoader,
                         Stage primaryStage,
@@ -33,8 +33,9 @@ public class StageManager {
         primaryStage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
 
         LoadedFxml<T> loaded = loadRootNode(view);
-        Scene scene = new Scene(loaded.parent());
-        scene.getStylesheets().add("styles/global.css");
+        Scene         scene  = new Scene(loaded.parent());
+        scene.getStylesheets()
+             .add("styles/global.css");
 
         primaryStage.setScene(scene);
         primaryStage.show();

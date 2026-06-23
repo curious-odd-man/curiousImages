@@ -1,7 +1,9 @@
 package com.github.curiousoddman.curious_images.ui.nodes;
 
 import org.kordamp.ikonli.Ikon;
-import org.kordamp.ikonli.materialdesign2.*;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignC;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignD;
+import org.kordamp.ikonli.materialdesign2.MaterialDesignF;
 
 /**
  * Value object backing nodes in the library {@link javafx.scene.control.TreeView}.

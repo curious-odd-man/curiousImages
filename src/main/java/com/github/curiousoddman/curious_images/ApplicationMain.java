@@ -22,7 +22,8 @@ public class ApplicationMain implements ApplicationRunner {
             try {
                 task.onStartup();
             } catch (Exception e) {
-                log.error("Error running startup task: {}", task.getClass().getSimpleName(), e);
+                log.error("Error running startup task: {}", task.getClass()
+                                                                .getSimpleName(), e);
             }
         }
         log.info("Startup tasks completed.");

@@ -54,15 +54,15 @@ public class DuplicateDetectionService extends AbstractBackgroundJob {
 
     private static final int DB_FLUSH_BATCH_SIZE = 200;
 
-    private final DSLContext dsl;
-    private final PhotoRepository photoRepository;
-    private final PhotoHashRepository photoHashRepository;
-    private final DuplicateJobRepository duplicateJobRepository;
-    private final DuplicateGroupRepository duplicateGroupRepository;
-    private final PixelHasher pixelHasher;
-    private final TimeProvider timeProvider;
+    private final DSLContext                dsl;
+    private final PhotoRepository           photoRepository;
+    private final PhotoHashRepository       photoHashRepository;
+    private final DuplicateJobRepository    duplicateJobRepository;
+    private final DuplicateGroupRepository  duplicateGroupRepository;
+    private final PixelHasher               pixelHasher;
+    private final TimeProvider              timeProvider;
     @Value("${app.duplicate-detection.thread-count:4}")
-    private final int threadCount;
+    private final int                       threadCount;
     private final ApplicationEventPublisher applicationEventPublisher;
 
     @EventListener
@@ -87,12 +87,12 @@ public class DuplicateDetectionService extends AbstractBackgroundJob {
         publishStarted("Loading photo library...");
         long jobId = -1;
         try {
-            List<PhotoForHashing> photos = photoRepository.findAllForHashing();
+            List<PhotoForHashing>      photos         = photoRepository.findAllForHashing();
             Map<Long, PhotoHashRecord> existingHashes = photoHashRepository.findAllAsMap();
 
             jobId = duplicateJobRepository.insertRunning(timeProvider.now(), photos.size());
 
-            Map<Long, HashEntry> hashByPhoto = new HashMap<>(photos.size());
+            Map<Long, HashEntry>  hashByPhoto  = new HashMap<>(photos.size());
             List<PhotoForHashing> needsHashing = new ArrayList<>();
             for (PhotoForHashing photo : photos) {
                 PhotoHashRecord cached = existingHashes.get(photo.id());
@@ -118,8 +118,8 @@ public class DuplicateDetectionService extends AbstractBackgroundJob {
                 return;
             }
 
-            Map<GroupKey, List<Long>> groups = groupDuplicates(hashByPhoto);
-            int groupCount = persistGroups(jobId, groups);
+            Map<GroupKey, List<Long>> groups     = groupDuplicates(hashByPhoto);
+            int                       groupCount = persistGroups(jobId, groups);
 
             duplicateJobRepository.markCompleted(jobId, timeProvider.now(), groupCount);
             log.info("Duplicate detection completed: {} duplicate group(s) found among {} photos",
@@ -153,7 +153,7 @@ public class DuplicateDetectionService extends AbstractBackgroundJob {
             return t;
         });
         CompletionService<PixelHasher.PhotoHashResult> completionService = new ExecutorCompletionService<>(executor);
-        LocalDateTime now = timeProvider.now();
+        LocalDateTime                                  now               = timeProvider.now();
 
         try {
             for (PhotoForHashing photo : needsHashing) {
@@ -171,9 +171,11 @@ public class DuplicateDetectionService extends AbstractBackgroundJob {
 
                 PixelHasher.PhotoHashResult result;
                 try {
-                    result = completionService.take().get();
+                    result = completionService.take()
+                                              .get();
                 } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
+                    Thread.currentThread()
+                          .interrupt();
                     flush(buffer);
                     executor.shutdownNow();
                     return true;
@@ -207,17 +209,23 @@ public class DuplicateDetectionService extends AbstractBackgroundJob {
         if (buffer.isEmpty()) {
             return;
         }
-        dsl.transaction(configuration -> DSL.using(configuration).batch(buffer).execute());
+        dsl.transaction(configuration -> DSL.using(configuration)
+                                            .batch(buffer)
+                                            .execute());
         buffer.clear();
     }
 
     private Map<GroupKey, List<Long>> groupDuplicates(Map<Long, HashEntry> hashByPhoto) {
         Map<GroupKey, List<Long>> groups = new HashMap<>();
         for (Map.Entry<Long, HashEntry> entry : hashByPhoto.entrySet()) {
-            GroupKey key = new GroupKey(entry.getValue().extension(), entry.getValue().pixelHash());
-            groups.computeIfAbsent(key, k -> new ArrayList<>()).add(entry.getKey());
+            GroupKey key = new GroupKey(entry.getValue()
+                                             .extension(), entry.getValue()
+                                                                .pixelHash());
+            groups.computeIfAbsent(key, k -> new ArrayList<>())
+                  .add(entry.getKey());
         }
-        groups.values().removeIf(photoIds -> photoIds.size() < 2);
+        groups.values()
+              .removeIf(photoIds -> photoIds.size() < 2);
         return groups;
     }
 
@@ -228,11 +236,13 @@ public class DuplicateDetectionService extends AbstractBackgroundJob {
     private int persistGroups(long jobId, Map<GroupKey, List<Long>> groups) {
         LocalDateTime now = timeProvider.now();
         return dsl.transactionResult(configuration -> {
-            DSLContext ctx = DSL.using(configuration);
-            int count = 0;
+            DSLContext ctx   = DSL.using(configuration);
+            int        count = 0;
             for (Map.Entry<GroupKey, List<Long>> entry : groups.entrySet()) {
                 long groupId = duplicateGroupRepository.insertGroup(
-                        ctx, jobId, entry.getKey().extension(), entry.getKey().pixelHash(), now);
+                        ctx, jobId, entry.getKey()
+                                         .extension(), entry.getKey()
+                                                            .pixelHash(), now);
                 duplicateGroupRepository.insertMembers(ctx, groupId, entry.getValue());
                 count++;
             }

@@ -14,11 +14,11 @@ import org.springframework.context.annotation.Lazy;
 @RequiredArgsConstructor
 public class ApplicationConfig {
 
-    private final FxmlLoader fxmlLoader;
+    private final FxmlLoader                fxmlLoader;
     @Value("${spring.title}")
-    private final String applicationTitle;
+    private final String                    applicationTitle;
     private final ApplicationEventPublisher eventPublisher;
-    private final VersionService versionService;
+    private final VersionService            versionService;
 
     @Bean
     @Lazy

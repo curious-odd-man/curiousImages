@@ -34,15 +34,15 @@ public class PhotoRepository {
     public Optional<PhotoRecord> findByAbsolutePath(String absolutePath) {
         return Optional.ofNullable(
                 dsl.selectFrom(PHOTO)
-                        .where(PHOTO.ABSOLUTE_PATH.eq(absolutePath))
-                        .fetchOne());
+                   .where(PHOTO.ABSOLUTE_PATH.eq(absolutePath))
+                   .fetchOne());
     }
 
     public List<PhotoRecord> findByFolderId(long folderId) {
         return dsl.selectFrom(PHOTO)
-                .where(PHOTO.FOLDER_ID.eq(folderId))
-                .orderBy(PHOTO.FILENAME)
-                .fetch();
+                  .where(PHOTO.FOLDER_ID.eq(folderId))
+                  .orderBy(PHOTO.FILENAME)
+                  .fetch();
     }
 
     public long insert(long folderId, String absolutePath, String filename, String extension,
@@ -51,25 +51,25 @@ public class PhotoRepository {
                        int orientationDegrees, String cameraMake, String cameraModel, String lensModel,
                        String exifExtraJson, LocalDateTime now) {
         return dsl.insertInto(PHOTO)
-                .set(PHOTO.FOLDER_ID, folderId)
-                .set(PHOTO.ABSOLUTE_PATH, absolutePath)
-                .set(PHOTO.FILENAME, filename)
-                .set(PHOTO.EXTENSION, extension)
-                .set(PHOTO.FILE_SIZE, fileSize)
-                .set(PHOTO.IMAGE_WIDTH, width)
-                .set(PHOTO.IMAGE_HEIGHT, height)
-                .set(PHOTO.CAPTURE_DATE, captureDate)
-                .set(PHOTO.CAPTURE_DATE_SOURCE, sourceName(captureDateSource))
-                .set(PHOTO.ORIENTATION, orientationDegrees)
-                .set(PHOTO.CAMERA_MAKE, cameraMake)
-                .set(PHOTO.CAMERA_MODEL, cameraModel)
-                .set(PHOTO.LENS_MODEL, lensModel)
-                .set(PHOTO.EXIF_EXTRA, toJson(exifExtraJson))
-                .set(PHOTO.IMPORTED_AT, now)
-                .set(PHOTO.LAST_SEEN_AT, now)
-                .returning(PHOTO.ID)
-                .fetchOne()
-                .getId();
+                  .set(PHOTO.FOLDER_ID, folderId)
+                  .set(PHOTO.ABSOLUTE_PATH, absolutePath)
+                  .set(PHOTO.FILENAME, filename)
+                  .set(PHOTO.EXTENSION, extension)
+                  .set(PHOTO.FILE_SIZE, fileSize)
+                  .set(PHOTO.IMAGE_WIDTH, width)
+                  .set(PHOTO.IMAGE_HEIGHT, height)
+                  .set(PHOTO.CAPTURE_DATE, captureDate)
+                  .set(PHOTO.CAPTURE_DATE_SOURCE, sourceName(captureDateSource))
+                  .set(PHOTO.ORIENTATION, orientationDegrees)
+                  .set(PHOTO.CAMERA_MAKE, cameraMake)
+                  .set(PHOTO.CAMERA_MODEL, cameraModel)
+                  .set(PHOTO.LENS_MODEL, lensModel)
+                  .set(PHOTO.EXIF_EXTRA, toJson(exifExtraJson))
+                  .set(PHOTO.IMPORTED_AT, now)
+                  .set(PHOTO.LAST_SEEN_AT, now)
+                  .returning(PHOTO.ID)
+                  .fetchOne()
+                  .getId();
     }
 
     /**
@@ -77,8 +77,8 @@ public class PhotoRepository {
      */
     public Query touchLastSeenAtQuery(long photoId, LocalDateTime now) {
         return dsl.update(PHOTO)
-                .set(PHOTO.LAST_SEEN_AT, now)
-                .where(PHOTO.ID.eq(photoId));
+                  .set(PHOTO.LAST_SEEN_AT, now)
+                  .where(PHOTO.ID.eq(photoId));
     }
 
     /**
@@ -89,18 +89,18 @@ public class PhotoRepository {
                                      int orientationDegrees, String cameraMake, String cameraModel, String lensModel,
                                      String exifExtraJson, LocalDateTime now) {
         return dsl.update(PHOTO)
-                .set(PHOTO.FILE_SIZE, fileSize)
-                .set(PHOTO.IMAGE_WIDTH, width)
-                .set(PHOTO.IMAGE_HEIGHT, height)
-                .set(PHOTO.CAPTURE_DATE, captureDate)
-                .set(PHOTO.CAPTURE_DATE_SOURCE, sourceName(captureDateSource))
-                .set(PHOTO.ORIENTATION, orientationDegrees)
-                .set(PHOTO.CAMERA_MAKE, cameraMake)
-                .set(PHOTO.CAMERA_MODEL, cameraModel)
-                .set(PHOTO.LENS_MODEL, lensModel)
-                .set(PHOTO.EXIF_EXTRA, toJson(exifExtraJson))
-                .set(PHOTO.LAST_SEEN_AT, now)
-                .where(PHOTO.ID.eq(photoId));
+                  .set(PHOTO.FILE_SIZE, fileSize)
+                  .set(PHOTO.IMAGE_WIDTH, width)
+                  .set(PHOTO.IMAGE_HEIGHT, height)
+                  .set(PHOTO.CAPTURE_DATE, captureDate)
+                  .set(PHOTO.CAPTURE_DATE_SOURCE, sourceName(captureDateSource))
+                  .set(PHOTO.ORIENTATION, orientationDegrees)
+                  .set(PHOTO.CAMERA_MAKE, cameraMake)
+                  .set(PHOTO.CAMERA_MODEL, cameraModel)
+                  .set(PHOTO.LENS_MODEL, lensModel)
+                  .set(PHOTO.EXIF_EXTRA, toJson(exifExtraJson))
+                  .set(PHOTO.LAST_SEEN_AT, now)
+                  .where(PHOTO.ID.eq(photoId));
     }
 
     /**
@@ -110,8 +110,8 @@ public class PhotoRepository {
      */
     public void deleteById(DSLContext ctx, long photoId) {
         ctx.deleteFrom(PHOTO)
-                .where(PHOTO.ID.eq(photoId))
-                .execute();
+           .where(PHOTO.ID.eq(photoId))
+           .execute();
     }
 
     private String sourceName(CaptureDateSource captureDateSource) {
@@ -124,9 +124,9 @@ public class PhotoRepository {
 
     public List<PhotoForHashing> findAllForHashing() {
         return dsl.select(PHOTO.ID, PHOTO.ABSOLUTE_PATH, PHOTO.EXTENSION, PHOTO.FILE_SIZE)
-                .from(PHOTO)
-                .fetch(r -> new PhotoForHashing(
-                        r.get(PHOTO.ID), r.get(PHOTO.ABSOLUTE_PATH), r.get(PHOTO.EXTENSION), r.get(PHOTO.FILE_SIZE)));
+                  .from(PHOTO)
+                  .fetch(r -> new PhotoForHashing(
+                          r.get(PHOTO.ID), r.get(PHOTO.ABSOLUTE_PATH), r.get(PHOTO.EXTENSION), r.get(PHOTO.FILE_SIZE)));
     }
 
     // ── Timeline queries ──────────────────────────────────────────────────────────
@@ -139,27 +139,31 @@ public class PhotoRepository {
     public TimelineData findTimelineData() {
         // Day-level counts
         var dayRows = dsl.select(
-                        DSL.year(PHOTO.CAPTURE_DATE).as("yr"),
-                        DSL.month(PHOTO.CAPTURE_DATE).as("mo"),
-                        DSL.day(PHOTO.CAPTURE_DATE).as("dy"),
-                        DSL.count().as("cnt"))
-                .from(PHOTO)
-                .where(PHOTO.CAPTURE_DATE.isNotNull())
-                .groupBy(DSL.year(PHOTO.CAPTURE_DATE),
-                        DSL.month(PHOTO.CAPTURE_DATE),
-                        DSL.day(PHOTO.CAPTURE_DATE))
-                .orderBy(DSL.year(PHOTO.CAPTURE_DATE),
-                        DSL.month(PHOTO.CAPTURE_DATE),
-                        DSL.day(PHOTO.CAPTURE_DATE))
-                .fetch();
+                                 DSL.year(PHOTO.CAPTURE_DATE)
+                                    .as("yr"),
+                                 DSL.month(PHOTO.CAPTURE_DATE)
+                                    .as("mo"),
+                                 DSL.day(PHOTO.CAPTURE_DATE)
+                                    .as("dy"),
+                                 DSL.count()
+                                    .as("cnt"))
+                         .from(PHOTO)
+                         .where(PHOTO.CAPTURE_DATE.isNotNull())
+                         .groupBy(DSL.year(PHOTO.CAPTURE_DATE),
+                                 DSL.month(PHOTO.CAPTURE_DATE),
+                                 DSL.day(PHOTO.CAPTURE_DATE))
+                         .orderBy(DSL.year(PHOTO.CAPTURE_DATE),
+                                 DSL.month(PHOTO.CAPTURE_DATE),
+                                 DSL.day(PHOTO.CAPTURE_DATE))
+                         .fetch();
 
         List<TimelineData.TimelineDay> days = dayRows.stream()
-                .map(r -> new TimelineData.TimelineDay(
-                        r.get("yr", Integer.class),
-                        r.get("mo", Integer.class),
-                        r.get("dy", Integer.class),
-                        r.get("cnt", Integer.class)))
-                .toList();
+                                                     .map(r -> new TimelineData.TimelineDay(
+                                                             r.get("yr", Integer.class),
+                                                             r.get("mo", Integer.class),
+                                                             r.get("dy", Integer.class),
+                                                             r.get("cnt", Integer.class)))
+                                                     .toList();
 
         int undatedCount = dsl.fetchCount(PHOTO, PHOTO.CAPTURE_DATE.isNull());
 
@@ -172,17 +176,20 @@ public class PhotoRepository {
      */
     public List<PhotoRecord> findByCaptureDate(int year, int month, Integer day) {
         var condition = PHOTO.CAPTURE_DATE.isNotNull()
-                .and(DSL.year(PHOTO.CAPTURE_DATE).eq(year))
-                .and(DSL.month(PHOTO.CAPTURE_DATE).eq(month));
+                                          .and(DSL.year(PHOTO.CAPTURE_DATE)
+                                                  .eq(year))
+                                          .and(DSL.month(PHOTO.CAPTURE_DATE)
+                                                  .eq(month));
 
         if (day != null) {
-            condition = condition.and(DSL.day(PHOTO.CAPTURE_DATE).eq(day));
+            condition = condition.and(DSL.day(PHOTO.CAPTURE_DATE)
+                                         .eq(day));
         }
 
         return dsl.selectFrom(PHOTO)
-                .where(condition)
-                .orderBy(PHOTO.CAPTURE_DATE, PHOTO.FILENAME)
-                .fetch();
+                  .where(condition)
+                  .orderBy(PHOTO.CAPTURE_DATE, PHOTO.FILENAME)
+                  .fetch();
     }
 
     /**
@@ -190,8 +197,8 @@ public class PhotoRepository {
      */
     public List<PhotoRecord> findByNullCaptureDate() {
         return dsl.selectFrom(PHOTO)
-                .where(PHOTO.CAPTURE_DATE.isNull())
-                .orderBy(PHOTO.FILENAME)
-                .fetch();
+                  .where(PHOTO.CAPTURE_DATE.isNull())
+                  .orderBy(PHOTO.FILENAME)
+                  .fetch();
     }
 }

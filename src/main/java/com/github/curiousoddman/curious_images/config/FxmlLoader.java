@@ -20,12 +20,12 @@ public class FxmlLoader {
 
     @SneakyThrows
     public <T> LoadedFxml<T> load(FxmlView<T> fxmlPath, ResourceBundle resourceBundle) {
-        log.info("Loading {} ...", fxmlPath.getFxmlPath());
+        log.info("Loading {} ...", fxmlPath.fxmlPath());
         FXMLLoader loader = new FXMLLoader();
         loader.setControllerFactory(context::getBean);
-        InputStream fxmlStream = getClass().getResourceAsStream(fxmlPath.getFxmlPath());
+        InputStream fxmlStream = getClass().getResourceAsStream(fxmlPath.fxmlPath());
         if (fxmlStream == null) {
-            throw new IllegalStateException("Cannot find FXML: " + fxmlPath.getFxmlPath());
+            throw new IllegalStateException("Cannot find FXML: " + fxmlPath.fxmlPath());
         }
         loader.setResources(resourceBundle);
         loader.setClassLoader(context.getClassLoader());

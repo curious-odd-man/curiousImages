@@ -27,9 +27,10 @@ public class ExceptionTranslator implements ExecuteListener {
             throw new RuntimeException("Unexpected jOOQ error", cause);
         }
 
-        SQLDialect dialect = ctx.configuration().dialect();
-        SQLExceptionTranslator translator = new SQLErrorCodeSQLExceptionTranslator(dialect.name());
-        DataAccessException jooqException = translator.translate("jOOQ", ctx.sql(), sqlException);
+        SQLDialect dialect = ctx.configuration()
+                                .dialect();
+        SQLExceptionTranslator translator    = new SQLErrorCodeSQLExceptionTranslator(dialect.name());
+        DataAccessException    jooqException = translator.translate("jOOQ", ctx.sql(), sqlException);
         if (jooqException != null) {
             throw jooqException;
         }

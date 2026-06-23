@@ -7,7 +7,10 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static com.github.curiousoddman.curious_images.dbobj.Tables.PHOTO;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PhotoRepositoryTest extends AbstractRepositoryH2Test {
 

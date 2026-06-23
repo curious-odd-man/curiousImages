@@ -35,7 +35,15 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.Slider;
+import javafx.scene.control.SplitPane;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.Tooltip;
+import javafx.scene.control.TreeItem;
+import javafx.scene.control.TreeView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
@@ -46,7 +54,6 @@ import javafx.stage.Stage;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.kordamp.ikonli.javafx.FontIcon;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.EventListener;
@@ -56,7 +63,13 @@ import java.net.URL;
 import java.time.Duration;
 import java.time.Month;
 import java.time.format.TextStyle;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.ResourceBundle;
 import java.util.concurrent.TimeUnit;
 
 import static com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController.getImage;
@@ -70,36 +83,36 @@ public class LibraryController implements Initializable {
     public static final Font CONSOLAS = new Font("Consolas", 15);
 
     private final ApplicationEventPublisher eventPublisher;
-    private final FxmlLoader fxmlLoader;
-    private final UserPreferencesService userPreferencesService;
-    private final ImportRootRepository importRootRepository;
-    private final FolderRepository folderRepository;
-    private final PhotoRepository photoRepository;
-    private final ThumbnailRepository thumbnailRepository;
+    private final FxmlLoader                fxmlLoader;
+    private final UserPreferencesService    userPreferencesService;
+    private final ImportRootRepository      importRootRepository;
+    private final FolderRepository          folderRepository;
+    private final PhotoRepository           photoRepository;
+    private final ThumbnailRepository       thumbnailRepository;
     private final DuplicateDetectionService duplicateDetectionService;
 
     @FXML
-    public SplitPane librarySplitPane;
+    public SplitPane                 librarySplitPane;
     @FXML
     public TreeView<LibraryTreeNode> libraryTreeView;
     @FXML
-    public FlowPane photoGridPane;
+    public FlowPane                  photoGridPane;
     @FXML
-    public Slider thumbnailSizeSlider;
+    public Slider                    thumbnailSizeSlider;
     @FXML
-    public Label importProgressLabel;
+    public Label                     importProgressLabel;
     @FXML
-    public Label importCurrentFileLabel;
+    public Label                     importCurrentFileLabel;
     @FXML
-    public Label importElapsedLabel;
+    public Label                     importElapsedLabel;
     @FXML
-    public Button backgroundProcessCancelButton;
+    public Button                    backgroundProcessCancelButton;
     @FXML
-    public TabPane mainTabPane;
+    public TabPane                   mainTabPane;
     @FXML
-    public Tab duplicatesTab;
+    public Tab                       duplicatesTab;
 
-    private Image noImageAvailable;
+    private Image                noImageAvailable;
     private DuplicatesController duplicatesController;
 
     // ── Initialisation ────────────────────────────────────────────────────────
@@ -110,8 +123,9 @@ public class LibraryController implements Initializable {
         noImageAvailable = new Image(getClass().getResourceAsStream("/img/noimage.png"));
 
         libraryTreeView.setCellFactory(tv -> new LibraryTreeCell());
-        libraryTreeView.getSelectionModel().selectedItemProperty()
-                .addListener((obs, oldItem, newItem) -> onTreeSelectionChanged(newItem));
+        libraryTreeView.getSelectionModel()
+                       .selectedItemProperty()
+                       .addListener((obs, oldItem, newItem) -> onTreeSelectionChanged(newItem));
 
         onLibraryDataUpdated(null);
 
@@ -119,11 +133,13 @@ public class LibraryController implements Initializable {
         duplicatesTab.setContent(loaded.parent());
         duplicatesController = loaded.controller();
 
-        mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
-            if (newTab == duplicatesTab) {
-                duplicatesController.activate(noImageAvailable);
-            }
-        });
+        mainTabPane.getSelectionModel()
+                   .selectedItemProperty()
+                   .addListener((obs, oldTab, newTab) -> {
+                       if (newTab == duplicatesTab) {
+                           duplicatesController.activate(noImageAvailable);
+                       }
+                   });
     }
 
     // ── Window / split-pane preferences ──────────────────────────────────────
@@ -135,18 +151,26 @@ public class LibraryController implements Initializable {
                 delayedSaveWindowSize.reSchedule(() ->
                         userPreferencesService.saveWindowState(primaryStage));
 
-        primaryStage.widthProperty().addListener(invalidationListener);
-        primaryStage.heightProperty().addListener(invalidationListener);
-        primaryStage.xProperty().addListener(invalidationListener);
-        primaryStage.yProperty().addListener(invalidationListener);
-        primaryStage.maximizedProperty().addListener(invalidationListener);
+        primaryStage.widthProperty()
+                    .addListener(invalidationListener);
+        primaryStage.heightProperty()
+                    .addListener(invalidationListener);
+        primaryStage.xProperty()
+                    .addListener(invalidationListener);
+        primaryStage.yProperty()
+                    .addListener(invalidationListener);
+        primaryStage.maximizedProperty()
+                    .addListener(invalidationListener);
 
         librarySplitPane.setDividerPositions(userPreferencesService.getDividerPositions());
         DelayedAction delayedSaveDividerPosition = new DelayedAction(500, TimeUnit.MILLISECONDS);
         InvalidationListener splitPanePositionListener = o ->
                 delayedSaveDividerPosition.reSchedule(() ->
                         userPreferencesService.saveSplitPositions(librarySplitPane.getDividerPositions()));
-        librarySplitPane.getDividers().getFirst().positionProperty().addListener(splitPanePositionListener);
+        librarySplitPane.getDividers()
+                        .getFirst()
+                        .positionProperty()
+                        .addListener(splitPanePositionListener);
     }
 
     // ── Background process events ─────────────────────────────────────────────
@@ -159,8 +183,10 @@ public class LibraryController implements Initializable {
                     : event.getDescription());
             importCurrentFileLabel.setText(event.getCurrentItem() == null ? "" : event.getCurrentItem());
             long elapsedMs = System.currentTimeMillis() - event.getTimestamp();
-            importElapsedLabel.setText(Duration.ofMillis(elapsedMs).toString());
-            backgroundProcessCancelButton.setVisible(!event.getEventType().isTerminal());
+            importElapsedLabel.setText(Duration.ofMillis(elapsedMs)
+                                               .toString());
+            backgroundProcessCancelButton.setVisible(!event.getEventType()
+                                                           .isTerminal());
         });
     }
 
@@ -176,22 +202,25 @@ public class LibraryController implements Initializable {
     public void onLibraryDataUpdated(LibraryUpdatedEvent event) {
         log.info("Rebuilding library tree");
         Thread t = new Thread(() -> {
-            List<TreeItem<LibraryTreeNode>> folderItems = buildImportRootItems();
+            List<TreeItem<LibraryTreeNode>> folderItems   = buildImportRootItems();
             List<TreeItem<LibraryTreeNode>> timelineItems = buildTimelineItems();
 
             runOnFxThread(() -> {
                 TreeItem<LibraryTreeNode> foldersRoot = treeItem(
                         new LibraryTreeNode("Folders", null, NodeType.FOLDERS_ROOT));
-                foldersRoot.getChildren().setAll(folderItems);
+                foldersRoot.getChildren()
+                           .setAll(folderItems);
                 foldersRoot.setExpanded(true);
 
                 TreeItem<LibraryTreeNode> timelineRoot = treeItem(
                         new LibraryTreeNode("Timeline", null, NodeType.TIMELINE_ROOT));
-                timelineRoot.getChildren().setAll(timelineItems);
+                timelineRoot.getChildren()
+                            .setAll(timelineItems);
                 timelineRoot.setExpanded(true);
 
                 TreeItem<LibraryTreeNode> invisibleRoot = new TreeItem<>();
-                invisibleRoot.getChildren().setAll(foldersRoot, timelineRoot);
+                invisibleRoot.getChildren()
+                             .setAll(foldersRoot, timelineRoot);
                 libraryTreeView.setRoot(invisibleRoot);
             });
         });
@@ -202,13 +231,15 @@ public class LibraryController implements Initializable {
     private List<TreeItem<LibraryTreeNode>> buildImportRootItems() {
         List<TreeItem<LibraryTreeNode>> rootItems = new ArrayList<>();
         for (ImportRootRecord importRoot : importRootRepository.findAll()) {
-            FolderRecord rootFolder = folderRepository.findRootFolder(importRoot.getId()).orElse(null);
-            Long rootFolderId = rootFolder == null ? null : rootFolder.getId();
-            NodePayload payload = rootFolderId == null ? null : new FolderPayload(rootFolderId);
+            FolderRecord rootFolder = folderRepository.findRootFolder(importRoot.getId())
+                                                      .orElse(null);
+            Long        rootFolderId = rootFolder == null ? null : rootFolder.getId();
+            NodePayload payload      = rootFolderId == null ? null : new FolderPayload(rootFolderId);
             TreeItem<LibraryTreeNode> folderRootItem = treeItem(
                     new LibraryTreeNode(importRoot.getPath(), payload, NodeType.IMPORT_ROOT));
             if (rootFolderId != null) {
-                folderRootItem.getChildren().addAll(buildFolderItems(rootFolderId));
+                folderRootItem.getChildren()
+                              .addAll(buildFolderItems(rootFolderId));
             }
             rootItems.add(folderRootItem);
         }
@@ -222,7 +253,8 @@ public class LibraryController implements Initializable {
                     new LibraryTreeNode(folder.getName(),
                             new FolderPayload(folder.getId()),
                             NodeType.FOLDER));
-            item.getChildren().addAll(buildFolderItems(folder.getId()));
+            item.getChildren()
+                .addAll(buildFolderItems(folder.getId()));
             items.add(item);
         }
         return items;
@@ -245,22 +277,27 @@ public class LibraryController implements Initializable {
 
         for (var yearEntry : byYearMonth.entrySet()) {
             int year = yearEntry.getKey();
-            int yearCount = yearEntry.getValue().values().stream()
-                    .flatMap(List::stream)
-                    .mapToInt(TimelineData.TimelineDay::count)
-                    .sum();
+            int yearCount = yearEntry.getValue()
+                                     .values()
+                                     .stream()
+                                     .flatMap(List::stream)
+                                     .mapToInt(TimelineData.TimelineDay::count)
+                                     .sum();
 
             TreeItem<LibraryTreeNode> yearItem = treeItem(new LibraryTreeNode(
                     year + " (" + yearCount + ")",
                     new TimelinePayload(year, null, null),
                     NodeType.TIMELINE_YEAR));
 
-            for (var monthEntry : yearEntry.getValue().entrySet()) {
+            for (var monthEntry : yearEntry.getValue()
+                                           .entrySet()) {
                 int month = monthEntry.getKey();
-                int monthCount = monthEntry.getValue().stream()
-                        .mapToInt(TimelineData.TimelineDay::count)
-                        .sum();
-                String monthName = Month.of(month).getDisplayName(TextStyle.FULL, Locale.getDefault());
+                int monthCount = monthEntry.getValue()
+                                           .stream()
+                                           .mapToInt(TimelineData.TimelineDay::count)
+                                           .sum();
+                String monthName = Month.of(month)
+                                        .getDisplayName(TextStyle.FULL, Locale.getDefault());
 
                 TreeItem<LibraryTreeNode> monthItem = treeItem(new LibraryTreeNode(
                         monthName + " (" + monthCount + ")",
@@ -268,13 +305,15 @@ public class LibraryController implements Initializable {
                         NodeType.TIMELINE_MONTH));
 
                 for (TimelineData.TimelineDay day : monthEntry.getValue()) {
-                    monthItem.getChildren().add(treeItem(new LibraryTreeNode(
-                            day.day() + " (" + day.count() + ")",
-                            new TimelinePayload(year, month, day.day()),
-                            NodeType.TIMELINE_DAY)));
+                    monthItem.getChildren()
+                             .add(treeItem(new LibraryTreeNode(
+                                     day.day() + " (" + day.count() + ")",
+                                     new TimelinePayload(year, month, day.day()),
+                                     NodeType.TIMELINE_DAY)));
                 }
 
-                yearItem.getChildren().add(monthItem);
+                yearItem.getChildren()
+                        .add(monthItem);
             }
 
             items.add(yearItem);
@@ -297,7 +336,8 @@ public class LibraryController implements Initializable {
             clearPhotoGrid();
             return;
         }
-        NodePayload payload = selectedItem.getValue().payload();
+        NodePayload payload = selectedItem.getValue()
+                                          .payload();
         if (payload == null) {
             clearPhotoGrid();
             return;
@@ -317,7 +357,9 @@ public class LibraryController implements Initializable {
         Thread t = new Thread(() -> {
             List<PhotoRecord> photos = photoRepository.findByFolderId(folderId);
             Map<Long, ThumbnailRecord> thumbnails = thumbnailRepository.findByPhotoIds(
-                    photos.stream().map(PhotoRecord::getId).toList());
+                    photos.stream()
+                          .map(PhotoRecord::getId)
+                          .toList());
             runOnFxThread(() -> populatePhotoGrid(photos, thumbnails));
         });
         t.setDaemon(true);
@@ -328,7 +370,9 @@ public class LibraryController implements Initializable {
         Thread t = new Thread(() -> {
             List<PhotoRecord> photos = photoRepository.findByCaptureDate(year, month, day);
             Map<Long, ThumbnailRecord> thumbnails = thumbnailRepository.findByPhotoIds(
-                    photos.stream().map(PhotoRecord::getId).toList());
+                    photos.stream()
+                          .map(PhotoRecord::getId)
+                          .toList());
             runOnFxThread(() -> populatePhotoGrid(photos, thumbnails));
         });
         t.setDaemon(true);
@@ -339,7 +383,9 @@ public class LibraryController implements Initializable {
         Thread t = new Thread(() -> {
             List<PhotoRecord> photos = photoRepository.findByNullCaptureDate();
             Map<Long, ThumbnailRecord> thumbnails = thumbnailRepository.findByPhotoIds(
-                    photos.stream().map(PhotoRecord::getId).toList());
+                    photos.stream()
+                          .map(PhotoRecord::getId)
+                          .toList());
             runOnFxThread(() -> populatePhotoGrid(photos, thumbnails));
         });
         t.setDaemon(true);
@@ -349,21 +395,25 @@ public class LibraryController implements Initializable {
     // ── Photo grid ────────────────────────────────────────────────────────────
 
     private void populatePhotoGrid(List<PhotoRecord> photos, Map<Long, ThumbnailRecord> thumbnailsByPhotoId) {
-        photoGridPane.getChildren().setAll(
-                photos.stream()
-                        .map(photo -> createPhotoCell(photo, thumbnailsByPhotoId.get(photo.getId())))
-                        .toList());
+        photoGridPane.getChildren()
+                     .setAll(
+                             photos.stream()
+                                   .map(photo -> createPhotoCell(photo, thumbnailsByPhotoId.get(photo.getId())))
+                                   .toList());
     }
 
     private void clearPhotoGrid() {
-        photoGridPane.getChildren().clear();
+        photoGridPane.getChildren()
+                     .clear();
     }
 
     private Node createPhotoCell(PhotoRecord photo, ThumbnailRecord thumbnail) {
         ImageView imageView = new ImageView(getImage(thumbnail, noImageAvailable));
         imageView.setPreserveRatio(true);
-        imageView.fitWidthProperty().bind(thumbnailSizeSlider.valueProperty());
-        imageView.fitHeightProperty().bind(thumbnailSizeSlider.valueProperty());
+        imageView.fitWidthProperty()
+                 .bind(thumbnailSizeSlider.valueProperty());
+        imageView.fitHeightProperty()
+                 .bind(thumbnailSizeSlider.valueProperty());
 
         Label nameLabel = new Label(photo.getFilename());
         nameLabel.setWrapText(true);
@@ -381,10 +431,11 @@ public class LibraryController implements Initializable {
 
         cell.setOnMouseClicked(e -> {
             if (e.getClickCount() == 1) {
-                List<PhotoRecord> currentPhotos = photoGridPane.getChildren().stream()
-                        .map(node -> (PhotoRecord) node.getUserData())
-                        .filter(Objects::nonNull)
-                        .toList();
+                List<PhotoRecord> currentPhotos = photoGridPane.getChildren()
+                                                               .stream()
+                                                               .map(node -> (PhotoRecord) node.getUserData())
+                                                               .filter(Objects::nonNull)
+                                                               .toList();
                 int idx = currentPhotos.indexOf(photo);
                 if (idx >= 0) {
                     openSlideshow(currentPhotos, idx);
@@ -400,27 +451,44 @@ public class LibraryController implements Initializable {
 
     private String buildPhotoDetailsText(PhotoRecord photo) {
         StringBuilder sb = new StringBuilder();
-        sb.append(photo.getFilename()).append('\n');
-        sb.append(photo.getAbsolutePath()).append('\n');
-        sb.append("Extension:  ").append(photo.getExtension() == null ? "—" : photo.getExtension()).append('\n');
-        sb.append("Size:       ").append(formatFileSize(photo.getFileSize())).append('\n');
+        sb.append(photo.getFilename())
+          .append('\n');
+        sb.append(photo.getAbsolutePath())
+          .append('\n');
+        sb.append("Extension:  ")
+          .append(photo.getExtension() == null ? "—" : photo.getExtension())
+          .append('\n');
+        sb.append("Size:       ")
+          .append(formatFileSize(photo.getFileSize()))
+          .append('\n');
         if (photo.getImageWidth() != null && photo.getImageHeight() != null) {
-            sb.append("Dimensions: ").append(photo.getImageWidth()).append(" x ").append(photo.getImageHeight()).append('\n');
+            sb.append("Dimensions: ")
+              .append(photo.getImageWidth())
+              .append(" x ")
+              .append(photo.getImageHeight())
+              .append('\n');
         }
         if (photo.getCaptureDate() != null) {
-            sb.append("Captured:    ").append(photo.getCaptureDate());
+            sb.append("Captured:    ")
+              .append(photo.getCaptureDate());
             if (photo.getCaptureDateSource() != null) {
-                sb.append(" (").append(photo.getCaptureDateSource()).append(')');
+                sb.append(" (")
+                  .append(photo.getCaptureDateSource())
+                  .append(')');
             }
             sb.append('\n');
         }
         if (photo.getImportedAt() != null) {
-            sb.append("Imported:    ").append(photo.getImportedAt()).append('\n');
+            sb.append("Imported:    ")
+              .append(photo.getImportedAt())
+              .append('\n');
         }
         if (photo.getLastSeenAt() != null) {
-            sb.append("Last seen:    ").append(photo.getLastSeenAt());
+            sb.append("Last seen:    ")
+              .append(photo.getLastSeenAt());
         }
-        return sb.toString().strip();
+        return sb.toString()
+                 .strip();
     }
 
     private static String formatFileSize(Long bytes) {
@@ -431,9 +499,9 @@ public class LibraryController implements Initializable {
         if (bytes == null) {
             return "unknown";
         }
-        double size = bytes;
-        String[] units = {"B", "KB", "MB", "GB"};
-        int unitIndex = 0;
+        double   size      = bytes;
+        String[] units     = {"B", "KB", "MB", "GB"};
+        int      unitIndex = 0;
         while (size >= 1024.0 && unitIndex < units.length - 1) {
             size /= 1024.0;
             unitIndex++;
@@ -449,11 +517,13 @@ public class LibraryController implements Initializable {
     @SneakyThrows
     public void onRescanMenuClicked(ActionEvent actionEvent) {
         Stage stage = new Stage();
-        Parent root = fxmlLoader.load(FxmlView.RESCAN_MODAL, new RescanBundle("D:\\My Pictures")).parent();
+        Parent root = fxmlLoader.load(FxmlView.RESCAN_MODAL, new RescanBundle("D:\\My Pictures"))
+                                .parent();
         stage.setScene(new Scene(root));
         stage.setTitle("Rescan library");
         stage.initModality(Modality.APPLICATION_MODAL);
-        stage.initOwner(backgroundProcessCancelButton.getScene().getWindow());
+        stage.initOwner(backgroundProcessCancelButton.getScene()
+                                                     .getWindow());
         stage.showAndWait();
     }
 

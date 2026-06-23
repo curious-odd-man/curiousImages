@@ -24,13 +24,15 @@ public class FileUtils {
      */
     @SneakyThrows
     public static String audioMd5(Path path) {
-        long fileSize = Files.size(path);
-        int sampleSize = 64 * 1024; // 64KB from start and end
+        long fileSize   = Files.size(path);
+        int  sampleSize = 64 * 1024; // 64KB from start and end
 
         MessageDigest digest = MessageDigest.getInstance("MD5");
 
         // Always include file size in the hash — catches truncation
-        digest.update(ByteBuffer.allocate(8).putLong(fileSize).array());
+        digest.update(ByteBuffer.allocate(8)
+                                .putLong(fileSize)
+                                .array());
 
         try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ)) {
             ByteBuffer buf = ByteBuffer.allocate(sampleSize);
@@ -47,6 +49,7 @@ public class FileUtils {
             }
         }
 
-        return HexFormat.of().formatHex(digest.digest());
+        return HexFormat.of()
+                        .formatHex(digest.digest());
     }
 }

@@ -31,9 +31,9 @@ public abstract class AbstractBackgroundJob {
 
     private static final int PROGRESS_PUBLISH_INTERVAL_MS = 100;
 
-    private final AtomicBoolean running = new AtomicBoolean(false);
-    private volatile boolean shouldInterrupt;
-    private volatile long lastProgressPublishMs;
+    private final    AtomicBoolean running = new AtomicBoolean(false);
+    private volatile boolean       shouldInterrupt;
+    private volatile long          lastProgressPublishMs;
 
     protected abstract ApplicationEventPublisher eventPublisher();
 
@@ -146,7 +146,7 @@ public abstract class AbstractBackgroundJob {
 
     private BackgroundProcessEvent.BackgroundProcessEventBuilder eventBuilder() {
         return BackgroundProcessEvent.builder()
-                .source(this)
-                .processName(getProcessName());
+                                     .source(this)
+                                     .processName(getProcessName());
     }
 }

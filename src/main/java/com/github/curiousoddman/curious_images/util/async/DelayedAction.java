@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 public class DelayedAction {
-    private final long delay;
+    private final long     delay;
     private final TimeUnit timeUnit;
 
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {

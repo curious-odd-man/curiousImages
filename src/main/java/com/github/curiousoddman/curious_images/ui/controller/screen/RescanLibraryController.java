@@ -24,7 +24,7 @@ import java.util.ResourceBundle;
 public class RescanLibraryController implements Initializable {
     private final ApplicationEventPublisher eventPublisher;
     @FXML
-    public TextField path;
+    public        TextField                 path;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -37,13 +37,15 @@ public class RescanLibraryController implements Initializable {
     public void onChoosePath(ActionEvent actionEvent) {
         DirectoryChooser fileChooser = new DirectoryChooser();
         fileChooser.setTitle("Select library root directory");
-        File result = fileChooser.showDialog(((Node) actionEvent.getSource()).getScene().getWindow());
+        File result = fileChooser.showDialog(((Node) actionEvent.getSource()).getScene()
+                                                                             .getWindow());
         path.setText(result.getAbsolutePath());
     }
 
     @FXML
     public void onRescan(ActionEvent actionEvent) {
         eventPublisher.publishEvent(new RescanLibraryEvent(this, path.getText()));
-        ((Stage) path.getScene().getWindow()).close();
+        ((Stage) path.getScene()
+                     .getWindow()).close();
     }
 }

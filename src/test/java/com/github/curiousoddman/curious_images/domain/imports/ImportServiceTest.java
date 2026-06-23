@@ -22,9 +22,13 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.curiousoddman.curious_images.dbobj.Tables.*;
+import static com.github.curiousoddman.curious_images.dbobj.Tables.FOLDER;
+import static com.github.curiousoddman.curious_images.dbobj.Tables.PHOTO;
+import static com.github.curiousoddman.curious_images.dbobj.Tables.THUMBNAIL;
 import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
