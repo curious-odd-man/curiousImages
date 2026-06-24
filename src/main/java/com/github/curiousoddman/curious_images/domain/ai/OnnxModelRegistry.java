@@ -25,9 +25,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class OnnxModelRegistry implements DisposableBean {
 
-    private final OrtEnvironment env = OrtEnvironment.getEnvironment();
+    private final OrtEnvironment                        env      = OrtEnvironment.getEnvironment();
     private final ConcurrentHashMap<String, OrtSession> sessions = new ConcurrentHashMap<>();
-    private final AiConfig config;
+    private final AiConfig                              config;
 
     /**
      * Returns the cached session for {@code modelKey}, loading it from {@code modelPath} if this
@@ -83,6 +83,6 @@ public class OnnxModelRegistry implements DisposableBean {
             }
         });
         sessions.clear();
-        env.close();
+            env.close();
     }
 }

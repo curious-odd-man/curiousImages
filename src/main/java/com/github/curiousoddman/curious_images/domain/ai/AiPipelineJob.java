@@ -11,7 +11,11 @@ import com.github.curiousoddman.curious_images.domain.index.ClipVectorIndex;
 import com.github.curiousoddman.curious_images.domain.index.FaceVectorIndex;
 import com.github.curiousoddman.curious_images.event.RegenerateAlbumsEvent;
 import com.github.curiousoddman.curious_images.event.RunAiPipelineEvent;
-import com.github.curiousoddman.curious_images.persistence.*;
+import com.github.curiousoddman.curious_images.persistence.AiProcessingStatusRepository;
+import com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository;
+import com.github.curiousoddman.curious_images.persistence.FaceEmbeddingRepository;
+import com.github.curiousoddman.curious_images.persistence.FaceRepository;
+import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import com.github.curiousoddman.curious_images.util.async.AbstractBackgroundJob;
 import lombok.RequiredArgsConstructor;
@@ -55,28 +59,28 @@ public class AiPipelineJob extends AbstractBackgroundJob {
 
     public static final String AI_PIPELINE = "AI Pipeline";
 
-    private static final int DB_FLUSH_BATCH_SIZE = 50;
-    private static final String ARCFACE_MODEL_VER = "arcface_r50";
+    private static final int    DB_FLUSH_BATCH_SIZE  = 50;
+    private static final String ARCFACE_MODEL_VER    = "arcface_r50";
     private static final String CLIP_IMAGE_MODEL_VER = "clip_vit_b32";
 
     // ── Dependencies ──────────────────────────────────────────────────────────
 
-    private final DSLContext dsl;
-    private final PhotoRepository photoRepo;
-    private final FaceRepository faceRepo;
-    private final FaceEmbeddingRepository faceEmbeddingRepo;
-    private final ClipEmbeddingRepository clipEmbeddingRepo;
+    private final DSLContext                   dsl;
+    private final PhotoRepository              photoRepo;
+    private final FaceRepository               faceRepo;
+    private final FaceEmbeddingRepository      faceEmbeddingRepo;
+    private final ClipEmbeddingRepository      clipEmbeddingRepo;
     private final AiProcessingStatusRepository aiStatusRepo;
-    private final RetinaFaceDetector retinaFaceDetector;
-    private final ArcFaceEncoder arcFaceEncoder;
-    private final FaceAligner faceAligner;
-    private final ClipImageEncoder clipImageEncoder;
-    private final ClipVectorIndex clipVectorIndex;
-    private final FaceVectorIndex faceVectorIndex;
-    private final PersonClusteringService personClusteringService;
-    private final TimeProvider timeProvider;
-    private final ApplicationEventPublisher applicationEventPublisher;
-    private final ObjectMapper objectMapper;
+    private final RetinaFaceDetector           retinaFaceDetector;
+    private final ArcFaceEncoder               arcFaceEncoder;
+    private final FaceAligner                  faceAligner;
+    private final ClipImageEncoder             clipImageEncoder;
+    private final ClipVectorIndex              clipVectorIndex;
+    private final FaceVectorIndex              faceVectorIndex;
+    private final PersonClusteringService      personClusteringService;
+    private final TimeProvider                 timeProvider;
+    private final ApplicationEventPublisher    applicationEventPublisher;
+    private final ObjectMapper                 objectMapper;
 
     // ── Event listener ────────────────────────────────────────────────────────
 
@@ -150,12 +154,12 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                 return;
             }
 
-            long photoId = photoIds.get(i);
-            LocalDateTime now = timeProvider.now();
+            long          photoId = photoIds.get(i);
+            LocalDateTime now     = timeProvider.now();
             try {
                 PhotoRecord photo = photoRepo.findById(photoId)
-                        .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
-                BufferedImage img = loadImage(photo.getAbsolutePath());
+                                             .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
+                BufferedImage                         img   = loadImage(photo.getAbsolutePath());
                 List<RetinaFaceDetector.DetectedFace> faces = retinaFaceDetector.detect(img);
 
                 for (RetinaFaceDetector.DetectedFace face : faces) {
@@ -170,7 +174,9 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                 buffer.add(aiStatusRepo.markErrorQuery(photoId, e.getMessage(), now));
             }
 
-            if (buffer.size() >= DB_FLUSH_BATCH_SIZE) flush(buffer);
+            if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
+                flush(buffer);
+            }
             publishProgress("Detecting faces...", i + 1, photoIds.size(),
                     String.valueOf(photoId), i == photoIds.size() - 1);
         }
@@ -194,19 +200,19 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                 return;
             }
 
-            long photoId = photoIds.get(i);
-            LocalDateTime now = timeProvider.now();
+            long          photoId = photoIds.get(i);
+            LocalDateTime now     = timeProvider.now();
             try {
                 PhotoRecord photo = photoRepo.findById(photoId)
-                        .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
-                BufferedImage img = loadImage(photo.getAbsolutePath());
+                                             .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
+                BufferedImage    img   = loadImage(photo.getAbsolutePath());
                 List<FaceRecord> faces = faceRepo.findByPhotoId(photoId);
 
                 for (FaceRecord face : faces) {
                     float[][] landmarks = parseLandmarks(face.getLandmarkJson(),
                             img.getWidth(), img.getHeight());
-                    BufferedImage aligned = faceAligner.align(img, landmarks);
-                    float[] embedding = arcFaceEncoder.encode(aligned);
+                    BufferedImage aligned   = faceAligner.align(img, landmarks);
+                    float[]       embedding = arcFaceEncoder.encode(aligned);
                     buffer.add(faceEmbeddingRepo.upsertQuery(face.getId(), embedding, ARCFACE_MODEL_VER));
                 }
                 buffer.add(aiStatusRepo.markFaceEmbedDoneQuery(photoId, now));
@@ -216,7 +222,9 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                 buffer.add(aiStatusRepo.markErrorQuery(photoId, e.getMessage(), now));
             }
 
-            if (buffer.size() >= DB_FLUSH_BATCH_SIZE) flush(buffer);
+            if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
+                flush(buffer);
+            }
             publishProgress("Generating face embeddings...", i + 1, photoIds.size(),
                     String.valueOf(photoId), i == photoIds.size() - 1);
         }
@@ -240,13 +248,13 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                 return;
             }
 
-            long photoId = photoIds.get(i);
-            LocalDateTime now = timeProvider.now();
+            long          photoId = photoIds.get(i);
+            LocalDateTime now     = timeProvider.now();
             try {
                 PhotoRecord photo = photoRepo.findById(photoId)
-                        .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
-                BufferedImage img = loadImage(photo.getAbsolutePath());
-                float[] embedding = clipImageEncoder.encode(img);
+                                             .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
+                BufferedImage img       = loadImage(photo.getAbsolutePath());
+                float[]       embedding = clipImageEncoder.encode(img);
                 buffer.add(clipEmbeddingRepo.upsertQuery(photoId, embedding, CLIP_IMAGE_MODEL_VER));
                 buffer.add(aiStatusRepo.markClipEmbedDoneQuery(photoId, now));
 
@@ -255,7 +263,9 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                 buffer.add(aiStatusRepo.markErrorQuery(photoId, e.getMessage(), now));
             }
 
-            if (buffer.size() >= DB_FLUSH_BATCH_SIZE) flush(buffer);
+            if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
+                flush(buffer);
+            }
             publishProgress("Generating CLIP embeddings...", i + 1, photoIds.size(),
                     String.valueOf(photoId), i == photoIds.size() - 1);
         }
@@ -282,20 +292,22 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                 return;
             }
 
-            long photoId = photoIds.get(i);
-            LocalDateTime now = timeProvider.now();
+            long          photoId = photoIds.get(i);
+            LocalDateTime now     = timeProvider.now();
             try {
                 // Index CLIP embedding
                 ClipEmbeddingRecord clipRec = clipEmbeddingRepo.findByPhotoId(photoId)
-                        .orElse(null);
+                                                               .orElse(null);
                 if (clipRec != null) {
                     float[] clipEmbed = ClipEmbeddingRepository.toFloats(clipRec.getEmbedding());
                     clipVectorIndex.upsert(photoId, clipEmbed);
                 }
 
                 // Index face embeddings
-                List<FaceRecord> faces = faceRepo.findByPhotoId(photoId);
-                List<Long> faceIds = faces.stream().map(FaceRecord::getId).toList();
+                List<FaceRecord>               faces      = faceRepo.findByPhotoId(photoId);
+                List<Long>                     faceIds    = faces.stream()
+                                                                 .map(FaceRecord::getId)
+                                                                 .toList();
                 Map<Long, FaceEmbeddingRecord> faceEmbeds = faceEmbeddingRepo.findByFaceIds(faceIds);
                 for (FaceRecord face : faces) {
                     FaceEmbeddingRecord emb = faceEmbeds.get(face.getId());
@@ -329,7 +341,9 @@ public class AiPipelineJob extends AbstractBackgroundJob {
 
     private BufferedImage loadImage(String absolutePath) throws IOException {
         BufferedImage img = ImageIO.read(new File(absolutePath));
-        if (img == null) throw new IOException("ImageIO could not decode: " + absolutePath);
+        if (img == null) {
+            throw new IOException("ImageIO could not decode: " + absolutePath);
+        }
         return img;
     }
 
@@ -349,10 +363,12 @@ public class AiPipelineJob extends AbstractBackgroundJob {
      * in the original image space.
      */
     private float[][] parseLandmarks(String json, int imageW, int imageH) {
-        if (json == null) return new float[5][2];
+        if (json == null) {
+            return new float[5][2];
+        }
         try {
             float[][] normalised = objectMapper.readValue(json, float[][].class);
-            float[][] pixels = new float[5][2];
+            float[][] pixels     = new float[5][2];
             for (int p = 0; p < 5; p++) {
                 pixels[p][0] = normalised[p][0] * imageW;
                 pixels[p][1] = normalised[p][1] * imageH;
@@ -365,8 +381,12 @@ public class AiPipelineJob extends AbstractBackgroundJob {
     }
 
     private void flush(List<Query> buffer) {
-        if (buffer.isEmpty()) return;
-        dsl.transaction(cfg -> DSL.using(cfg).batch(buffer).execute());
+        if (buffer.isEmpty()) {
+            return;
+        }
+        dsl.transaction(cfg -> DSL.using(cfg)
+                                  .batch(buffer)
+                                  .execute());
         buffer.clear();
     }
 

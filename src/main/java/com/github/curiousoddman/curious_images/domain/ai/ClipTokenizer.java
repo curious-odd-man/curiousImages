@@ -9,7 +9,11 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,7 +34,7 @@ import java.util.regex.Pattern;
 @Component
 public class ClipTokenizer {
 
-    private static final int    CONTEXT_LENGTH = 77;
+    private static final int    CONTEXT_LENGTH  = 77;
     private static final String VOCAB_RESOURCE  = "/clip-tokenizer/vocab.json";
     private static final String MERGES_RESOURCE = "/clip-tokenizer/merges.txt";
 
@@ -41,13 +45,13 @@ public class ClipTokenizer {
     // Regex to pre-tokenise text (same as CLIP reference implementation)
     private static final Pattern WORD_PATTERN = Pattern.compile(
             "(?i)<\\|startoftext\\|>|<\\|endoftext\\|>|'s|'t|'re|'ve|'m|'ll|'d" +
-            "|[\\p{L}]+|[\\p{N}]|[^\\s\\p{L}\\p{N}]+",
+                    "|[\\p{L}]+|[\\p{N}]|[^\\s\\p{L}\\p{N}]+",
             Pattern.UNICODE_CHARACTER_CLASS);
 
-    private Map<String, Integer>       encoder;     // token string → id
-    private Map<Integer, String>       decoder;     // id → token string
-    private Map<String, Integer>       bpeRanks;    // "a b" merge → rank
-    private Map<String, List<String>>  bpeCache;    // word → merged tokens (memoised)
+    private Map<String, Integer>      encoder;     // token string → id
+    private Map<Integer, String>      decoder;     // id → token string
+    private Map<String, Integer>      bpeRanks;    // "a b" merge → rank
+    private Map<String, List<String>> bpeCache;    // word → merged tokens (memoised)
 
     private int sotToken;
     private int eotToken;
@@ -90,7 +94,8 @@ public class ClipTokenizer {
 
     private List<Integer> encode(String text) {
         List<Integer> tokens = new ArrayList<>();
-        Matcher m = WORD_PATTERN.matcher(text.toLowerCase(Locale.ROOT).strip());
+        Matcher       m      = WORD_PATTERN.matcher(text.toLowerCase(Locale.ROOT)
+                                                        .strip());
         while (m.find()) {
             String word = m.group();
             if (word.equals(SOT_TEXT.toLowerCase()) || word.equals(EOT_TEXT.toLowerCase())) {
@@ -98,13 +103,13 @@ public class ClipTokenizer {
                 continue;
             }
             // Convert word to byte-level representation, then BPE
-            StringBuilder sb = new StringBuilder();
-            byte[] bytes = word.getBytes(StandardCharsets.UTF_8);
+            StringBuilder sb    = new StringBuilder();
+            byte[]        bytes = word.getBytes(StandardCharsets.UTF_8);
             for (byte b : bytes) {
                 sb.append(byteToUnicode(b & 0xFF));
             }
             // Mark end-of-word with </w> suffix on last character
-            String wordStr = sb.toString();
+            String       wordStr    = sb.toString();
             List<String> wordTokens = bpe(wordStr + "</w>");
             for (String t : wordTokens) {
                 tokens.add(encoder.getOrDefault(t, eotToken));
@@ -119,7 +124,8 @@ public class ClipTokenizer {
 
         // Start with characters as individual tokens (split into Unicode code points as strings)
         List<String> symbols = new ArrayList<>();
-        int[] cps = word.codePoints().toArray();
+        int[]        cps     = word.codePoints()
+                                   .toArray();
         for (int i = 0; i < cps.length; i++) {
             // Detect </w> suffix: last 4 chars
             if (i == cps.length - 4 && word.endsWith("</w>")) {
@@ -138,28 +144,34 @@ public class ClipTokenizer {
             int bestIdx  = -1;
             for (int i = 0; i < symbols.size() - 1; i++) {
                 String pair = symbols.get(i) + " " + symbols.get(i + 1);
-                int rank = bpeRanks.getOrDefault(pair, Integer.MAX_VALUE);
+                int    rank = bpeRanks.getOrDefault(pair, Integer.MAX_VALUE);
                 if (rank < bestRank) {
                     bestRank = rank;
-                    bestIdx  = i;
+                    bestIdx = i;
                 }
             }
-            if (bestIdx < 0 || bestRank == Integer.MAX_VALUE) break;
+            if (bestIdx < 0 || bestRank == Integer.MAX_VALUE) {
+                break;
+            }
 
             // Merge the best pair everywhere in the symbol list
-            String merged = symbols.get(bestIdx) + symbols.get(bestIdx + 1);
-            List<String> next = new ArrayList<>();
-            int i = 0;
+            String       merged = symbols.get(bestIdx) + symbols.get(bestIdx + 1);
+            List<String> next   = new ArrayList<>();
+            int          i      = 0;
             while (i < symbols.size()) {
                 if (i == bestIdx && i + 1 < symbols.size()
-                        && symbols.get(i).equals(symbols.get(bestIdx))
-                        && symbols.get(i + 1).equals(symbols.get(bestIdx + 1))) {
+                        && symbols.get(i)
+                                  .equals(symbols.get(bestIdx))
+                        && symbols.get(i + 1)
+                                  .equals(symbols.get(bestIdx + 1))) {
                     next.add(merged);
                     i += 2;
                     // Continue merging all occurrences of the same pair
                     while (i + 1 < symbols.size()
-                            && symbols.get(i).equals(symbols.get(bestIdx))
-                            && symbols.get(i + 1).equals(symbols.get(bestIdx + 1))) {
+                            && symbols.get(i)
+                                      .equals(symbols.get(bestIdx))
+                            && symbols.get(i + 1)
+                                      .equals(symbols.get(bestIdx + 1))) {
                         next.add(merged);
                         i += 2;
                     }
@@ -183,10 +195,12 @@ public class ClipTokenizer {
         List<String> result = new ArrayList<>();
         if (word.endsWith("</w>")) {
             String stem = word.substring(0, word.length() - 4);
-            stem.codePoints().forEach(cp -> result.add(new String(Character.toChars(cp))));
+            stem.codePoints()
+                .forEach(cp -> result.add(new String(Character.toChars(cp))));
             result.add("</w>");
         } else {
-            word.codePoints().forEach(cp -> result.add(new String(Character.toChars(cp))));
+            word.codePoints()
+                .forEach(cp -> result.add(new String(Character.toChars(cp))));
         }
         return result;
     }
@@ -205,7 +219,7 @@ public class ClipTokenizer {
         for (int b = '®'; b <= 'ÿ'; b++) bs.add(b);
 
         List<Integer> cs = new ArrayList<>(bs);
-        int n = 0;
+        int           n  = 0;
         for (int b = 0; b < 256; b++) {
             if (!bs.contains(b)) {
                 bs.add(b);
@@ -230,9 +244,11 @@ public class ClipTokenizer {
     private void loadVocab() throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         try (InputStream in = ClipTokenizer.class.getResourceAsStream(VOCAB_RESOURCE)) {
-            if (in == null) throw new IllegalStateException(
-                    "CLIP vocab not found: " + VOCAB_RESOURCE + ". " +
-                    "Download from https://github.com/openai/CLIP and place in src/main/resources/clip-tokenizer/");
+            if (in == null) {
+                throw new IllegalStateException(
+                        "CLIP vocab not found: " + VOCAB_RESOURCE + ". " +
+                                "Download from https://github.com/openai/CLIP and place in src/main/resources/clip-tokenizer/");
+            }
             encoder = mapper.readValue(in, new TypeReference<Map<String, Integer>>() {});
         }
         decoder = new HashMap<>();
@@ -241,16 +257,20 @@ public class ClipTokenizer {
 
     private void loadMerges() throws IOException {
         try (InputStream in = ClipTokenizer.class.getResourceAsStream(MERGES_RESOURCE)) {
-            if (in == null) throw new IllegalStateException(
-                    "CLIP merges not found: " + MERGES_RESOURCE + ". " +
-                    "Download from https://github.com/openai/CLIP and place in src/main/resources/clip-tokenizer/");
-            String content = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-            String[] lines = content.split("\n");
+            if (in == null) {
+                throw new IllegalStateException(
+                        "CLIP merges not found: " + MERGES_RESOURCE + ". " +
+                                "Download from https://github.com/openai/CLIP and place in src/main/resources/clip-tokenizer/");
+            }
+            String   content = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            String[] lines   = content.split("\n");
             bpeRanks = new HashMap<>();
             // First line is a comment (#version: ...)
             int rank = 0;
             for (String line : lines) {
-                if (line.startsWith("#") || line.isBlank()) continue;
+                if (line.startsWith("#") || line.isBlank()) {
+                    continue;
+                }
                 bpeRanks.put(line.trim(), rank++);
             }
         }

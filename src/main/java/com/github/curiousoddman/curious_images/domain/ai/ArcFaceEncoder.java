@@ -23,11 +23,11 @@ import static com.github.curiousoddman.curious_images.domain.ai.ClipTextEncoder.
 @RequiredArgsConstructor
 public class ArcFaceEncoder {
 
-    private static final int FACE_SIZE = 112;
+    private static final int FACE_SIZE  = 112;
     private static final int EMBED_DIMS = 512;
 
     private final OnnxModelRegistry registry;
-    private final ModelPaths paths;
+    private final ModelPaths        paths;
 
     /**
      * Encodes an aligned 112×112 face crop into a 512-dim L2-normalised embedding.
@@ -36,12 +36,13 @@ public class ArcFaceEncoder {
      * @return float[512] L2-normalised embedding
      */
     public float[] encode(BufferedImage alignedFace) throws OrtException {
-        OrtSession session = registry.getOrLoad("arcface", paths.arcFace());
-        float[][][][] input = toTensor(alignedFace);
+        OrtSession    session = registry.getOrLoad("arcface", paths.arcFace());
+        float[][][][] input   = toTensor(alignedFace);
         try (OnnxTensor tensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), input);
              OrtSession.Result result = session.run(Map.of("input.1", tensor))
         ) {
-            float[] raw = (float[]) result.get(0).getValue();
+            float[] raw = (float[]) result.get(0)
+                                          .getValue();
             return l2Normalize(raw);
         }
     }
@@ -51,7 +52,7 @@ public class ArcFaceEncoder {
      * Channel order: RGB. Normalisation: {@code (pixel / 127.5f) - 1.0f}.
      */
     private float[][][][] toTensor(BufferedImage img) {
-        int[] pixels = img.getRGB(0, 0, FACE_SIZE, FACE_SIZE, null, 0, FACE_SIZE);
+        int[]         pixels = img.getRGB(0, 0, FACE_SIZE, FACE_SIZE, null, 0, FACE_SIZE);
         float[][][][] tensor = new float[1][3][FACE_SIZE][FACE_SIZE];
         for (int y = 0; y < FACE_SIZE; y++) {
             for (int x = 0; x < FACE_SIZE; x++) {

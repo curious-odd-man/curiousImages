@@ -16,7 +16,9 @@ import java.awt.image.BufferedImage;
 @Component
 public class FaceAligner {
 
-    /** ArcFace reference 5-point landmarks in 112×112 space (InsightFace convention). */
+    /**
+     * ArcFace reference 5-point landmarks in 112×112 space (InsightFace convention).
+     */
     private static final float[][] REFERENCE = {
             {38.29f, 51.69f},
             {73.53f, 51.50f},
@@ -35,9 +37,9 @@ public class FaceAligner {
      * @return a 112×112 RGB aligned face crop ready for ArcFace
      */
     public BufferedImage align(BufferedImage source, float[][] landmarks) {
-        AffineTransform t = estimateSimilarityTransform(landmarks, REFERENCE);
-        BufferedImage out = new BufferedImage(OUT_SIZE, OUT_SIZE, BufferedImage.TYPE_INT_RGB);
-        Graphics2D g = out.createGraphics();
+        AffineTransform t   = estimateSimilarityTransform(landmarks, REFERENCE);
+        BufferedImage   out = new BufferedImage(OUT_SIZE, OUT_SIZE, BufferedImage.TYPE_INT_RGB);
+        Graphics2D      g   = out.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
         g.drawImage(source, t, null);
@@ -58,14 +60,18 @@ public class FaceAligner {
         // 1. Compute centroids
         double srcMx = 0, srcMy = 0, dstMx = 0, dstMy = 0;
         for (int i = 0; i < n; i++) {
-            srcMx += src[i][0]; srcMy += src[i][1];
-            dstMx += dst[i][0]; dstMy += dst[i][1];
+            srcMx += src[i][0];
+            srcMy += src[i][1];
+            dstMx += dst[i][0];
+            dstMy += dst[i][1];
         }
-        srcMx /= n; srcMy /= n;
-        dstMx /= n; dstMy /= n;
+        srcMx /= n;
+        srcMy /= n;
+        dstMx /= n;
+        dstMy /= n;
 
         // 2. Compute cross-covariance and source variance
-        double sxx = 0, sxy = 0, syx = 0, syy = 0;
+        double sxx    = 0, sxy = 0, syx = 0, syy = 0;
         double varSrc = 0;
         for (int i = 0; i < n; i++) {
             double sx = src[i][0] - srcMx;
@@ -82,9 +88,9 @@ public class FaceAligner {
 
         // 3. Compute rotation angle from the 2×2 covariance matrix
         //    For similarity: a = (sxx+syy), b = (syx-sxy)
-        double a = sxx + syy;
-        double b = syx - sxy;
-        double norm = Math.sqrt(a * a + b * b);
+        double a        = sxx + syy;
+        double b        = syx - sxy;
+        double norm     = Math.sqrt(a * a + b * b);
         double cosTheta = (norm > 1e-10) ? a / norm : 1.0;
         double sinTheta = (norm > 1e-10) ? b / norm : 0.0;
 

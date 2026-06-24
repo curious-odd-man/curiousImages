@@ -44,7 +44,8 @@ public class ModelPaths {
     }
 
     private Path resolve(String filename) {
-        Path target = config.getModelDir().resolve(filename);
+        Path target = config.getModelDir()
+                            .resolve(filename);
         if (!Files.exists(target)) {
             extractFromClasspath("/models/" + filename, target);
         }

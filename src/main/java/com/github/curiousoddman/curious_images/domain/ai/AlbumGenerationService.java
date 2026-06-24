@@ -1,10 +1,17 @@
 package com.github.curiousoddman.curious_images.domain.ai;
 
 import com.github.curiousoddman.curious_images.config.AiConfig;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.*;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.ClipEmbeddingRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.event.AiPipelineCompleteEvent;
 import com.github.curiousoddman.curious_images.event.RegenerateAlbumsEvent;
-import com.github.curiousoddman.curious_images.persistence.*;
+import com.github.curiousoddman.curious_images.persistence.AlbumPhotoRepository;
+import com.github.curiousoddman.curious_images.persistence.AlbumRepository;
+import com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository;
+import com.github.curiousoddman.curious_images.persistence.FaceRepository;
+import com.github.curiousoddman.curious_images.persistence.PersonRepository;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +25,11 @@ import org.springframework.stereotype.Component;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import static com.github.curiousoddman.curious_images.dbobj.Tables.PHOTO;
 import static com.github.curiousoddman.curious_images.domain.ai.ClipTextEncoder.l2Normalize;
@@ -37,14 +47,14 @@ import static com.github.curiousoddman.curious_images.persistence.ClipEmbeddingR
 @Component
 @RequiredArgsConstructor
 public class AlbumGenerationService {
-    private final DSLContext dsl;
-    private final AlbumRepository albumRepo;
-    private final AlbumPhotoRepository albumPhotoRepo;
-    private final FaceRepository faceRepo;
-    private final PersonRepository personRepo;
-    private final ClipEmbeddingRepository clipEmbeddingRepo;
-    private final AiConfig aiConfig;
-    private final TimeProvider timeProvider;
+    private final DSLContext                dsl;
+    private final AlbumRepository           albumRepo;
+    private final AlbumPhotoRepository      albumPhotoRepo;
+    private final FaceRepository            faceRepo;
+    private final PersonRepository          personRepo;
+    private final ClipEmbeddingRepository   clipEmbeddingRepo;
+    private final AiConfig                  aiConfig;
+    private final TimeProvider              timeProvider;
     private final ApplicationEventPublisher publisher;
 
     @EventListener
@@ -71,10 +81,11 @@ public class AlbumGenerationService {
 
             LocalDateTime now = timeProvider.now();
             for (PersonRecord person : personRepo.findAll()) {
-                List<Long> photoIds = faceRepo.findByPersonId(person.getId()).stream()
-                        .map(FaceRecord::getPhotoId)
-                        .distinct()
-                        .toList();
+                List<Long> photoIds = faceRepo.findByPersonId(person.getId())
+                                              .stream()
+                                              .map(FaceRecord::getPhotoId)
+                                              .distinct()
+                                              .toList();
                 if (photoIds.isEmpty()) {
                     continue;
                 }
@@ -88,7 +99,8 @@ public class AlbumGenerationService {
                 for (int i = 0; i < photoIds.size(); i++) {
                     buf.add(albumPhotoRepo.insertQuery(albumId, photoIds.get(i), i, now));
                 }
-                ctx.batch(buf).execute();
+                ctx.batch(buf)
+                   .execute();
             }
         });
     }
@@ -98,20 +110,23 @@ public class AlbumGenerationService {
     private void buildEventAlbums() {
         // Load all photos with a non-null capture_date ordered chronologically
         List<PhotoRecord> dated = dsl.selectFrom(PHOTO)
-                .where(PHOTO.CAPTURE_DATE.isNotNull())
-                .orderBy(PHOTO.CAPTURE_DATE)
-                .fetch();
-        if (dated.isEmpty()) return;
+                                     .where(PHOTO.CAPTURE_DATE.isNotNull())
+                                     .orderBy(PHOTO.CAPTURE_DATE)
+                                     .fetch();
+        if (dated.isEmpty()) {
+            return;
+        }
 
-        long gapMillis = (long) aiConfig.getEventGapHours() * 3_600_000L;
-        List<List<PhotoRecord>> events = new ArrayList<>();
-        List<PhotoRecord> current = new ArrayList<>();
+        long                    gapMillis = (long) aiConfig.getEventGapHours() * 3_600_000L;
+        List<List<PhotoRecord>> events    = new ArrayList<>();
+        List<PhotoRecord>       current   = new ArrayList<>();
         current.add(dated.getFirst());
 
         for (int i = 1; i < dated.size(); i++) {
             PhotoRecord prev = dated.get(i - 1);
             PhotoRecord next = dated.get(i);
-            long gap = java.time.Duration.between(prev.getCaptureDate(), next.getCaptureDate()).toMillis();
+            long        gap  = java.time.Duration.between(prev.getCaptureDate(), next.getCaptureDate())
+                                                 .toMillis();
             if (gap > gapMillis) {
                 events.add(current);
                 current = new ArrayList<>();
@@ -126,18 +141,25 @@ public class AlbumGenerationService {
             LocalDateTime now = timeProvider.now();
 
             for (List<PhotoRecord> event : events) {
-                if (event.size() < aiConfig.getMinEventSize()) continue;
+                if (event.size() < aiConfig.getMinEventSize()) {
+                    continue;
+                }
 
                 // Name = date of first photo; cover = sharpest photo in event
-                String name = event.getFirst().getCaptureDate().toLocalDate().toString();
-                long coverId = sharpestPhoto(event);
+                String name    = event.getFirst()
+                                      .getCaptureDate()
+                                      .toLocalDate()
+                                      .toString();
+                long   coverId = sharpestPhoto(event);
 
-                long albumId = albumRepo.insert(name, "EVENT", coverId, null, now);
-                List<Query> buf = new ArrayList<>(event.size());
+                long        albumId = albumRepo.insert(name, "EVENT", coverId, null, now);
+                List<Query> buf     = new ArrayList<>(event.size());
                 for (int i = 0; i < event.size(); i++) {
-                    buf.add(albumPhotoRepo.insertQuery(albumId, event.get(i).getId(), i, now));
+                    buf.add(albumPhotoRepo.insertQuery(albumId, event.get(i)
+                                                                     .getId(), i, now));
                 }
-                ctx.batch(buf).execute();
+                ctx.batch(buf)
+                   .execute();
             }
         });
     }
@@ -148,15 +170,19 @@ public class AlbumGenerationService {
      * Falls back to the first photo if sharpness cannot be computed.
      */
     private long sharpestPhoto(List<PhotoRecord> photos) {
-        long bestId = photos.getFirst().getId();
+        long   bestId    = photos.getFirst()
+                                 .getId();
         double bestScore = -1;
         for (PhotoRecord photo : photos) {
             try {
                 BufferedImage img = javax.imageio.ImageIO.read(new File(photo.getAbsolutePath()));
-                if (img == null) continue;
+                if (img == null) {
+                    continue;
+                }
                 // Downsample to 64×64 for speed
                 BufferedImage small = net.coobird.thumbnailator.Thumbnails.of(img)
-                        .forceSize(64, 64).asBufferedImage();
+                                                                          .forceSize(64, 64)
+                                                                          .asBufferedImage();
                 double score = laplacianVariance(small);
                 if (score > bestScore) {
                     bestScore = score;
@@ -172,23 +198,25 @@ public class AlbumGenerationService {
      * Approximates the Laplacian variance as a sharpness score.
      */
     private double laplacianVariance(BufferedImage img) {
-        int w = img.getWidth(), h = img.getHeight();
-        double sum = 0, sumSq = 0;
-        int count = 0;
+        int    w     = img.getWidth(), h = img.getHeight();
+        double sum   = 0, sumSq = 0;
+        int    count = 0;
         for (int y = 1; y < h - 1; y++) {
             for (int x = 1; x < w - 1; x++) {
-                int c = gray(img.getRGB(x, y));
-                int n = gray(img.getRGB(x, y - 1));
-                int s = gray(img.getRGB(x, y + 1));
-                int e = gray(img.getRGB(x + 1, y));
-                int ww = gray(img.getRGB(x - 1, y));
+                int    c   = gray(img.getRGB(x, y));
+                int    n   = gray(img.getRGB(x, y - 1));
+                int    s   = gray(img.getRGB(x, y + 1));
+                int    e   = gray(img.getRGB(x + 1, y));
+                int    ww  = gray(img.getRGB(x - 1, y));
                 double lap = 4 * c - n - s - e - ww;
                 sum += lap;
                 sumSq += lap * lap;
                 count++;
             }
         }
-        if (count == 0) return 0;
+        if (count == 0) {
+            return 0;
+        }
         double mean = sum / count;
         return sumSq / count - mean * mean;
     }
@@ -205,16 +233,20 @@ public class AlbumGenerationService {
      */
     private void buildLocationAlbums() {
         List<PhotoRecord> withGps = dsl.selectFrom(PHOTO)
-                .where(PHOTO.GPS_LAT.isNotNull().and(PHOTO.GPS_LON.isNotNull()))
-                .fetch();
-        if (withGps.isEmpty()) return;
+                                       .where(PHOTO.GPS_LAT.isNotNull()
+                                                           .and(PHOTO.GPS_LON.isNotNull()))
+                                       .fetch();
+        if (withGps.isEmpty()) {
+            return;
+        }
 
         Map<String, List<PhotoRecord>> cells = new LinkedHashMap<>();
         for (PhotoRecord p : withGps) {
             double lat = Math.round(p.getGpsLat() * 100.0) / 100.0;
             double lon = Math.round(p.getGpsLon() * 100.0) / 100.0;
             String key = lat + "," + lon;
-            cells.computeIfAbsent(key, k -> new ArrayList<>()).add(p);
+            cells.computeIfAbsent(key, k -> new ArrayList<>())
+                 .add(p);
         }
 
         dsl.transaction(cfg -> {
@@ -224,18 +256,23 @@ public class AlbumGenerationService {
 
             for (Map.Entry<String, List<PhotoRecord>> entry : cells.entrySet()) {
                 List<PhotoRecord> group = entry.getValue();
-                if (group.size() < aiConfig.getMinLocationSize()) continue;
+                if (group.size() < aiConfig.getMinLocationSize()) {
+                    continue;
+                }
 
                 // Name = "lat, lon" with 2dp — legible enough as a placeholder
-                String name = entry.getKey();
-                long coverId = group.getFirst().getId();
-                long albumId = albumRepo.insert(name, "LOCATION", coverId, null, now);
+                String name    = entry.getKey();
+                long   coverId = group.getFirst()
+                                      .getId();
+                long   albumId = albumRepo.insert(name, "LOCATION", coverId, null, now);
 
                 List<Query> buf = new ArrayList<>(group.size());
                 for (int i = 0; i < group.size(); i++) {
-                    buf.add(albumPhotoRepo.insertQuery(albumId, group.get(i).getId(), i, now));
+                    buf.add(albumPhotoRepo.insertQuery(albumId, group.get(i)
+                                                                     .getId(), i, now));
                 }
-                ctx.batch(buf).execute();
+                ctx.batch(buf)
+                   .execute();
             }
         });
     }
@@ -244,17 +281,21 @@ public class AlbumGenerationService {
 
     private void buildSimilarityAlbums() {
         List<ClipEmbeddingRecord> all = clipEmbeddingRepo.findAll();
-        if (all.isEmpty()) return;
+        if (all.isEmpty()) {
+            return;
+        }
 
         int total = all.size();
-        int k = Math.max(2, (int) Math.sqrt(total / 2.0));
+        int k     = Math.max(2, (int) Math.sqrt(total / 2.0));
         log.info("CLIP k-means: {} photos, k={}", total, k);
 
-        long[] photoIds = new long[total];
-        float[][] vectors = new float[total][];
+        long[]    photoIds = new long[total];
+        float[][] vectors  = new float[total][];
         for (int i = 0; i < total; i++) {
-            photoIds[i] = all.get(i).getPhotoId();
-            vectors[i] = toFloats(all.get(i).getEmbedding());
+            photoIds[i] = all.get(i)
+                             .getPhotoId();
+            vectors[i] = toFloats(all.get(i)
+                                     .getEmbedding());
         }
 
         int[] assignments = kMeans(vectors, k, 20);
@@ -262,7 +303,8 @@ public class AlbumGenerationService {
         // Group by cluster
         Map<Integer, List<Integer>> clusters = new LinkedHashMap<>();
         for (int i = 0; i < total; i++) {
-            clusters.computeIfAbsent(assignments[i], x -> new ArrayList<>()).add(i);
+            clusters.computeIfAbsent(assignments[i], x -> new ArrayList<>())
+                    .add(i);
         }
 
         // Fixed vocabulary for zero-shot label matching
@@ -277,7 +319,9 @@ public class AlbumGenerationService {
 
             for (Map.Entry<Integer, List<Integer>> entry : clusters.entrySet()) {
                 List<Integer> members = entry.getValue();
-                if (members.size() < aiConfig.getMinClusterSize()) continue;
+                if (members.size() < aiConfig.getMinClusterSize()) {
+                    continue;
+                }
 
                 // Compute centroid
                 float[] centroid = centroid(vectors, members);
@@ -286,7 +330,9 @@ public class AlbumGenerationService {
                 double avgSim = 0;
                 for (int idx : members) avgSim += dot(centroid, vectors[idx]);
                 avgSim /= members.size();
-                if (avgSim < aiConfig.getMinClusterSimilarity()) continue;
+                if (avgSim < aiConfig.getMinClusterSimilarity()) {
+                    continue;
+                }
 
                 // Name via zero-shot CLIP label matching (centroid vs. pre-encoded vocab labels)
                 // We skip the text-encoder call here and use a simple heuristic name instead
@@ -300,7 +346,8 @@ public class AlbumGenerationService {
                 for (int i = 0; i < members.size(); i++) {
                     buf.add(albumPhotoRepo.insertQuery(albumId, photoIds[members.get(i)], i, now));
                 }
-                ctx.batch(buf).execute();
+                ctx.batch(buf)
+                   .execute();
             }
         });
     }
@@ -319,7 +366,7 @@ public class AlbumGenerationService {
             // Assignment step
             boolean changed = false;
             for (int i = 0; i < n; i++) {
-                int best = 0;
+                int   best    = 0;
                 float bestSim = Float.NEGATIVE_INFINITY;
                 for (int c = 0; c < k; c++) {
                     float sim = dot(data[i], centroids[c]);
@@ -333,11 +380,13 @@ public class AlbumGenerationService {
                     changed = true;
                 }
             }
-            if (!changed) break;
+            if (!changed) {
+                break;
+            }
 
             // Update step
-            float[][] sums = new float[k][dims];
-            int[] counts = new int[k];
+            float[][] sums   = new float[k][dims];
+            int[]     counts = new int[k];
             for (int i = 0; i < n; i++) {
                 int c = assignments[i];
                 for (int d = 0; d < dims; d++) sums[c][d] += data[i][d];
@@ -353,8 +402,8 @@ public class AlbumGenerationService {
     }
 
     private float[] centroid(float[][] data, List<Integer> indices) {
-        int dims = data[0].length;
-        float[] sum = new float[dims];
+        int     dims = data[0].length;
+        float[] sum  = new float[dims];
         for (int idx : indices) for (int d = 0; d < dims; d++) sum[d] += data[idx][d];
         return l2Normalize(sum);
     }

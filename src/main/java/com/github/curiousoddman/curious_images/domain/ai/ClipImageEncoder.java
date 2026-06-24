@@ -31,23 +31,24 @@ import static com.github.curiousoddman.curious_images.domain.ai.ClipTextEncoder.
 @RequiredArgsConstructor
 public class ClipImageEncoder {
 
-    private static final int CLIP_SIZE = 224;
-    private static final float[] MEAN = {0.48145466f, 0.4578275f, 0.40821073f};
-    private static final float[] STD = {0.26862954f, 0.26130258f, 0.27577711f};
+    private static final int     CLIP_SIZE = 224;
+    private static final float[] MEAN      = {0.48145466f, 0.4578275f, 0.40821073f};
+    private static final float[] STD       = {0.26862954f, 0.26130258f, 0.27577711f};
 
     private final OnnxModelRegistry registry;
-    private final ModelPaths paths;
+    private final ModelPaths        paths;
 
     /**
      * Encodes {@code image} into a 512-dim L2-normalised CLIP embedding.
      */
     public float[] encode(BufferedImage image) throws OrtException {
-        OrtSession session = registry.getOrLoad("clip_image", paths.clipImage());
-        float[][][][] input = preprocess(image);
+        OrtSession    session = registry.getOrLoad("clip_image", paths.clipImage());
+        float[][][][] input   = preprocess(image);
         try (OnnxTensor tensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), input);
              OrtSession.Result result = session.run(Map.of("input", tensor))
         ) {
-            float[] raw = (float[]) result.get(0).getValue();
+            float[] raw = (float[]) result.get(0)
+                                          .getValue();
             return l2Normalize(raw);
         }
     }
@@ -58,14 +59,14 @@ public class ClipImageEncoder {
         // Centre-crop to 224×224
         BufferedImage cropped = centreCrop(resized, CLIP_SIZE, CLIP_SIZE);
 
-        int[] pixels = cropped.getRGB(0, 0, CLIP_SIZE, CLIP_SIZE, null, 0, CLIP_SIZE);
+        int[]         pixels = cropped.getRGB(0, 0, CLIP_SIZE, CLIP_SIZE, null, 0, CLIP_SIZE);
         float[][][][] tensor = new float[1][3][CLIP_SIZE][CLIP_SIZE];
         for (int y = 0; y < CLIP_SIZE; y++) {
             for (int x = 0; x < CLIP_SIZE; x++) {
-                int rgb = pixels[y * CLIP_SIZE + x];
-                float r = ((rgb >> 16) & 0xFF) / 255f;
-                float g = ((rgb >> 8) & 0xFF) / 255f;
-                float b = (rgb & 0xFF) / 255f;
+                int   rgb = pixels[y * CLIP_SIZE + x];
+                float r   = ((rgb >> 16) & 0xFF) / 255f;
+                float g   = ((rgb >> 8) & 0xFF) / 255f;
+                float b   = (rgb & 0xFF) / 255f;
                 tensor[0][0][y][x] = (r - MEAN[0]) / STD[0];
                 tensor[0][1][y][x] = (g - MEAN[1]) / STD[1];
                 tensor[0][2][y][x] = (b - MEAN[2]) / STD[2];
@@ -85,7 +86,9 @@ public class ClipImageEncoder {
             newW = w * size / h;
         }
         try {
-            return Thumbnails.of(src).forceSize(newW, newH).asBufferedImage();
+            return Thumbnails.of(src)
+                             .forceSize(newW, newH)
+                             .asBufferedImage();
         } catch (IOException e) {
             throw new RuntimeException("Failed to resize image for CLIP", e);
         }

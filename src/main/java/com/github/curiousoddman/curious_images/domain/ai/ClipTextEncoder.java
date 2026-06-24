@@ -22,8 +22,8 @@ import java.util.Map;
 public class ClipTextEncoder {
 
     private final OnnxModelRegistry registry;
-    private final ModelPaths paths;
-    private final ClipTokenizer tokenizer;
+    private final ModelPaths        paths;
+    private final ClipTokenizer     tokenizer;
 
     /**
      * Encodes a free-text query into a 512-dim L2-normalised CLIP embedding.
@@ -32,10 +32,11 @@ public class ClipTextEncoder {
      */
     public float[] encode(String text) throws OrtException {
         OrtSession session = registry.getOrLoad("clip_text", paths.clipText());
-        long[][] tokens = tokenizer.tokenize(text);
+        long[][]   tokens  = tokenizer.tokenize(text);
         try (OnnxTensor tensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), tokens);
              OrtSession.Result result = session.run(Map.of("input", tensor))) {
-            float[] raw = (float[]) result.get(0).getValue();
+            float[] raw = (float[]) result.get(0)
+                                          .getValue();
             return l2Normalize(raw);
         } finally {
             // Evict the text encoder after each query to reclaim ~250 MB RAM.
