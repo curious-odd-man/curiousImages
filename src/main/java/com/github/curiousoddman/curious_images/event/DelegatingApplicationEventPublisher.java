@@ -15,6 +15,8 @@ import org.springframework.stereotype.Component;
 public class DelegatingApplicationEventPublisher implements ApplicationEventPublisher {
     private final ApplicationContext context;
 
+    private Object previousEvent;
+
     @Override
     public void publishEvent(ApplicationEvent event) {
         logEvent(event);
@@ -28,14 +30,22 @@ public class DelegatingApplicationEventPublisher implements ApplicationEventPubl
     }
 
     private void logEvent(Object event) {
+        Class<?> currentEventClass = event.getClass();
+        if (currentEventClass.equals(BackgroundProcessEvent.class)
+                && previousEvent != null
+                && previousEvent.getClass()
+                                .equals(currentEventClass)) {
+            // Skip logging background process event....
+            return;
+        }
         log.info("📨 Published: {} by {}",
-                event.getClass()
-                     .getSimpleName(),
+                currentEventClass.getSimpleName(),
                 event instanceof ApplicationEvent ae
                         ? ae.getSource()
                             .getClass()
                             .getSimpleName()
                         : "unknown");
+        previousEvent = event;
     }
 }
 

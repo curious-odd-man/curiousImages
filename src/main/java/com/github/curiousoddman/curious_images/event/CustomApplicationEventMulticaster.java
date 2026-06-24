@@ -17,6 +17,8 @@ import java.util.concurrent.RejectedExecutionException;
 @Slf4j
 @Component("applicationEventMulticaster")
 public class CustomApplicationEventMulticaster extends SimpleApplicationEventMulticaster {
+    private ApplicationEvent previousEvent;
+
     private static final Set<Class<?>> EXCLUSIONS = Set.of(
     );
 
@@ -26,6 +28,13 @@ public class CustomApplicationEventMulticaster extends SimpleApplicationEventMul
         ResolvableType                     type                 = (eventType != null ? eventType : ResolvableType.forInstance(event));
         Executor                           executor             = getTaskExecutor();
         Collection<ApplicationListener<?>> applicationListeners = getApplicationListeners(event, type);
+
+        Class<?> currentEventClass = event.getClass();
+        boolean isProgressEvent = currentEventClass.equals(BackgroundProcessEvent.class)
+                || previousEvent == null
+                || !previousEvent.getClass()
+                                 .equals(currentEventClass);
+
         if (applicationListeners.isEmpty()) {
             if (EXCLUSIONS.contains(event.getClass())) {
                 return;
@@ -33,16 +42,22 @@ public class CustomApplicationEventMulticaster extends SimpleApplicationEventMul
             log.error("🔕 No listeners defined for the event: {}", event.getClass()
                                                                        .getSimpleName());
         } else {
-            log.info("🖖 Handling event: {} ", event.getClass()
-                                                   .getSimpleName());
+            if (!isProgressEvent) {
+                log.info("🖖 Handling event: {} ", event.getClass()
+                                                       .getSimpleName());
+            }
         }
         for (ApplicationListener<?> listener : applicationListeners) {
-            if (listener instanceof ApplicationListenerMethodAdapter adapter) {
-                log.info("\t- {}", adapter);
-            } else {
-                log.info("\t- {}", listener.getClass()
-                                           .getSimpleName());
+            if (!isProgressEvent) { // Skip logging background process event....
+                if (listener instanceof ApplicationListenerMethodAdapter adapter) {
+                    log.info("\t- {}", adapter);
+                } else {
+                    log.info("\t- {}", listener.getClass()
+                                               .getSimpleName());
+                }
             }
+            previousEvent = event;
+
             if (executor != null && listener.supportsAsyncExecution()) {
                 try {
                     executor.execute(() -> invokeListener(listener, event));
