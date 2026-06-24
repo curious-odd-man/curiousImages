@@ -3,17 +3,23 @@ package com.github.curiousoddman.curious_images.ui.nodes;
 /**
  * Discriminated payload carried by every {@link LibraryTreeNode}.
  * <p>
- * {@link FolderPayload}  — node maps to a {@code FOLDER} row; selecting it loads photos by folder.
+ * {@link FolderPayload}   — node maps to a {@code FOLDER} row; selecting it loads photos by folder.
  * {@link TimelinePayload} — node maps to a calendar slice; selecting it loads photos by date range.
  * {@link UndatedPayload}  — node maps to photos whose {@code capture_date} is NULL.
+ * {@link AlbumPayload}    — node maps to an {@code ALBUM} row; selecting it loads album photos.
+ * {@link PersonPayload}   — node maps to a {@code PERSON} row; selecting it loads that person's photos.
  */
-public interface NodePayload {
+public sealed interface NodePayload
+        permits NodePayload.FolderPayload,
+        NodePayload.TimelinePayload,
+        NodePayload.UndatedPayload,
+        NodePayload.AlbumPayload,
+        NodePayload.PersonPayload {
 
     /**
      * Carries a {@code FOLDER.id}; used by IMPORT_ROOT and FOLDER nodes.
      */
-    record FolderPayload(long folderId) implements NodePayload {
-    }
+    record FolderPayload(long folderId) implements NodePayload {}
 
     /**
      * Carries a calendar slice for timeline nodes.
@@ -23,18 +29,20 @@ public interface NodePayload {
      *   <li>All non-null → TIMELINE_DAY</li>
      * </ul>
      */
-    record TimelinePayload(Integer year, Integer month, Integer day) implements NodePayload {
-    }
+    record TimelinePayload(Integer year, Integer month, Integer day) implements NodePayload {}
 
     /**
      * Photos whose {@code capture_date} is NULL.
      */
-    record UndatedPayload() implements NodePayload {
-    }
+    record UndatedPayload() implements NodePayload {}
 
-    record AlbumPayload(long albumId) implements NodePayload {
-    }
+    /**
+     * Carries an {@code ALBUM.id}; selecting loads the album's photo members.
+     */
+    record AlbumPayload(long albumId) implements NodePayload {}
 
-    record PersonPayload(long personId) implements NodePayload {
-    }
+    /**
+     * Carries a {@code PERSON.id}; selecting loads all photos featuring that person.
+     */
+    record PersonPayload(long personId) implements NodePayload {}
 }

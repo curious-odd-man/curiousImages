@@ -308,13 +308,13 @@ public class LibraryController implements Initializable {
                 }
 
                 children
-                    .get(2)
-                    .getChildren()
-                    .setAll(albumItems);
+                        .get(2)
+                        .getChildren()
+                        .setAll(albumItems);
                 children
-                    .get(3)
-                    .getChildren()
-                    .setAll(personItems);
+                        .get(3)
+                        .getChildren()
+                        .setAll(personItems);
             });
         });
         t.setDaemon(true);
@@ -483,7 +483,6 @@ public class LibraryController implements Initializable {
             case UndatedPayload ignored -> loadPhotosUndated();
             case AlbumPayload ap -> loadPhotosForAlbum(ap.albumId());
             case PersonPayload pp -> loadPhotosForPerson(pp.personId());
-            default -> throw new IllegalStateException("Unexpected value: " + payload);
         }
     }
 
@@ -492,11 +491,11 @@ public class LibraryController implements Initializable {
     private void loadPhotosForFolder(long folderId) {
         Thread t = new Thread(() -> {
             List<PhotoRecord> photos = photoRepository.findByFolderId(folderId);
-            Map<Long, ThumbnailRecord> thumbnails = thumbnailRepository.findByPhotoIds(
+            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(
                     photos.stream()
                           .map(PhotoRecord::getId)
                           .toList());
-            runOnFxThread(() -> populatePhotoGrid(photos, thumbnails));
+            runOnFxThread(() -> populatePhotoGrid(photos, thumbs));
         });
         t.setDaemon(true);
         t.start();
@@ -505,11 +504,11 @@ public class LibraryController implements Initializable {
     private void loadPhotosForTimeline(int year, int month, Integer day) {
         Thread t = new Thread(() -> {
             List<PhotoRecord> photos = photoRepository.findByCaptureDate(year, month, day);
-            Map<Long, ThumbnailRecord> thumbnails = thumbnailRepository.findByPhotoIds(
+            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(
                     photos.stream()
                           .map(PhotoRecord::getId)
                           .toList());
-            runOnFxThread(() -> populatePhotoGrid(photos, thumbnails));
+            runOnFxThread(() -> populatePhotoGrid(photos, thumbs));
         });
         t.setDaemon(true);
         t.start();
@@ -518,11 +517,11 @@ public class LibraryController implements Initializable {
     private void loadPhotosUndated() {
         Thread t = new Thread(() -> {
             List<PhotoRecord> photos = photoRepository.findByNullCaptureDate();
-            Map<Long, ThumbnailRecord> thumbnails = thumbnailRepository.findByPhotoIds(
+            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(
                     photos.stream()
                           .map(PhotoRecord::getId)
                           .toList());
-            runOnFxThread(() -> populatePhotoGrid(photos, thumbnails));
+            runOnFxThread(() -> populatePhotoGrid(photos, thumbs));
         });
         t.setDaemon(true);
         t.start();
