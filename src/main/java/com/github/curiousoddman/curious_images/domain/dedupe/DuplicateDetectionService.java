@@ -65,11 +65,6 @@ public class DuplicateDetectionService extends AbstractBackgroundJob {
     private final int                       threadCount;
     private final ApplicationEventPublisher applicationEventPublisher;
 
-    @EventListener
-    public void onInterruptBackgroundProcess(InterruptBackgroundProcessEvent event) {
-        requestInterrupt();
-    }
-
     /**
      * Fire-and-forget entry point: starts detection on a background thread and returns
      * immediately. No-op (logs a warning) if a run is already in progress.

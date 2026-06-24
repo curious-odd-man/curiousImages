@@ -1,8 +1,10 @@
 package com.github.curiousoddman.curious_images.util.async;
 
 import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
+import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.types.BackgroundProcessEventType;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.event.EventListener;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -31,9 +33,10 @@ public abstract class AbstractBackgroundJob {
 
     private static final int PROGRESS_PUBLISH_INTERVAL_MS = 100;
 
-    private final    AtomicBoolean running = new AtomicBoolean(false);
-    private volatile boolean       shouldInterrupt;
-    private volatile long          lastProgressPublishMs;
+    private final AtomicBoolean running = new AtomicBoolean(false);
+
+    private volatile boolean shouldInterrupt;
+    private volatile long    lastProgressPublishMs;
 
     protected abstract ApplicationEventPublisher eventPublisher();
 
@@ -66,7 +69,8 @@ public abstract class AbstractBackgroundJob {
      * Requests cooperative cancellation. Call this from an {@code @EventListener} on
      * {@code InterruptBackgroundProcessEvent}. No-op if no run is in progress.
      */
-    public void requestInterrupt() {
+    @EventListener
+    public void requestInterrupt(InterruptBackgroundProcessEvent event) {
         shouldInterrupt = true;
     }
 

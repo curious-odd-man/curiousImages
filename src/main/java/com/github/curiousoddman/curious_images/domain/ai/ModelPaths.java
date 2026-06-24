@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images.domain.ai;
 
 import com.github.curiousoddman.curious_images.config.AiConfig;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -10,6 +11,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 
 /**
  * Resolves runtime paths for ONNX model files. On first launch each model is copied from
@@ -27,8 +29,28 @@ public class ModelPaths {
 
     private final AiConfig config;
 
+    @PostConstruct
+    public void verifyModelsExist() {
+        List.of(
+                    retinaFace(),
+                    arcFace(),
+                    clipImage(),
+                    clipText()
+            )
+            .forEach(this::ensureExists);
+    }
+
+    private void ensureExists(Path path) {
+        if (Files.exists(path)) {
+            log.info("{} model exists", path);
+        } else {
+            extractFromClasspath("/models/" + path.getFileName()
+                                                  .toString(), path);
+        }
+    }
+
     public Path retinaFace() {
-        return resolve("retinaface_mbn025.onnx");
+        return resolve("retinaface-resnet50.onnx");
     }
 
     public Path arcFace() {
@@ -44,12 +66,8 @@ public class ModelPaths {
     }
 
     private Path resolve(String filename) {
-        Path target = config.getModelDir()
-                            .resolve(filename);
-        if (!Files.exists(target)) {
-            extractFromClasspath("/models/" + filename, target);
-        }
-        return target;
+        return config.getModelDir()
+                     .resolve(filename);
     }
 
     private void extractFromClasspath(String resource, Path target) {

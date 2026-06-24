@@ -84,11 +84,6 @@ public class ImportService extends AbstractBackgroundJob {
         new Thread(() -> runImport(event.getPath()), "import-scan").start();
     }
 
-    @EventListener
-    public void onInterruptBackgroundProcess(InterruptBackgroundProcessEvent event) {
-        requestInterrupt();
-    }
-
     private void runImport(String rootPathString) {
         log.info("Starting import scan of {}", rootPathString);
         publishStarted("Discovering files...");
@@ -183,7 +178,7 @@ public class ImportService extends AbstractBackgroundJob {
                     metadata.cameraModel(), metadata.lensModel(),
                     metadata.exifExtraJson(), now));
             queueThumbnail(photoId, file, extension, metadata.orientationDegrees(), now, buffer);
-            // File changed: reset AI status so the pipeline reprocesses it.
+            // FIXME: This is a poor choice. I think we need to track AI status in the same photo table. Or populate this table at the start...
             buffer.add(aiProcessingStatusRepository.upsertQuery(photoId, now));
             return ImportOutcome.UPDATED;
         }

@@ -2,7 +2,6 @@ package com.github.curiousoddman.curious_images.domain.ai;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.curiousoddman.curious_images.config.PersonClusteringService;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ClipEmbeddingRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceEmbeddingRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
