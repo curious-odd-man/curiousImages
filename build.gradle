@@ -19,7 +19,12 @@ group = 'com.github.curiousoddman'
 description = 'An images organizer app'
 
 def javafxVersion = '25.0.1'
-def flywayAndJooqDatabase ='jdbc:h2:file:~/cimages/fw-jooq;DB_CLOSE_ON_EXIT=FALSE'
+def ikonliVersion = '12.3.1'
+// PostgreSQL compatibility mode lets us use BIGSERIAL, JSON, etc. in Flyway migrations
+// and keeps runtime behaviour consistent with the SQL as written.
+def h2PgUrl = 'jdbc:h2:file:~/cimages/fw-jooq;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH'
+def flywayAndJooqDatabase = h2PgUrl
+def luceneVersion = '9.12.1'
 
 idea {
     module {
@@ -135,8 +140,8 @@ springBoot {
         properties {
             version = versionFile.text.trim()
             additional = [
-                    'commit.hash' : gitExec("rev-parse", "--short", "HEAD"),
-                    'commit.date' : gitExec("log", "-1", "--format=%cs"),
+                    'commit.hash': gitExec("rev-parse", "--short", "HEAD"),
+                    'commit.date': gitExec("log", "-1", "--format=%cs"),
             ]
         }
     }
@@ -149,27 +154,30 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-h2console'
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
     implementation 'org.springframework.boot:spring-boot-starter-jooq'
-//    implementation 'org.springframework.boot:spring-boot-starter-web'
-//    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-
-//    implementation 'org.springframework.boot:spring-boot-starter-cache'
-//    implementation 'com.github.ben-manes.caffeine:caffeine'
-//    implementation 'org.jsoup:jsoup:1.22.1'
-//    implementation 'com.squareup.okhttp3:okhttp:5.3.2'
 
     implementation "org.openjfx:javafx-controls:${javafxVersion}"
     implementation "org.openjfx:javafx-fxml:${javafxVersion}"
     implementation "org.openjfx:javafx-media:${javafxVersion}"
 
-    implementation 'org.kordamp.ikonli:ikonli-javafx:12.3.1'
-    implementation 'org.kordamp.ikonli:ikonli-materialdesign2-pack:12.3.1'
-
-    implementation 'org.apache.lucene:lucene-core:10.4.0'
-    implementation 'com.microsoft.onnxruntime:onnxruntime:1.26.0'
+    implementation "org.kordamp.ikonli:ikonli-javafx:${ikonliVersion}"
+    implementation "org.kordamp.ikonli:ikonli-materialdesign2-pack:${ikonliVersion}"
 
     implementation 'com.drewnoakes:metadata-extractor:2.20.0'
     implementation 'net.coobird:thumbnailator:0.4.21'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+
+    // ── ONNX Runtime GPU ──────────────────────────────────────────────────────
+    // onnxruntime_gpu includes CUDA, DirectML, and CPU fallback in a single JAR.
+    // Do NOT add onnxruntime (CPU-only) — it conflicts at the native-library level.
+    // Requires CUDA 12+ drivers for CUDA execution; falls back to CPU automatically.
+    implementation 'com.microsoft.onnxruntime:onnxruntime_gpu:1.21.0'
+
+    // ── Apache Lucene (HNSW KNN vector search) ────────────────────────────────
+    // lucene-core: IndexWriter, SearcherManager, Document, KnnFloatVectorField, MMapDirectory
+    // lucene-queryparser: BooleanQuery, TermQuery (used in FaceVectorIndex filter queries)
+
+    implementation "org.apache.lucene:lucene-core:${luceneVersion}"
+    implementation "org.apache.lucene:lucene-queryparser:${luceneVersion}"
 
     compileOnly 'org.projectlombok:lombok'
     testCompileOnly 'org.projectlombok:lombok'
@@ -213,14 +221,11 @@ def tokens = [
 
 tasks.register('deploy') {
     dependsOn(bootJar, bumpVersion, tagVersion, build)
-
     description = "Builds prod JAR and deploys to `$deployDir`"
 
     doLast {
-        // Create deploy dir
         mkdir deployDir
 
-        // Copy JAR
         def jarFile = bootJar.archiveFile.get().asFile
         copy {
             from jarFile
@@ -248,7 +253,6 @@ tasks.register('deploy') {
 
         println "✅ JAR deployed to: ${deployDir}\\${jarName}"
         println "✅ Desktop shortcut created: ${desktopDir}\\cImages.lnk"
-
         println "VBS path: ${vbs.absolutePath}"
         println "VBS content:\n${vbs.text}"
         println "Desktop dir: ${desktopDir}"
