@@ -8,7 +8,14 @@ import org.apache.lucene.document.KnnFloatVectorField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.*;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.KnnFloatVectorQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.SearcherManager;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -47,16 +54,18 @@ public class FaceVectorIndex {
      * @param embedding 512-dim L2-normalised embedding
      */
     public void upsert(long faceId, Long personId, float[] embedding) throws IOException {
-        Document doc = new Document();
-        String faceKey   = String.valueOf(faceId);
-        String personKey = personId != null ? String.valueOf(personId) : UNASSIGNED_PERSON;
-        doc.add(new StringField("face_id",   faceKey,   Field.Store.YES));
+        Document doc       = new Document();
+        String   faceKey   = String.valueOf(faceId);
+        String   personKey = personId != null ? String.valueOf(personId) : UNASSIGNED_PERSON;
+        doc.add(new StringField("face_id", faceKey, Field.Store.YES));
         doc.add(new StringField("person_id", personKey, Field.Store.YES));
         doc.add(new KnnFloatVectorField("face_vec", embedding, DOT_PRODUCT));
         faceIndexWriter.updateDocument(new Term("face_id", faceKey), doc);
     }
 
-    /** Commits buffered writes and refreshes searchers. */
+    /**
+     * Commits buffered writes and refreshes searchers.
+     */
     public void commit() throws IOException {
         faceIndexWriter.commit();
         faceSearcherManager.maybeRefresh();
@@ -86,15 +95,17 @@ public class FaceVectorIndex {
             }
             TopDocs hits = searcher.search(finalQuery, k);
             return Arrays.stream(hits.scoreDocs)
-                    .map(sd -> {
-                        try {
-                            return Long.parseLong(
-                                    searcher.storedFields().document(sd.doc).get("face_id"));
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
-                    })
-                    .toList();
+                         .map(sd -> {
+                             try {
+                                 return Long.parseLong(
+                                         searcher.storedFields()
+                                                 .document(sd.doc)
+                                                 .get("face_id"));
+                             } catch (IOException e) {
+                                 throw new UncheckedIOException(e);
+                             }
+                         })
+                         .toList();
         } finally {
             faceSearcherManager.release(searcher);
         }

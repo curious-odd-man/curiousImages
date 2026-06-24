@@ -45,7 +45,7 @@ public class ClipVectorIndex {
      */
     public void upsert(long photoId, float[] embedding) throws IOException {
         Document doc = new Document();
-        String key = String.valueOf(photoId);
+        String   key = String.valueOf(photoId);
         doc.add(new StringField("photo_id", key, Field.Store.YES));
         doc.add(new KnnFloatVectorField("clip_vec", embedding, DOT_PRODUCT));
         clipIndexWriter.updateDocument(new Term("photo_id", key), doc);
@@ -69,15 +69,17 @@ public class ClipVectorIndex {
         try {
             TopDocs hits = searcher.search(new KnnFloatVectorQuery("clip_vec", queryVec, k), k);
             return Arrays.stream(hits.scoreDocs)
-                    .map(sd -> {
-                        try {
-                            return Long.parseLong(
-                                    searcher.storedFields().document(sd.doc).get("photo_id"));
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
-                    })
-                    .toList();
+                         .map(sd -> {
+                             try {
+                                 return Long.parseLong(
+                                         searcher.storedFields()
+                                                 .document(sd.doc)
+                                                 .get("photo_id"));
+                             } catch (IOException e) {
+                                 throw new UncheckedIOException(e);
+                             }
+                         })
+                         .toList();
         } finally {
             clipSearcherManager.release(searcher);
         }
