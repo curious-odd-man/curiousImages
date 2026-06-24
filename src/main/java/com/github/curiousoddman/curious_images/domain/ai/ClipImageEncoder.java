@@ -48,7 +48,10 @@ public class ClipImageEncoder {
              OrtSession.Result result = session.run(Map.of("image", tensor))
         ) {
             float[][] raw = (float[][]) result.get(0)
-                                          .getValue();
+                                              .getValue();
+            if (raw.length != 1) {
+                throw new IllegalStateException("Unexpected dimension!");
+            }
             return l2Normalize(raw[0]);
         }
     }

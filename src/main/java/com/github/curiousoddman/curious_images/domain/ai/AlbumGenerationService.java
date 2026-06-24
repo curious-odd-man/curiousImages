@@ -33,7 +33,7 @@ import java.util.Map;
 
 import static com.github.curiousoddman.curious_images.dbobj.Tables.PHOTO;
 import static com.github.curiousoddman.curious_images.domain.ai.ClipTextEncoder.l2Normalize;
-import static com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository.toFloats;
+import static com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository.getFloats;
 
 /**
  * Rebuilds all automatically generated albums (PERSON, EVENT, LOCATION, SIMILARITY) whenever
@@ -125,8 +125,8 @@ public class AlbumGenerationService {
         for (int i = 1; i < dated.size(); i++) {
             PhotoRecord prev = dated.get(i - 1);
             PhotoRecord next = dated.get(i);
-            long        gap  = java.time.Duration.between(prev.getCaptureDate(), next.getCaptureDate())
-                                                 .toMillis();
+            long gap = java.time.Duration.between(prev.getCaptureDate(), next.getCaptureDate())
+                                         .toMillis();
             if (gap > gapMillis) {
                 events.add(current);
                 current = new ArrayList<>();
@@ -146,11 +146,11 @@ public class AlbumGenerationService {
                 }
 
                 // Name = date of first photo; cover = sharpest photo in event
-                String name    = event.getFirst()
-                                      .getCaptureDate()
-                                      .toLocalDate()
-                                      .toString();
-                long   coverId = sharpestPhoto(event);
+                String name = event.getFirst()
+                                   .getCaptureDate()
+                                   .toLocalDate()
+                                   .toString();
+                long coverId = sharpestPhoto(event);
 
                 long        albumId = albumRepo.insert(name, "EVENT", coverId, null, now);
                 List<Query> buf     = new ArrayList<>(event.size());
@@ -170,8 +170,8 @@ public class AlbumGenerationService {
      * Falls back to the first photo if sharpness cannot be computed.
      */
     private long sharpestPhoto(List<PhotoRecord> photos) {
-        long   bestId    = photos.getFirst()
-                                 .getId();
+        long bestId = photos.getFirst()
+                            .getId();
         double bestScore = -1;
         for (PhotoRecord photo : photos) {
             try {
@@ -261,10 +261,10 @@ public class AlbumGenerationService {
                 }
 
                 // Name = "lat, lon" with 2dp — legible enough as a placeholder
-                String name    = entry.getKey();
-                long   coverId = group.getFirst()
-                                      .getId();
-                long   albumId = albumRepo.insert(name, "LOCATION", coverId, null, now);
+                String name = entry.getKey();
+                long coverId = group.getFirst()
+                                    .getId();
+                long albumId = albumRepo.insert(name, "LOCATION", coverId, null, now);
 
                 List<Query> buf = new ArrayList<>(group.size());
                 for (int i = 0; i < group.size(); i++) {
@@ -294,8 +294,8 @@ public class AlbumGenerationService {
         for (int i = 0; i < total; i++) {
             photoIds[i] = all.get(i)
                              .getPhotoId();
-            vectors[i] = toFloats(all.get(i)
-                                     .getEmbedding());
+            vectors[i] = getFloats(all.get(i)
+                                      .getEmbedding());
         }
 
         int[] assignments = kMeans(vectors, k, 20);

@@ -50,6 +50,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.Slider;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.Tab;
@@ -75,7 +76,6 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.net.URL;
-import java.time.Duration;
 import java.time.Month;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
@@ -124,15 +124,15 @@ public class LibraryController implements Initializable {
     @FXML
     public Slider                    thumbnailSizeSlider;
     @FXML
-    public Label                     importProgressLabel;
+    public Label                     backgroundProgressLabel;
     @FXML
-    public Label                     importCurrentFileLabel;
-    @FXML
-    public Label                     importElapsedLabel;
-    @FXML
-    public Label                     photoCountLabel;
+    public Label                     backgroundProgressText;
     @FXML
     public Button                    backgroundProcessCancelButton;
+    @FXML
+    public ProgressIndicator         backgroundProgressIndicator;
+    @FXML
+    public Label                     photoCountLabel;
     @FXML
     public TabPane                   mainTabPane;
     @FXML
@@ -143,6 +143,7 @@ public class LibraryController implements Initializable {
     public Button                    searchButton;
     @FXML
     public Button                    clearSearchButton;
+
 
     private Image                noImageAvailable;
     private DuplicatesController duplicatesController;
@@ -217,15 +218,23 @@ public class LibraryController implements Initializable {
     @EventListener
     public void onBackgroundProcessEvent(BackgroundProcessEvent event) {
         runOnFxThread(() -> {
-            importProgressLabel.setText(event.getMaxProgress() > 0
-                    ? event.getProgress() + " / " + event.getMaxProgress()
+            int     maxProgress     = event.getMaxProgress();
+            int     currentProgress = event.getProgress();
+            boolean displayProgress = maxProgress > 0;
+
+            backgroundProgressIndicator.setProgress(
+                    displayProgress
+                            ? (double) currentProgress / maxProgress
+                            : 0f
+            );
+            backgroundProgressLabel.setText(displayProgress
+                    ? currentProgress + " / " + maxProgress
                     : event.getDescription());
-            importCurrentFileLabel.setText(event.getCurrentItem() == null ? "" : event.getCurrentItem());
-            long elapsedMs = System.currentTimeMillis() - event.getTimestamp();
-            importElapsedLabel.setText(Duration.ofMillis(elapsedMs)
-                                               .toString());
-            backgroundProcessCancelButton.setVisible(!event.getEventType()
-                                                           .isTerminal());
+            backgroundProgressText.setText(event.getCurrentItem() == null ? "" : event.getCurrentItem());
+            boolean terminal = event.getEventType()
+                                    .isTerminal();
+            backgroundProcessCancelButton.setVisible(!terminal);
+            backgroundProgressIndicator.setVisible(!terminal || !displayProgress);
         });
     }
 

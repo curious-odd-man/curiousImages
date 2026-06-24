@@ -38,18 +38,14 @@ public class ClipEmbeddingRepository {
                   .whenMatchedThenUpdate()
                   .set(CLIP_EMBEDDING.EMBEDDING, bytes)
                   .set(CLIP_EMBEDDING.MODEL_VER, modelVersion)
-                  .whenNotMatchedThenInsert(
-                          CLIP_EMBEDDING.PHOTO_ID,
-                          CLIP_EMBEDDING.EMBEDDING,
-                          CLIP_EMBEDDING.MODEL_VER)
+                  .whenNotMatchedThenInsert(CLIP_EMBEDDING.PHOTO_ID, CLIP_EMBEDDING.EMBEDDING, CLIP_EMBEDDING.MODEL_VER)
                   .values(photoId, bytes, modelVersion);
     }
 
     public Optional<ClipEmbeddingRecord> findByPhotoId(long photoId) {
-        return Optional.ofNullable(
-                dsl.selectFrom(CLIP_EMBEDDING)
-                   .where(CLIP_EMBEDDING.PHOTO_ID.eq(photoId))
-                   .fetchOne());
+        return Optional.ofNullable(dsl.selectFrom(CLIP_EMBEDDING)
+                                      .where(CLIP_EMBEDDING.PHOTO_ID.eq(photoId))
+                                      .fetchOne());
     }
 
     /**
@@ -65,15 +61,19 @@ public class ClipEmbeddingRepository {
     public static byte[] toBytes(float[] embedding) {
         ByteBuffer buf = ByteBuffer.allocate(embedding.length * 4)
                                    .order(ByteOrder.LITTLE_ENDIAN);
-        for (float v : embedding) buf.putFloat(v);
+        for (float v : embedding) {
+            buf.putFloat(v);
+        }
         return buf.array();
     }
 
-    public static float[] toFloats(byte[] bytes) {
+    public static float[] getFloats(byte[] bytes) {
         ByteBuffer buf = ByteBuffer.wrap(bytes)
                                    .order(ByteOrder.LITTLE_ENDIAN);
-        float[]    out = new float[bytes.length / 4];
-        for (int i = 0; i < out.length; i++) out[i] = buf.getFloat();
+        float[] out = new float[bytes.length / 4];
+        for (int i = 0; i < out.length; i++) {
+            out[i] = buf.getFloat();
+        }
         return out;
     }
 }

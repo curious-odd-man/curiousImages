@@ -46,7 +46,7 @@ public class SearchService {
                                                    .orElseThrow(() -> new IllegalStateException(
                                                            "No CLIP embedding for photo " + photoId +
                                                                    " — run the AI pipeline first."));
-        float[]    embedding = ClipEmbeddingRepository.toFloats(rec.getEmbedding());
+        float[]    embedding = ClipEmbeddingRepository.getFloats(rec.getEmbedding());
         List<Long> results   = clipVectorIndex.search(embedding, topK + 1);
         results = results.stream()
                          .filter(id -> id != photoId)

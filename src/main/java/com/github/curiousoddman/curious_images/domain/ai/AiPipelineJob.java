@@ -298,7 +298,7 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                 ClipEmbeddingRecord clipRec = clipEmbeddingRepo.findByPhotoId(photoId)
                                                                .orElse(null);
                 if (clipRec != null) {
-                    float[] clipEmbed = ClipEmbeddingRepository.toFloats(clipRec.getEmbedding());
+                    float[] clipEmbed = ClipEmbeddingRepository.getFloats(clipRec.getEmbedding());
                     clipVectorIndex.upsert(photoId, clipEmbed);
                 }
 
@@ -311,7 +311,7 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                 for (FaceRecord face : faces) {
                     FaceEmbeddingRecord emb = faceEmbeds.get(face.getId());
                     if (emb != null) {
-                        float[] faceEmbed = FaceEmbeddingRepository.toFloats(emb.getEmbedding());
+                        float[] faceEmbed = ClipEmbeddingRepository.getFloats(emb.getEmbedding());
                         faceVectorIndex.upsert(face.getId(), face.getPersonId(), faceEmbed);
                     }
                 }

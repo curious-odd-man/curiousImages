@@ -20,6 +20,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository.getFloats;
+
 /**
  * Groups face embeddings into person candidates using greedy union-find clustering over
  * cosine similarity (equivalent to dot product on L2-normalised vectors).
@@ -69,8 +71,8 @@ public class PersonClusteringService {
         for (int i = 0; i < n; i++) {
             faceIds[i] = allEmbeddings.get(i)
                                       .getFaceId();
-            vectors[i] = FaceEmbeddingRepository.toFloats(allEmbeddings.get(i)
-                                                                       .getEmbedding());
+            vectors[i] = getFloats(allEmbeddings.get(i)
+                                                .getEmbedding());
         }
 
         // Union-Find

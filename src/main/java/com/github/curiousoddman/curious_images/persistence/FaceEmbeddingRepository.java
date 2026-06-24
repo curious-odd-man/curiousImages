@@ -78,15 +78,4 @@ public class FaceEmbeddingRepository {
         for (float v : embedding) buf.putFloat(v);
         return buf.array();
     }
-
-    /**
-     * Converts 2048 little-endian bytes back to float[512].
-     */
-    public static float[] toFloats(byte[] bytes) {
-        ByteBuffer buf = ByteBuffer.wrap(bytes)
-                                   .order(ByteOrder.LITTLE_ENDIAN);
-        float[]    out = new float[bytes.length / 4];
-        for (int i = 0; i < out.length; i++) out[i] = buf.getFloat();
-        return out;
-    }
 }
