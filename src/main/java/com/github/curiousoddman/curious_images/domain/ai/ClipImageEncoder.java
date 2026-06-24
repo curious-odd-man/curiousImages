@@ -45,11 +45,11 @@ public class ClipImageEncoder {
         OrtSession    session = registry.getOrLoad("clip_image", paths.clipImage());
         float[][][][] input   = preprocess(image);
         try (OnnxTensor tensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), input);
-             OrtSession.Result result = session.run(Map.of("input", tensor))
+             OrtSession.Result result = session.run(Map.of("image", tensor))
         ) {
-            float[] raw = (float[]) result.get(0)
+            float[][] raw = (float[][]) result.get(0)
                                           .getValue();
-            return l2Normalize(raw);
+            return l2Normalize(raw[0]);
         }
     }
 
