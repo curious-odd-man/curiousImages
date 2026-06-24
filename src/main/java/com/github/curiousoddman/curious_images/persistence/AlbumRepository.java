@@ -31,14 +31,14 @@ public class AlbumRepository {
     public long insert(String name, String type, Long coverPhotoId,
                        String metaJson, LocalDateTime now) {
         return dsl.insertInto(ALBUM)
-                .set(ALBUM.NAME,           name)
-                .set(ALBUM.TYPE,           type)
-                .set(ALBUM.COVER_PHOTO_ID, coverPhotoId)
-                .set(ALBUM.META_JSON,      metaJson)
-                .set(ALBUM.CREATED_AT,     now)
-                .returning(ALBUM.ID)
-                .fetchOne()
-                .getId();
+                  .set(ALBUM.NAME, name)
+                  .set(ALBUM.TYPE, type)
+                  .set(ALBUM.COVER_PHOTO_ID, coverPhotoId)
+                  .set(ALBUM.META_JSON, metaJson)
+                  .set(ALBUM.CREATED_AT, now)
+                  .returning(ALBUM.ID)
+                  .fetchOne()
+                  .getId();
     }
 
     /**
@@ -46,22 +46,28 @@ public class AlbumRepository {
      * Must be called inside the caller's transaction (pass the transaction-bound context).
      */
     public void deleteByType(DSLContext ctx, String type) {
-        ctx.deleteFrom(ALBUM).where(ALBUM.TYPE.eq(type)).execute();
+        ctx.deleteFrom(ALBUM)
+           .where(ALBUM.TYPE.eq(type))
+           .execute();
     }
 
     public List<AlbumRecord> findAll() {
-        return dsl.selectFrom(ALBUM).orderBy(ALBUM.TYPE, ALBUM.NAME).fetch();
+        return dsl.selectFrom(ALBUM)
+                  .orderBy(ALBUM.TYPE, ALBUM.NAME)
+                  .fetch();
     }
 
     public Optional<AlbumRecord> findById(long id) {
         return Optional.ofNullable(
-                dsl.selectFrom(ALBUM).where(ALBUM.ID.eq(id)).fetchOne());
+                dsl.selectFrom(ALBUM)
+                   .where(ALBUM.ID.eq(id))
+                   .fetchOne());
     }
 
     public List<AlbumRecord> findByType(String type) {
         return dsl.selectFrom(ALBUM)
-                .where(ALBUM.TYPE.eq(type))
-                .orderBy(ALBUM.NAME)
-                .fetch();
+                  .where(ALBUM.TYPE.eq(type))
+                  .orderBy(ALBUM.NAME)
+                  .fetch();
     }
 }

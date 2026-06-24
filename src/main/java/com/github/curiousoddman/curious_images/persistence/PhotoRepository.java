@@ -205,7 +205,7 @@ public class PhotoRepository {
     public Optional<PhotoRecord> findById(long photoId) {
         return Optional.ofNullable(
                 dsl.selectFrom(PHOTO)
-                        .where(PHOTO.ID.eq(photoId))
-                        .fetchOne());
+                   .where(PHOTO.ID.eq(photoId))
+                   .fetchOne());
     }
 }

@@ -31,45 +31,45 @@ public class AiProcessingStatusRepository {
      */
     public Query upsertQuery(long photoId, LocalDateTime now) {
         return dsl.mergeInto(AI_PROCESSING_STATUS)
-                .using(dsl.selectOne())
-                .on(AI_PROCESSING_STATUS.PHOTO_ID.eq(photoId))
-                .whenNotMatchedThenInsert(
-                        AI_PROCESSING_STATUS.PHOTO_ID,
-                        AI_PROCESSING_STATUS.FACE_DETECT_DONE,
-                        AI_PROCESSING_STATUS.FACE_EMBED_DONE,
-                        AI_PROCESSING_STATUS.CLIP_EMBED_DONE,
-                        AI_PROCESSING_STATUS.LUCENE_INDEX_DONE,
-                        AI_PROCESSING_STATUS.RETRY_COUNT,
-                        AI_PROCESSING_STATUS.UPDATED_AT)
-                .values(photoId, false, false, false, false, (short) 0, now);
+                  .using(dsl.selectOne())
+                  .on(AI_PROCESSING_STATUS.PHOTO_ID.eq(photoId))
+                  .whenNotMatchedThenInsert(
+                          AI_PROCESSING_STATUS.PHOTO_ID,
+                          AI_PROCESSING_STATUS.FACE_DETECT_DONE,
+                          AI_PROCESSING_STATUS.FACE_EMBED_DONE,
+                          AI_PROCESSING_STATUS.CLIP_EMBED_DONE,
+                          AI_PROCESSING_STATUS.LUCENE_INDEX_DONE,
+                          AI_PROCESSING_STATUS.RETRY_COUNT,
+                          AI_PROCESSING_STATUS.UPDATED_AT)
+                  .values(photoId, false, false, false, false, (short) 0, now);
     }
 
     public Query markFaceDetectDoneQuery(long photoId, LocalDateTime now) {
         return dsl.update(AI_PROCESSING_STATUS)
-                .set(AI_PROCESSING_STATUS.FACE_DETECT_DONE, true)
-                .set(AI_PROCESSING_STATUS.UPDATED_AT, now)
-                .where(AI_PROCESSING_STATUS.PHOTO_ID.eq(photoId));
+                  .set(AI_PROCESSING_STATUS.FACE_DETECT_DONE, true)
+                  .set(AI_PROCESSING_STATUS.UPDATED_AT, now)
+                  .where(AI_PROCESSING_STATUS.PHOTO_ID.eq(photoId));
     }
 
     public Query markFaceEmbedDoneQuery(long photoId, LocalDateTime now) {
         return dsl.update(AI_PROCESSING_STATUS)
-                .set(AI_PROCESSING_STATUS.FACE_EMBED_DONE, true)
-                .set(AI_PROCESSING_STATUS.UPDATED_AT, now)
-                .where(AI_PROCESSING_STATUS.PHOTO_ID.eq(photoId));
+                  .set(AI_PROCESSING_STATUS.FACE_EMBED_DONE, true)
+                  .set(AI_PROCESSING_STATUS.UPDATED_AT, now)
+                  .where(AI_PROCESSING_STATUS.PHOTO_ID.eq(photoId));
     }
 
     public Query markClipEmbedDoneQuery(long photoId, LocalDateTime now) {
         return dsl.update(AI_PROCESSING_STATUS)
-                .set(AI_PROCESSING_STATUS.CLIP_EMBED_DONE, true)
-                .set(AI_PROCESSING_STATUS.UPDATED_AT, now)
-                .where(AI_PROCESSING_STATUS.PHOTO_ID.eq(photoId));
+                  .set(AI_PROCESSING_STATUS.CLIP_EMBED_DONE, true)
+                  .set(AI_PROCESSING_STATUS.UPDATED_AT, now)
+                  .where(AI_PROCESSING_STATUS.PHOTO_ID.eq(photoId));
     }
 
     public Query markLuceneIndexDoneQuery(long photoId, LocalDateTime now) {
         return dsl.update(AI_PROCESSING_STATUS)
-                .set(AI_PROCESSING_STATUS.LUCENE_INDEX_DONE, true)
-                .set(AI_PROCESSING_STATUS.UPDATED_AT, now)
-                .where(AI_PROCESSING_STATUS.PHOTO_ID.eq(photoId));
+                  .set(AI_PROCESSING_STATUS.LUCENE_INDEX_DONE, true)
+                  .set(AI_PROCESSING_STATUS.UPDATED_AT, now)
+                  .where(AI_PROCESSING_STATUS.PHOTO_ID.eq(photoId));
     }
 
     public Query markErrorQuery(long photoId, String errorMessage, LocalDateTime now) {
@@ -77,11 +77,11 @@ public class AiProcessingStatusRepository {
                 ? errorMessage.substring(0, 1021) + "..."
                 : errorMessage;
         return dsl.update(AI_PROCESSING_STATUS)
-                .set(AI_PROCESSING_STATUS.LAST_ERROR, truncated)
-                .set(AI_PROCESSING_STATUS.RETRY_COUNT,
-                        AI_PROCESSING_STATUS.RETRY_COUNT.add((short) 1))
-                .set(AI_PROCESSING_STATUS.UPDATED_AT, now)
-                .where(AI_PROCESSING_STATUS.PHOTO_ID.eq(photoId));
+                  .set(AI_PROCESSING_STATUS.LAST_ERROR, truncated)
+                  .set(AI_PROCESSING_STATUS.RETRY_COUNT,
+                          AI_PROCESSING_STATUS.RETRY_COUNT.add((short) 1))
+                  .set(AI_PROCESSING_STATUS.UPDATED_AT, now)
+                  .where(AI_PROCESSING_STATUS.PHOTO_ID.eq(photoId));
     }
 
     /**
@@ -89,9 +89,9 @@ public class AiProcessingStatusRepository {
      */
     public List<Long> findPendingFaceDetect() {
         return dsl.select(AI_PROCESSING_STATUS.PHOTO_ID)
-                .from(AI_PROCESSING_STATUS)
-                .where(AI_PROCESSING_STATUS.FACE_DETECT_DONE.eq(false))
-                .fetch(AI_PROCESSING_STATUS.PHOTO_ID);
+                  .from(AI_PROCESSING_STATUS)
+                  .where(AI_PROCESSING_STATUS.FACE_DETECT_DONE.eq(false))
+                  .fetch(AI_PROCESSING_STATUS.PHOTO_ID);
     }
 
     /**
@@ -99,10 +99,10 @@ public class AiProcessingStatusRepository {
      */
     public List<Long> findPendingFaceEmbed() {
         return dsl.select(AI_PROCESSING_STATUS.PHOTO_ID)
-                .from(AI_PROCESSING_STATUS)
-                .where(AI_PROCESSING_STATUS.FACE_DETECT_DONE.eq(true))
-                .and(AI_PROCESSING_STATUS.FACE_EMBED_DONE.eq(false))
-                .fetch(AI_PROCESSING_STATUS.PHOTO_ID);
+                  .from(AI_PROCESSING_STATUS)
+                  .where(AI_PROCESSING_STATUS.FACE_DETECT_DONE.eq(true))
+                  .and(AI_PROCESSING_STATUS.FACE_EMBED_DONE.eq(false))
+                  .fetch(AI_PROCESSING_STATUS.PHOTO_ID);
     }
 
     /**
@@ -110,9 +110,9 @@ public class AiProcessingStatusRepository {
      */
     public List<Long> findPendingClipEmbed() {
         return dsl.select(AI_PROCESSING_STATUS.PHOTO_ID)
-                .from(AI_PROCESSING_STATUS)
-                .where(AI_PROCESSING_STATUS.CLIP_EMBED_DONE.eq(false))
-                .fetch(AI_PROCESSING_STATUS.PHOTO_ID);
+                  .from(AI_PROCESSING_STATUS)
+                  .where(AI_PROCESSING_STATUS.CLIP_EMBED_DONE.eq(false))
+                  .fetch(AI_PROCESSING_STATUS.PHOTO_ID);
     }
 
     /**
@@ -120,9 +120,9 @@ public class AiProcessingStatusRepository {
      */
     public List<Long> findPendingLuceneIndex() {
         return dsl.select(AI_PROCESSING_STATUS.PHOTO_ID)
-                .from(AI_PROCESSING_STATUS)
-                .where(AI_PROCESSING_STATUS.CLIP_EMBED_DONE.eq(true))
-                .and(AI_PROCESSING_STATUS.LUCENE_INDEX_DONE.eq(false))
-                .fetch(AI_PROCESSING_STATUS.PHOTO_ID);
+                  .from(AI_PROCESSING_STATUS)
+                  .where(AI_PROCESSING_STATUS.CLIP_EMBED_DONE.eq(true))
+                  .and(AI_PROCESSING_STATUS.LUCENE_INDEX_DONE.eq(false))
+                  .fetch(AI_PROCESSING_STATUS.PHOTO_ID);
     }
 }

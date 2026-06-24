@@ -31,34 +31,38 @@ public class PersonRepository {
      */
     public long insert(String name, Long coverFaceId, LocalDateTime now) {
         return dsl.insertInto(PERSON)
-                .set(PERSON.NAME,          name)
-                .set(PERSON.COVER_FACE_ID, coverFaceId)
-                .set(PERSON.CREATED_AT,    now)
-                .returning(PERSON.ID)
-                .fetchOne()
-                .getId();
+                  .set(PERSON.NAME, name)
+                  .set(PERSON.COVER_FACE_ID, coverFaceId)
+                  .set(PERSON.CREATED_AT, now)
+                  .returning(PERSON.ID)
+                  .fetchOne()
+                  .getId();
     }
 
     public List<PersonRecord> findAll() {
-        return dsl.selectFrom(PERSON).orderBy(PERSON.ID).fetch();
+        return dsl.selectFrom(PERSON)
+                  .orderBy(PERSON.ID)
+                  .fetch();
     }
 
     public Optional<PersonRecord> findById(long id) {
         return Optional.ofNullable(
-                dsl.selectFrom(PERSON).where(PERSON.ID.eq(id)).fetchOne());
+                dsl.selectFrom(PERSON)
+                   .where(PERSON.ID.eq(id))
+                   .fetchOne());
     }
 
     public Query updateNameQuery(long id, String name, LocalDateTime now) {
         return dsl.update(PERSON)
-                .set(PERSON.NAME,       name)
-                .set(PERSON.UPDATED_AT, now)
-                .where(PERSON.ID.eq(id));
+                  .set(PERSON.NAME, name)
+                  .set(PERSON.UPDATED_AT, now)
+                  .where(PERSON.ID.eq(id));
     }
 
     public Query updateCoverFaceQuery(long id, long faceId, LocalDateTime now) {
         return dsl.update(PERSON)
-                .set(PERSON.COVER_FACE_ID, faceId)
-                .set(PERSON.UPDATED_AT,    now)
-                .where(PERSON.ID.eq(id));
+                  .set(PERSON.COVER_FACE_ID, faceId)
+                  .set(PERSON.UPDATED_AT, now)
+                  .where(PERSON.ID.eq(id));
     }
 }

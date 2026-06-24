@@ -29,26 +29,26 @@ public class FaceRepository {
     public Query insertQuery(long photoId, double x, double y, double w, double h,
                              double confidence, String landmarkJson, LocalDateTime now) {
         return dsl.insertInto(FACE)
-                .set(FACE.PHOTO_ID,      photoId)
-                .set(FACE.BBOX_X,        x)
-                .set(FACE.BBOX_Y,        y)
-                .set(FACE.BBOX_W,        w)
-                .set(FACE.BBOX_H,        h)
-                .set(FACE.CONFIDENCE,    confidence)
-                .set(FACE.LANDMARK_JSON, landmarkJson)
-                .set(FACE.CREATED_AT,    now);
+                  .set(FACE.PHOTO_ID, photoId)
+                  .set(FACE.BBOX_X, x)
+                  .set(FACE.BBOX_Y, y)
+                  .set(FACE.BBOX_W, w)
+                  .set(FACE.BBOX_H, h)
+                  .set(FACE.CONFIDENCE, confidence)
+                  .set(FACE.LANDMARK_JSON, landmarkJson)
+                  .set(FACE.CREATED_AT, now);
     }
 
     public List<FaceRecord> findByPhotoId(long photoId) {
         return dsl.selectFrom(FACE)
-                .where(FACE.PHOTO_ID.eq(photoId))
-                .fetch();
+                  .where(FACE.PHOTO_ID.eq(photoId))
+                  .fetch();
     }
 
     public List<FaceRecord> findByPersonId(long personId) {
         return dsl.selectFrom(FACE)
-                .where(FACE.PERSON_ID.eq(personId))
-                .fetch();
+                  .where(FACE.PERSON_ID.eq(personId))
+                  .fetch();
     }
 
     /**
@@ -57,8 +57,8 @@ public class FaceRepository {
      */
     public List<FaceRecord> findUnassigned() {
         return dsl.selectFrom(FACE)
-                .where(FACE.PERSON_ID.isNull())
-                .fetch();
+                  .where(FACE.PERSON_ID.isNull())
+                  .fetch();
     }
 
     /**
@@ -66,8 +66,8 @@ public class FaceRepository {
      */
     public Query assignPersonQuery(long faceId, long personId) {
         return dsl.update(FACE)
-                .set(FACE.PERSON_ID, personId)
-                .where(FACE.ID.eq(faceId));
+                  .set(FACE.PERSON_ID, personId)
+                  .where(FACE.ID.eq(faceId));
     }
 
     /**
@@ -76,7 +76,7 @@ public class FaceRepository {
      */
     public void deleteByPhotoId(DSLContext ctx, long photoId) {
         ctx.deleteFrom(FACE)
-                .where(FACE.PHOTO_ID.eq(photoId))
-                .execute();
+           .where(FACE.PHOTO_ID.eq(photoId))
+           .execute();
     }
 }
