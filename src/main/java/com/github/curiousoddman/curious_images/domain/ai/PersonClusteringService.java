@@ -1,4 +1,4 @@
-package com.github.curiousoddman.curious_images.config;
+package com.github.curiousoddman.curious_images.domain.ai;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceEmbeddingRecord;
 import com.github.curiousoddman.curious_images.event.PersonsUpdatedEvent;
@@ -15,7 +15,10 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Groups face embeddings into person candidates using greedy union-find clustering over
@@ -33,15 +36,15 @@ import java.util.*;
 public class PersonClusteringService {
 
     private static final float SIMILARITY_THRESHOLD = 0.4f;
-    private static final int MIN_FACES_PER_PERSON = 3;
-    private static final int PAIRWISE_SIZE_LIMIT = 10_000;
-    private static final int DB_FLUSH_BATCH_SIZE = 200;
+    private static final int   MIN_FACES_PER_PERSON = 3;
+    private static final int   PAIRWISE_SIZE_LIMIT  = 10_000;
+    private static final int   DB_FLUSH_BATCH_SIZE  = 200;
 
-    private final FaceEmbeddingRepository faceEmbeddingRepo;
-    private final FaceRepository faceRepo;
-    private final PersonRepository personRepo;
-    private final TimeProvider timeProvider;
-    private final DSLContext dsl;
+    private final FaceEmbeddingRepository   faceEmbeddingRepo;
+    private final FaceRepository            faceRepo;
+    private final PersonRepository          personRepo;
+    private final TimeProvider              timeProvider;
+    private final DSLContext                dsl;
     private final ApplicationEventPublisher publisher;
 
     /**
@@ -62,10 +65,12 @@ public class PersonClusteringService {
 
         // Convert stored bytes → float arrays once
         float[][] vectors = new float[n][];
-        long[] faceIds = new long[n];
+        long[]    faceIds = new long[n];
         for (int i = 0; i < n; i++) {
-            faceIds[i] = allEmbeddings.get(i).getFaceId();
-            vectors[i] = FaceEmbeddingRepository.toFloats(allEmbeddings.get(i).getEmbedding());
+            faceIds[i] = allEmbeddings.get(i)
+                                      .getFaceId();
+            vectors[i] = FaceEmbeddingRepository.toFloats(allEmbeddings.get(i)
+                                                                       .getEmbedding());
         }
 
         // Union-Find
@@ -88,15 +93,18 @@ public class PersonClusteringService {
         // Group by root
         Map<Integer, List<Integer>> groups = new LinkedHashMap<>();
         for (int i = 0; i < n; i++) {
-            groups.computeIfAbsent(find(parent, i), k -> new ArrayList<>()).add(i);
+            groups.computeIfAbsent(find(parent, i), k -> new ArrayList<>())
+                  .add(i);
         }
 
-        LocalDateTime now = timeProvider.now();
-        List<Query> buffer = new ArrayList<>(DB_FLUSH_BATCH_SIZE);
-        int personsCreated = 0;
+        LocalDateTime now            = timeProvider.now();
+        List<Query>   buffer         = new ArrayList<>(DB_FLUSH_BATCH_SIZE);
+        int           personsCreated = 0;
 
         for (List<Integer> group : groups.values()) {
-            if (group.size() < MIN_FACES_PER_PERSON) continue;
+            if (group.size() < MIN_FACES_PER_PERSON) {
+                continue;
+            }
 
             // Assign all faces to a new person
             long personId = personRepo.insert(null, faceIds[group.get(0)], now);
@@ -104,7 +112,9 @@ public class PersonClusteringService {
 
             for (int idx : group) {
                 buffer.add(faceRepo.assignPersonQuery(faceIds[idx], personId));
-                if (buffer.size() >= DB_FLUSH_BATCH_SIZE) flush(buffer);
+                if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
+                    flush(buffer);
+                }
             }
         }
         flush(buffer);
@@ -126,7 +136,9 @@ public class PersonClusteringService {
 
     private void union(int[] parent, int a, int b) {
         int ra = find(parent, a), rb = find(parent, b);
-        if (ra != rb) parent[ra] = rb;
+        if (ra != rb) {
+            parent[ra] = rb;
+        }
     }
 
     // ── Maths ─────────────────────────────────────────────────────────────────
@@ -141,8 +153,12 @@ public class PersonClusteringService {
     }
 
     private void flush(List<Query> buffer) {
-        if (buffer.isEmpty()) return;
-        dsl.transaction(cfg -> DSL.using(cfg).batch(buffer).execute());
+        if (buffer.isEmpty()) {
+            return;
+        }
+        dsl.transaction(cfg -> DSL.using(cfg)
+                                  .batch(buffer)
+                                  .execute());
         buffer.clear();
     }
 }
