@@ -1,10 +1,12 @@
 package com.github.curiousoddman.curious_images.config;
 
+import lombok.RequiredArgsConstructor;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.SearcherManager;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -21,16 +23,17 @@ import java.nio.file.Path;
  * orderly flush on shutdown.
  */
 @Configuration
+@RequiredArgsConstructor
 public class LuceneConfig {
 
-    private static final Path INDEX_ROOT =
-            Path.of(System.getProperty("user.home"), ".cimages", "index");
+    @Value("${app.ai.index-root}")
+    private final Path indexRoot;
 
     // ── CLIP index ────────────────────────────────────────────────────────────
 
     @Bean(destroyMethod = "close")
     public IndexWriter clipIndexWriter() throws IOException {
-        Directory dir = MMapDirectory.open(INDEX_ROOT.resolve("clip"));
+        Directory dir = MMapDirectory.open(indexRoot.resolve("clip"));
         IndexWriterConfig cfg = new IndexWriterConfig()
                 .setRAMBufferSizeMB(64)
                 .setCommitOnClose(true);
@@ -46,7 +49,7 @@ public class LuceneConfig {
 
     @Bean(destroyMethod = "close")
     public IndexWriter faceIndexWriter() throws IOException {
-        Directory dir = MMapDirectory.open(INDEX_ROOT.resolve("face"));
+        Directory dir = MMapDirectory.open(indexRoot.resolve("face"));
         IndexWriterConfig cfg = new IndexWriterConfig()
                 .setRAMBufferSizeMB(32)
                 .setCommitOnClose(true);

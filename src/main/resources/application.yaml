@@ -1,10 +1,12 @@
+USER_DATA_ROOT: ~/cimages
+
 spring:
   main:
     web-application-type: servlet
   application:
     name: curious-images
   datasource:
-    url: jdbc:h2:file:~/cimages/${DATABASE_FILE};DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:file:${USER_DATA_ROOT}/cimages-${ENV};DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
     password: sa
@@ -17,9 +19,12 @@ spring:
 
 app:
   thumbnail-cache:
-    dir: ~/cimages/thumb-cache
+    dir: ${USER_DATA_ROOT}/dev/thumb-cache-${ENV}
   duplicate-detection:
     thread-count: 4
+  ai:
+    model-dir: ${USER_DATA_ROOT}/models
+    index-root: ${USER_DATA_ROOT}/index-${ENV}
 
 logging.level:
   org.jooq.Constants: off

@@ -16,7 +16,7 @@ import java.nio.file.Path;
 @Getter
 @Setter
 @Component
-@ConfigurationProperties(prefix = "ai")
+@ConfigurationProperties(prefix = "app.ai")
 public class AiConfig {
 
     /**

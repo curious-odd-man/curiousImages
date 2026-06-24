@@ -1,2 +1,2 @@
-DATABASE_FILE: cimages-prod
+ENV: prod
 H2_CONSOLE_ENABLED: false
