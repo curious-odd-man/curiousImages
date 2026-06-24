@@ -158,10 +158,10 @@ public class AiPipelineJob extends AbstractBackgroundJob {
             try {
                 PhotoRecord photo = photoRepo.findById(photoId)
                                              .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
-                BufferedImage                         img   = loadImage(photo.getAbsolutePath());
-                List<RetinaFaceDetector.DetectedFace> faces = retinaFaceDetector.detect(img);
+                BufferedImage      img   = loadImage(photo.getAbsolutePath());
+                List<DetectedFace> faces = retinaFaceDetector.detect(img);
 
-                for (RetinaFaceDetector.DetectedFace face : faces) {
+                for (DetectedFace face : faces) {
                     buffer.add(faceRepo.insertQuery(
                             photoId, face.x(), face.y(), face.w(), face.h(),
                             face.confidence(), toLandmarkJson(face.landmarks()), now));
@@ -303,10 +303,10 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                 }
 
                 // Index face embeddings
-                List<FaceRecord>               faces      = faceRepo.findByPhotoId(photoId);
-                List<Long>                     faceIds    = faces.stream()
-                                                                 .map(FaceRecord::getId)
-                                                                 .toList();
+                List<FaceRecord> faces = faceRepo.findByPhotoId(photoId);
+                List<Long> faceIds = faces.stream()
+                                          .map(FaceRecord::getId)
+                                          .toList();
                 Map<Long, FaceEmbeddingRecord> faceEmbeds = faceEmbeddingRepo.findByFaceIds(faceIds);
                 for (FaceRecord face : faces) {
                     FaceEmbeddingRecord emb = faceEmbeds.get(face.getId());

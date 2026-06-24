@@ -1,5 +1,7 @@
 package com.github.curiousoddman.curious_images.domain.imports.thumbnail;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.curiousoddman.curious_images.domain.common.thumbnail.SourceImageDecoder;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailCachePaths;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
@@ -29,14 +31,14 @@ class ThumbnailGeneratorTest {
     @BeforeEach
     void setUp() {
         ThumbnailCachePaths cachePaths = new ThumbnailCachePaths(cacheDir.toString());
-        generator = new ThumbnailGenerator(cachePaths, new PhotoMetadataExtractor());
+        generator = new ThumbnailGenerator(cachePaths, new SourceImageDecoder(new PhotoMetadataExtractor(new ObjectMapper())));
     }
 
     @Test
     void landscapeImageIsConstrainedToLongestEdge512PreservingAspectRatio() throws IOException {
         // Fixture is 800x600 (4:3 landscape)
         Optional<ThumbnailGenerator.GeneratedThumbnail> result =
-                generator.generate(1L, FIXTURES.resolve("with-exif-dates.jpg"), "jpg");
+                generator.generate(1L, FIXTURES.resolve("with-exif-dates.jpg"), "jpg", 0);
 
         assertTrue(result.isPresent());
         ThumbnailGenerator.GeneratedThumbnail thumbnail = result.get();
@@ -53,7 +55,7 @@ class ThumbnailGeneratorTest {
     void portraitImageIsConstrainedToLongestEdge512PreservingAspectRatio() {
         // Fixture is 600x800 (3:4 portrait)
         Optional<ThumbnailGenerator.GeneratedThumbnail> result =
-                generator.generate(2L, FIXTURES.resolve("portrait.jpg"), "jpg");
+                generator.generate(2L, FIXTURES.resolve("portrait.jpg"), "jpg", 0);
 
         assertTrue(result.isPresent());
         ThumbnailGenerator.GeneratedThumbnail thumbnail = result.get();
@@ -64,9 +66,9 @@ class ThumbnailGeneratorTest {
     @Test
     void shardPathIsDeterministicAndReproducibleForAGivenPhotoId() {
         Optional<ThumbnailGenerator.GeneratedThumbnail> first =
-                generator.generate(12345L, FIXTURES.resolve("with-exif-dates.jpg"), "jpg");
+                generator.generate(12345L, FIXTURES.resolve("with-exif-dates.jpg"), "jpg", 0);
         Optional<ThumbnailGenerator.GeneratedThumbnail> second =
-                generator.generate(12345L, FIXTURES.resolve("with-exif-dates.jpg"), "jpg");
+                generator.generate(12345L, FIXTURES.resolve("with-exif-dates.jpg"), "jpg", 0);
 
         assertTrue(first.isPresent());
         assertTrue(second.isPresent());
@@ -81,17 +83,17 @@ class ThumbnailGeneratorTest {
     void ensureThumbnailRegeneratesOnlyWhenMissingFromDisk() {
         Path source = FIXTURES.resolve("with-exif-dates.jpg");
 
-        boolean firstCall = generator.ensureThumbnail(99L, source, "jpg");
+        boolean firstCall = generator.ensureThumbnail(99L, source, "jpg", 0);
         assertTrue(firstCall, "should regenerate because nothing exists on disk yet");
 
-        boolean secondCall = generator.ensureThumbnail(99L, source, "jpg");
+        boolean secondCall = generator.ensureThumbnail(99L, source, "jpg", 0);
         assertFalse(secondCall, "should be a no-op once the cache file already exists");
     }
 
     @Test
     void unsupportedOrUndecodableSourceProducesNoThumbnailRatherThanThrowing() {
         Optional<ThumbnailGenerator.GeneratedThumbnail> result =
-                generator.generate(7L, FIXTURES.resolve("README.md"), "jpg");
+                generator.generate(7L, FIXTURES.resolve("README.md"), "jpg", 0);
 
         assertTrue(result.isEmpty());
     }

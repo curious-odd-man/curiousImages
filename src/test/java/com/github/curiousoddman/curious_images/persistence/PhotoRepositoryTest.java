@@ -35,7 +35,7 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
         LocalDateTime   captureDate = LocalDateTime.of(2023, 6, 15, 14, 30);
 
         long photoId = repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg",
-                12345L, 800, 600, captureDate, CaptureDateSource.EXIF_ORIGINAL, now);
+                12345L, 800, 600, captureDate, CaptureDateSource.EXIF_ORIGINAL, 0, "", "", "", "", now);
 
         Optional<?> found = repository.findByAbsolutePath("D:\\Photos\\a.jpg");
         assertTrue(found.isPresent());
@@ -61,10 +61,10 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
         long            folderId   = aFolderId();
         LocalDateTime   now        = LocalDateTime.now();
 
-        repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg", 100L, 1, 1, null, null, now);
+        repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg", 100L, 1, 1, null, null, 0, "", "", "", "", now);
 
         assertThrows(Exception.class, () ->
-                repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg", 200L, 1, 1, null, null, now));
+                repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg", 200L, 1, 1, null, null, 0, "", "", "", "", now));
     }
 
     @Test
@@ -73,7 +73,7 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
         long            folderId   = aFolderId();
         LocalDateTime   importedAt = LocalDateTime.of(2024, 1, 1, 0, 0);
         long photoId = repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg",
-                100L, 800, 600, null, null, importedAt);
+                100L, 800, 600, null, null, 0, "", "", "", "", importedAt);
 
         LocalDateTime rescannedAt = LocalDateTime.of(2024, 6, 1, 0, 0);
         repository.touchLastSeenAtQuery(photoId, rescannedAt)
@@ -92,12 +92,12 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
         PhotoRepository repository = new PhotoRepository(dsl);
         long            folderId   = aFolderId();
         long photoId = repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg",
-                100L, 800, 600, null, null, LocalDateTime.now());
+                100L, 800, 600, null, null, 0, "", "", "", "", LocalDateTime.now());
 
         LocalDateTime now            = LocalDateTime.of(2024, 6, 1, 0, 0);
         LocalDateTime newCaptureDate = LocalDateTime.of(2024, 5, 1, 9, 0);
         repository.updateMetadataQuery(photoId, 999L, 1024, 768, newCaptureDate,
-                          CaptureDateSource.FILESYSTEM, now)
+                          CaptureDateSource.FILESYSTEM, 0, "", "", "", "", now)
                   .execute();
 
         var record = dsl.selectFrom(PHOTO)

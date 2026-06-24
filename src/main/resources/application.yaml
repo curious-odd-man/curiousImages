@@ -1,4 +1,4 @@
-USER_DATA_ROOT: ~/cimages
+USER_DATA_ROOT: C:\Users\curious\cimages
 
 spring:
   main:

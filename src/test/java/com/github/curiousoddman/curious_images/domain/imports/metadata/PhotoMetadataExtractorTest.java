@@ -1,5 +1,6 @@
 package com.github.curiousoddman.curious_images.domain.imports.metadata;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -15,7 +16,7 @@ class PhotoMetadataExtractorTest {
 
     private static final Path FIXTURES = Path.of("src/test/resources/fixtures");
 
-    private final PhotoMetadataExtractor extractor = new PhotoMetadataExtractor();
+    private final PhotoMetadataExtractor extractor = new PhotoMetadataExtractor(new ObjectMapper());
 
     @Test
     void prefersExifDateOriginalAndExifDimensionsWhenPresent() {

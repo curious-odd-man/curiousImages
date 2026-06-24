@@ -1,6 +1,8 @@
 package com.github.curiousoddman.curious_images.domain.imports;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.domain.common.thumbnail.SourceImageDecoder;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailCachePaths;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
@@ -32,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 class ImportServiceTest {
@@ -55,18 +58,20 @@ class ImportServiceTest {
         timeProvider = new FakeTimeProvider();
 
         ThumbnailCachePaths cachePaths         = new ThumbnailCachePaths(thumbnailCacheDir.toString());
-        ThumbnailGenerator  thumbnailGenerator = new ThumbnailGenerator(cachePaths, metadataExtractor);
+        ThumbnailGenerator  thumbnailGenerator = new ThumbnailGenerator(cachePaths, new SourceImageDecoder(metadataExtractor));
 
         importService = new ImportService(
-                eventPublisher,
                 dsl,
                 new ImportRootRepository(dsl),
                 new FolderRepository(dsl),
                 new PhotoRepository(dsl),
                 new ThumbnailRepository(dsl),
+                mock(),
                 metadataExtractor,
                 thumbnailGenerator,
-                timeProvider);
+                timeProvider,
+                eventPublisher
+        );
     }
 
     /**
@@ -93,7 +98,7 @@ class ImportServiceTest {
 
     @Test
     void importsAllSupportedFilesIgnoresSidecarsAndPublishesTerminalEndedEvent() throws IOException {
-        setUp(new PhotoMetadataExtractor());
+        setUp(new PhotoMetadataExtractor(new ObjectMapper()));
         populateLibraryWithThreeSupportedFilesAndOneSidecar();
 
         importService.onRescanEvent(new RescanLibraryEvent(this, libraryRoot.toString()));
@@ -116,7 +121,7 @@ class ImportServiceTest {
 
     @Test
     void rescanningAnUnchangedLibraryIsANoOpThatOnlyTouchesLastSeenAt() throws IOException {
-        setUp(new PhotoMetadataExtractor());
+        setUp(new PhotoMetadataExtractor(new ObjectMapper()));
         populateLibraryWithThreeSupportedFilesAndOneSidecar();
 
         importService.onRescanEvent(new RescanLibraryEvent(this, libraryRoot.toString()));
@@ -145,7 +150,7 @@ class ImportServiceTest {
 
     @Test
     void aSingleFileFailureDoesNotAbortTheRestOfTheImport() throws IOException {
-        PhotoMetadataExtractor realExtractor  = new PhotoMetadataExtractor();
+        PhotoMetadataExtractor realExtractor  = new PhotoMetadataExtractor(new ObjectMapper());
         PhotoMetadataExtractor flakyExtractor = spy(realExtractor);
         Path                   corruptFile    = libraryRoot.resolve("corrupt.jpg");
 
@@ -173,7 +178,7 @@ class ImportServiceTest {
 
     @Test
     void aSecondRescanEventWhileOneIsRunningIsIgnoredNotConcurrentlyStarted() throws IOException {
-        setUp(new PhotoMetadataExtractor());
+        setUp(new PhotoMetadataExtractor(new ObjectMapper()));
         populateLibraryWithThreeSupportedFilesAndOneSidecar();
 
         importService.onRescanEvent(new RescanLibraryEvent(this, libraryRoot.toString()));

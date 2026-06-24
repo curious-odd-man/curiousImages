@@ -33,7 +33,7 @@ public class AiConfig {
      * Directory where ONNX model files are stored at runtime.
      * Models are extracted from the fat JAR to this directory on first launch.
      */
-    private Path modelDir = Path.of(System.getProperty("user.home"), ".cimages", "models");
+    private Path modelDir = Path.of(System.getProperty("user.home"), "cimages", "models");
 
     /**
      * Number of images processed per ONNX inference call. Tune up for GPU, down if RAM-constrained.
