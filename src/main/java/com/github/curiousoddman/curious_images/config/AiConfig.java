@@ -22,7 +22,7 @@ public class AiConfig {
     /**
      * Which ONNX execution provider to use. GPU implies CUDA first, then DirectML fallback.
      */
-    private ExecutionProvider executionProvider = ExecutionProvider.CUDA;
+    private ExecutionProvider executionProvider = ExecutionProvider.CPU;
 
     /**
      * Number of threads used inside a single ONNX op (intra-op parallelism).
