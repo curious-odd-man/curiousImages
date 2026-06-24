@@ -23,10 +23,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SearchService {
 
-    private final ClipTextEncoder clipTextEncoder;
-    private final ClipVectorIndex clipVectorIndex;
+    private final ClipTextEncoder         clipTextEncoder;
+    private final ClipVectorIndex         clipVectorIndex;
     private final ClipEmbeddingRepository clipEmbeddingRepo;
-    private final FaceRepository faceRepo;
+    private final FaceRepository          faceRepo;
 
     /**
      * Encodes {@code query} with the CLIP text encoder and returns up to {@code topK} photo
@@ -43,12 +43,15 @@ public class SearchService {
      */
     public List<Long> similarPhotos(long photoId, int topK) throws Exception {
         ClipEmbeddingRecord rec = clipEmbeddingRepo.findByPhotoId(photoId)
-                .orElseThrow(() -> new IllegalStateException(
-                        "No CLIP embedding for photo " + photoId +
-                                " — run the AI pipeline first."));
-        float[] embedding = ClipEmbeddingRepository.toFloats(rec.getEmbedding());
-        List<Long> results = clipVectorIndex.search(embedding, topK + 1);
-        results = results.stream().filter(id -> id != photoId).limit(topK).collect(Collectors.toList());
+                                                   .orElseThrow(() -> new IllegalStateException(
+                                                           "No CLIP embedding for photo " + photoId +
+                                                                   " — run the AI pipeline first."));
+        float[]    embedding = ClipEmbeddingRepository.toFloats(rec.getEmbedding());
+        List<Long> results   = clipVectorIndex.search(embedding, topK + 1);
+        results = results.stream()
+                         .filter(id -> id != photoId)
+                         .limit(topK)
+                         .collect(Collectors.toList());
         return results;
     }
 
@@ -57,14 +60,15 @@ public class SearchService {
      * {@code semanticQuery}, ranked by semantic similarity.
      */
     public List<Long> combinedSearch(long personId, String semanticQuery, int topK) throws Exception {
-        Set<Long> personPhotos = faceRepo.findByPersonId(personId).stream()
-                .map(FaceRecord::getPhotoId)
-                .collect(Collectors.toSet());
-        float[] textEmbedding = clipTextEncoder.encode(semanticQuery);
+        Set<Long> personPhotos = faceRepo.findByPersonId(personId)
+                                         .stream()
+                                         .map(FaceRecord::getPhotoId)
+                                         .collect(Collectors.toSet());
+        float[]    textEmbedding   = clipTextEncoder.encode(semanticQuery);
         List<Long> semanticResults = clipVectorIndex.search(textEmbedding, topK * 5);
         return semanticResults.stream()
-                .filter(personPhotos::contains)
-                .limit(topK)
-                .collect(Collectors.toList());
+                              .filter(personPhotos::contains)
+                              .limit(topK)
+                              .collect(Collectors.toList());
     }
 }
