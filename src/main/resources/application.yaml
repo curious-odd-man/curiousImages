@@ -6,7 +6,9 @@ spring:
   application:
     name: curious-images
   datasource:
-    url: jdbc:h2:file:${USER_DATA_ROOT}/cimages-${ENV};DB_CLOSE_ON_EXIT=FALSE
+    # MODE=PostgreSQL enables BIGSERIAL, JSON, and other PG syntax used in Flyway migrations.
+    # DEFAULT_NULL_ORDERING=HIGH matches PostgreSQL behaviour (NULLs sort last in ASC).
+    url: jdbc:h2:file:${USER_DATA_ROOT}/cimages-${ENV};DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH
     driver-class-name: org.h2.Driver
     username: sa
     password: sa
@@ -23,8 +25,37 @@ app:
   duplicate-detection:
     thread-count: 4
   ai:
+    # Directory where ONNX model files are stored.
+    # Models are extracted from the classpath on first launch if not already present.
+    # Place model files in src/main/resources/models/ before building.
     model-dir: ${USER_DATA_ROOT}/models
     index-root: ${USER_DATA_ROOT}/index-${ENV}
+
+    # Execution provider for ONNX Runtime.
+    # Options: CPU | CUDA | DIRECTML
+    # CUDA requires NVIDIA drivers with CUDA 12+.
+    # DIRECTML works on any DirectX 12 GPU (AMD/Intel/NVIDIA) without CUDA drivers.
+    execution-provider: CUDA
+
+    # Number of intra-op threads inside each ONNX operator.
+    # For GPU execution this mainly affects CPU-side pre/post-processing.
+    intra-op-threads: 4
+
+    # Images per ONNX inference call. Larger batches are more efficient on GPU.
+    batch-size: 8
+
+    # Event album tuning
+    # Gap in hours between photos that starts a new event album
+    event-gap-hours: 6
+    # Minimum photos in a time gap to create an event album
+    min-event-size: 5
+
+    # Location album tuning (GPS cell = 2 decimal places ≈ 1 km resolution)
+    min-location-size: 3
+
+    # Similarity album tuning (CLIP k-means clusters)
+    min-cluster-size: 10
+    min-cluster-similarity: 0.6
 
 logging.level:
   org.jooq.Constants: off
@@ -37,3 +68,6 @@ logging.level:
               element: debug
           model:
             playlist: debug
+          domain:
+            ai: info
+          index: info
