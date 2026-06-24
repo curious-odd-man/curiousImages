@@ -28,10 +28,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class RetinaFaceDetector {
 
-    private static final int     INPUT_SIZE           = 640;
-    private static final float   CONFIDENCE_THRESHOLD = 0.7f;
-    private static final float   NMS_THRESHOLD        = 0.4f;
-    private static final float[] MEAN                 = {104f, 117f, 123f}; // BGR
+    private static final float NMS_THRESHOLD = 0.4f;
+
+    private static final int     INPUT_SIZE           = 1200;
+    private static final float   CONFIDENCE_THRESHOLD = 0.8f;  // R50 is more confident; raise threshold
+    private static final float[] MEAN                 = {104f, 117f, 123f}; // BGR — unchanged
 
     // Anchor configuration for MobileNet0.25: strides [8,16,32], 2 anchors per cell
     private static final int[]   STRIDES       = {8, 16, 32};
@@ -47,7 +48,7 @@ public class RetinaFaceDetector {
      * or if the model is not available.
      */
     public List<DetectedFace> detect(BufferedImage image) throws OrtException {
-        OrtSession session = registry.getOrLoad("retinaface", paths.retinaFace());
+        OrtSession session = registry.getOrLoad("retinaface_r50", paths.retinaFace());
 
         int origW = image.getWidth();
         int origH = image.getHeight();
@@ -61,12 +62,12 @@ public class RetinaFaceDetector {
         try (OnnxTensor tensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), input);
              OrtSession.Result result = session.run(Map.of("input", tensor))) {
             // Outputs: [0] classifications (conf), [1] bounding boxes, [2] landmarks
-            float[][] clsRaw  = (float[][]) result.get(0)
+            float[][][] clsRaw = (float[][][]) result.get(0)
+                                                 .getValue();
+            float[][][] bboxRaw = (float[][][]) result.get(1)
                                                   .getValue();
-            float[][] bboxRaw = (float[][]) result.get(1)
-                                                  .getValue();
-            float[][] ldmRaw  = (float[][]) result.get(2)
-                                                  .getValue();
+            float[][][] ldmRaw = (float[][][]) result.get(2)
+                                                 .getValue();
 
             List<float[]> anchors = generateAnchors(INPUT_SIZE, INPUT_SIZE);
             return decodeAndFilter(clsRaw, bboxRaw, ldmRaw, anchors, origW, origH);
@@ -117,7 +118,7 @@ public class RetinaFaceDetector {
      */
     private List<float[]> generateAnchors(int imgH, int imgW) {
         List<float[]> anchors       = new ArrayList<>();
-        float[][] strideConfigs = {MIN_SIZES_S8, MIN_SIZES_S16, MIN_SIZES_S32};
+        float[][]     strideConfigs = {MIN_SIZES_S8, MIN_SIZES_S16, MIN_SIZES_S32};
 
         for (int si = 0; si < STRIDES.length; si++) {
             int     stride   = STRIDES[si];
@@ -141,14 +142,14 @@ public class RetinaFaceDetector {
 
     // ── Decode & NMS ──────────────────────────────────────────────────────────
 
-    private List<DetectedFace> decodeAndFilter(float[][] cls, float[][] bbox, float[][] ldm,
+    private List<DetectedFace> decodeAndFilter(float[][][] cls, float[][][] bbox, float[][][] ldm,
                                                List<float[]> anchors, int origW, int origH) {
         List<DetectedFace> candidates = new ArrayList<>();
 
         for (int i = 0; i < anchors.size() && i < cls.length; i++) {
             // cls output is [num_anchors][2]; index 1 is face probability
-            float conf = cls[i].length >= 2 ? cls[i][1] : cls[i][0];
-            if (conf < CONFIDENCE_THRESHOLD) {
+            float[] conf = cls[i].length >= 2 ? cls[i][1] : cls[i][0];
+            if (conf[0] < CONFIDENCE_THRESHOLD) {
                 continue;
             }
 
@@ -156,10 +157,10 @@ public class RetinaFaceDetector {
             float   ax = a[0], ay = a[1], aw = a[2], ah = a[3];
 
             // Decode bounding box (variance [0.1, 0.2] per InsightFace convention)
-            float cx = ax + bbox[i][0] * 0.1f * aw;
-            float cy = ay + bbox[i][1] * 0.1f * ah;
-            float w  = aw * (float) Math.exp(bbox[i][2] * 0.2f);
-            float h  = ah * (float) Math.exp(bbox[i][3] * 0.2f);
+            float cx = ax + bbox[i][0][0] * 0.1f * aw;
+            float cy = ay + bbox[i][1][0] * 0.1f * ah;
+            float w  = aw * (float) Math.exp(bbox[i][2][0] * 0.2f);
+            float h  = ah * (float) Math.exp(bbox[i][3][0] * 0.2f);
             float x1 = (cx - w / 2f) * origW;
             float y1 = (cy - h / 2f) * origH;
             float bw = w * origW;
@@ -168,15 +169,15 @@ public class RetinaFaceDetector {
             // Decode 5-point landmarks (pixel coords in original image space)
             float[][] landmarks = new float[5][2];
             for (int p = 0; p < 5; p++) {
-                landmarks[p][0] = (ax + ldm[i][p * 2] * 0.1f * aw) * origW;
-                landmarks[p][1] = (ay + ldm[i][p * 2 + 1] * 0.1f * ah) * origH;
+                landmarks[p][0] = (ax + ldm[i][p * 2][0] * 0.1f * aw) * origW;
+                landmarks[p][1] = (ay + ldm[i][p * 2 + 1][0] * 0.1f * ah) * origH;
             }
 
             // Normalise bbox to [0,1] relative to original image dimensions
             candidates.add(new DetectedFace(
                     x1 / origW, y1 / origH,
                     bw / origW, bh / origH,
-                    conf, landmarks));
+                    conf[0], landmarks));
         }
 
         return nms(candidates);
