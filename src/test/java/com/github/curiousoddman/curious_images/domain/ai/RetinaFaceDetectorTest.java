@@ -24,9 +24,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator.rotate;
+import static com.github.curiousoddman.curious_images.domain.ai.AiPipelineJob.loadImageOriented;
 import static com.github.curiousoddman.curious_images.domain.imports.ImportService.extensionOf;
-import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.CONSOLAS;
 
 @Slf4j
 class RetinaFaceDetectorTest {
@@ -45,14 +44,12 @@ class RetinaFaceDetectorTest {
         //List<File> files           = List.of(new File("D:\\Programming\\sample-data\\sample-images\\DSC_2621.JPG"));
         int fileNameCounter = 0;
         for (File file : files) {
-            BufferedImage      bufferedImage = ImageIO.read(file);
             ExtractedMetadata  metadata      = metadataExtractor.extract(file.toPath(), extensionOf(file.getName()));
-            List<DetectedFace> detectedFaces = retinaFaceDetector.detect(bufferedImage, metadata.orientationDegrees());
-
-            BufferedImage rotatedImage = rotate(bufferedImage, metadata.orientationDegrees());
+            BufferedImage      img           = loadImageOriented(file.getAbsolutePath(), metadata.orientationDegrees());
+            List<DetectedFace> detectedFaces = retinaFaceDetector.detect(img);
 
             Files.createDirectories(Path.of("faces"));
-            fileNameCounter = saveImageWithAllFaces(detectedFaces, fileNameCounter, rotatedImage);
+            fileNameCounter = saveImageWithAllFaces(detectedFaces, fileNameCounter, img);
             //fileNameCounter = saveImagePerFace(detectedFaces, fileNameCounter, rotatedImage);
         }
     }

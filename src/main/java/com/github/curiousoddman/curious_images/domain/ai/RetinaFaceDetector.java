@@ -50,10 +50,9 @@ public class RetinaFaceDetector {
      * Detects faces in {@code image}. Returns a list of detected faces; empty if none found
      * or if the model is not available.
      */
-    public List<DetectedFace> detect(BufferedImage image, Integer orientation) throws OrtException {
+    public List<DetectedFace> detect(BufferedImage image) throws OrtException {
         OrtSession session = registry.getOrLoad("retinaface_r50", paths.retinaFace());
 
-        image = rotate(image, orientation);
         int origW = image.getWidth();
         int origH = image.getHeight();
 

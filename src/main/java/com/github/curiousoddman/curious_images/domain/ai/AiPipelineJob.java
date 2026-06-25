@@ -35,6 +35,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator.rotate;
+
 /**
  * Orchestrates the full AI processing pipeline for newly imported photos:
  * <ol>
@@ -158,8 +160,8 @@ public class AiPipelineJob extends AbstractBackgroundJob {
             try {
                 PhotoRecord photo = photoRepo.findById(photoId)
                                              .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
-                BufferedImage      img   = loadImage(photo.getAbsolutePath());
-                List<DetectedFace> faces = retinaFaceDetector.detect(img, photo.getOrientation());
+                BufferedImage      img   = loadImageOriented(photo.getAbsolutePath(), photo.getOrientation());
+                List<DetectedFace> faces = retinaFaceDetector.detect(img);
 
                 for (DetectedFace face : faces) {
                     buffer.add(faceRepo.insertQuery(
@@ -204,12 +206,11 @@ public class AiPipelineJob extends AbstractBackgroundJob {
             try {
                 PhotoRecord photo = photoRepo.findById(photoId)
                                              .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
-                BufferedImage    img   = loadImage(photo.getAbsolutePath());
+                BufferedImage    img   = loadImageOriented(photo.getAbsolutePath(), photo.getOrientation());
                 List<FaceRecord> faces = faceRepo.findByPhotoId(photoId);
 
                 for (FaceRecord face : faces) {
-                    float[][] landmarks = parseLandmarks(face.getLandmarkJson(),
-                            img.getWidth(), img.getHeight());
+                    float[][]     landmarks = parseLandmarks(face.getLandmarkJson(), img.getWidth(), img.getHeight());
                     BufferedImage aligned   = faceAligner.align(img, landmarks);
                     float[]       embedding = arcFaceEncoder.encode(aligned);
                     buffer.add(faceEmbeddingRepo.upsertQuery(face.getId(), embedding, ARCFACE_MODEL_VER));
@@ -252,7 +253,7 @@ public class AiPipelineJob extends AbstractBackgroundJob {
             try {
                 PhotoRecord photo = photoRepo.findById(photoId)
                                              .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
-                BufferedImage img       = loadImage(photo.getAbsolutePath());
+                BufferedImage img       = loadImageOriented(photo.getAbsolutePath(), photo.getOrientation());
                 float[]       embedding = clipImageEncoder.encode(img);
                 buffer.add(clipEmbeddingRepo.upsertQuery(photoId, embedding, CLIP_IMAGE_MODEL_VER));
                 buffer.add(aiStatusRepo.markClipEmbedDoneQuery(photoId, now));
@@ -338,12 +339,12 @@ public class AiPipelineJob extends AbstractBackgroundJob {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private BufferedImage loadImage(String absolutePath) throws IOException {
+    public static BufferedImage loadImageOriented(String absolutePath, Integer orientation) throws IOException {
         BufferedImage img = ImageIO.read(new File(absolutePath));
         if (img == null) {
             throw new IOException("ImageIO could not decode: " + absolutePath);
         }
-        return img;
+        return rotate(img, orientation);
     }
 
     /**
