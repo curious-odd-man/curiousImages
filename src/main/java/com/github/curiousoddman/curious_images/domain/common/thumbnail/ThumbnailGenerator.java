@@ -109,7 +109,7 @@ public class ThumbnailGenerator {
      * always one of these in practice (see {@code PhotoMetadataExtractor}) but normalizing keeps
      * this method safe to call with an arbitrary stored value too.
      */
-    private BufferedImage rotate(BufferedImage source, int degrees) {
+    public static BufferedImage rotate(BufferedImage source, int degrees) {
         int normalized = ((degrees % 360) + 360) % 360;
         if (normalized != 90 && normalized != 180 && normalized != 270) {
             return source;

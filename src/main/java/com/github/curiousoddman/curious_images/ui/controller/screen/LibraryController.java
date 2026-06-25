@@ -707,7 +707,7 @@ public class LibraryController implements Initializable {
     @SneakyThrows
     public void onRescanMenuClicked(ActionEvent actionEvent) {
         Stage stage = new Stage();
-        Parent root = fxmlLoader.load(FxmlView.RESCAN_MODAL, new RescanBundle("D:\\My Pictures"))
+        Parent root = fxmlLoader.load(FxmlView.RESCAN_MODAL, new RescanBundle("D:\\Programming\\sample-data"))
                                 .parent();
         stage.setScene(new Scene(root));
         stage.setTitle("Rescan library");

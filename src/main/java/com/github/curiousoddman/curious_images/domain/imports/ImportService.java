@@ -254,7 +254,7 @@ public class ImportService extends AbstractBackgroundJob {
         return found;
     }
 
-    private static String extensionOf(String filename) {
+    public static String extensionOf(String filename) {
         int dot = filename.lastIndexOf('.');
         return dot < 0 ? "" : filename.substring(dot + 1)
                                       .toLowerCase(Locale.ROOT);

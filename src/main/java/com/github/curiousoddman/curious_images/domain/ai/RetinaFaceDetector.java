@@ -9,11 +9,14 @@ import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.stereotype.Component;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator.rotate;
 
 /**
  * Wraps the RetinaFace MobileNet0.25 ONNX model. Accepts a {@link BufferedImage}, returns
@@ -47,17 +50,18 @@ public class RetinaFaceDetector {
      * Detects faces in {@code image}. Returns a list of detected faces; empty if none found
      * or if the model is not available.
      */
-    public List<DetectedFace> detect(BufferedImage image) throws OrtException {
+    public List<DetectedFace> detect(BufferedImage image, Integer orientation) throws OrtException {
         OrtSession session = registry.getOrLoad("retinaface_r50", paths.retinaFace());
 
+        image = rotate(image, orientation);
         int origW = image.getWidth();
         int origH = image.getHeight();
 
         // 1. Resize to INPUT_SIZE × INPUT_SIZE
-        BufferedImage resized = resize(image, INPUT_SIZE, INPUT_SIZE);
+        PreprocessedImage preprocessedImage = resizeAndPad(image, INPUT_SIZE);
 
         // 2. Convert to float[1][3][H][W], BGR, mean-subtract
-        float[][][][] input = toTensor(resized);
+        float[][][][] input = toTensor(preprocessedImage.image());
 
         try (OnnxTensor tensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), input);
              OrtSession.Result result = session.run(Map.of("input", tensor))) {
@@ -73,22 +77,69 @@ public class RetinaFaceDetector {
                                                      .getValue();
 
             List<float[]> anchors = generateAnchors(INPUT_SIZE, INPUT_SIZE);
+
             if (clsRaw.length != 1 || bboxRaw.length != 1 || ldmRaw.length != 1) {
                 throw new IllegalStateException("Unexpected dimension size" + clsRaw.length + "|" + bboxRaw.length + "|" + ldmRaw.length);
             }
-            return decodeAndFilter(clsRaw[0], bboxRaw[0], ldmRaw[0], anchors, origW, origH);
+            return decodeAndFilter(clsRaw[0], bboxRaw[0], ldmRaw[0], anchors, preprocessedImage, origW, origH);
         }
     }
 
     // ── Preprocessing ─────────────────────────────────────────────────────────
 
-    private BufferedImage resize(BufferedImage src, int w, int h) {
+    private record PreprocessedImage(
+            BufferedImage image,
+            float scale,
+            int padX,
+            int padY,
+            int resizedWidth,
+            int resizedHeight
+    ) {}
+
+    private PreprocessedImage resizeAndPad(BufferedImage src, int targetSize) {
+        int origW = src.getWidth();
+        int origH = src.getHeight();
+
+        float scale = Math.min(
+                (float) targetSize / origW,
+                (float) targetSize / origH
+        );
+
+        int resizedW = Math.round(origW * scale);
+        int resizedH = Math.round(origH * scale);
+
+        BufferedImage resized;
         try {
-            return Thumbnails.of(src)
-                             .forceSize(w, h)
-                             .asBufferedImage();
+            resized = Thumbnails.of(src)
+                                .size(resizedW, resizedH)
+                                .asBufferedImage();
         } catch (IOException e) {
-            throw new RuntimeException("Failed to resize image for RetinaFace", e);
+            throw new RuntimeException(e);
+        }
+
+        BufferedImage padded = new BufferedImage(targetSize, targetSize, BufferedImage.TYPE_INT_RGB);
+
+        Graphics2D g = padded.createGraphics();
+
+        try {
+            g.setColor(Color.BLACK);
+            g.fillRect(0, 0, targetSize, targetSize);
+
+            int padX = (targetSize - resizedW) / 2;
+            int padY = (targetSize - resizedH) / 2;
+
+            g.drawImage(resized, padX, padY, null);
+
+            return new PreprocessedImage(
+                    padded,
+                    scale,
+                    padX,
+                    padY,
+                    resizedW,
+                    resizedH
+            );
+        } finally {
+            g.dispose();
         }
     }
 
@@ -129,8 +180,8 @@ public class RetinaFaceDetector {
         for (int si = 0; si < STRIDES.length; si++) {
             int     stride   = STRIDES[si];
             float[] minSizes = strideConfigs[si];
-            int     featH    = imgH / stride;
-            int     featW    = imgW / stride;
+            int     featH    = (int) Math.ceil((double) imgH / stride);
+            int     featW    = (int) Math.ceil((double) imgW / stride);
             for (int y = 0; y < featH; y++) {
                 for (int x = 0; x < featW; x++) {
                     for (float minSize : minSizes) {
@@ -143,14 +194,22 @@ public class RetinaFaceDetector {
                 }
             }
         }
+
         return anchors;
     }
 
     // ── Decode & NMS ──────────────────────────────────────────────────────────
 
     private List<DetectedFace> decodeAndFilter(float[][] cls, float[][] bbox, float[][] ldm,
-                                               List<float[]> anchors, int origW, int origH) {
+                                               List<float[]> anchors, PreprocessedImage preprocessedImage,
+                                               int origW, int origH) {
         List<DetectedFace> candidates = new ArrayList<>();
+
+        if (anchors.size() != cls.length) {
+            throw new IllegalStateException(
+                    "Anchor count mismatch. anchors=" + anchors.size() + ", outputs=" + cls.length
+            );
+        }
 
         for (int i = 0; i < anchors.size() && i < cls.length; i++) {
             // cls output is [num_anchors][2]; index 1 is face probability
@@ -162,32 +221,61 @@ public class RetinaFaceDetector {
             float[] a  = anchors.get(i);
             float   ax = a[0], ay = a[1], aw = a[2], ah = a[3];
 
-            // Decode bounding box (variance [0.1, 0.2] per InsightFace convention)
-            float cx = ax + bbox[i][0] * 0.1f * aw;
-            float cy = ay + bbox[i][1] * 0.1f * ah;
-            float w  = aw * (float) Math.exp(bbox[i][2] * 0.2f);
-            float h  = ah * (float) Math.exp(bbox[i][3] * 0.2f);
-            float x1 = (cx - w / 2f) * origW;
-            float y1 = (cy - h / 2f) * origH;
-            float bw = w * origW;
-            float bh = h * origH;
+            BoundingBox result = getBoundingBox(preprocessedImage, origW, origH, ax, aw, ay, ah, bbox[i]);
+            float       scale  = preprocessedImage.scale();
 
             // Decode 5-point landmarks (pixel coords in original image space)
             float[][] landmarks = new float[5][2];
             for (int p = 0; p < 5; p++) {
-                landmarks[p][0] = (ax + ldm[i][p * 2] * 0.1f * aw) * origW;
-                landmarks[p][1] = (ay + ldm[i][p * 2 + 1] * 0.1f * ah) * origH;
+                float lx = (ax + ldm[i][p * 2] * 0.1f * aw) * INPUT_SIZE;
+                float ly = (ay + ldm[i][p * 2 + 1] * 0.1f * ah) * INPUT_SIZE;
+
+                lx = (lx - preprocessedImage.padX()) / scale;
+                ly = (ly - preprocessedImage.padY()) / scale;
+
+                landmarks[p][0] = Math.max(0, Math.min(origW, lx));
+                landmarks[p][1] = Math.max(0, Math.min(origH, ly));
             }
 
             // Normalise bbox to [0,1] relative to original image dimensions
             candidates.add(new DetectedFace(
-                    x1 / origW, y1 / origH,
-                    bw / origW, bh / origH,
+                    result.x1() / origW, result.y1() / origH,
+                    result.bw() / origW, result.bh() / origH,
                     conf, landmarks));
         }
 
         return nms(candidates);
     }
+
+    private static BoundingBox getBoundingBox(PreprocessedImage preprocessedImage, int origW, int origH, float ax, float aw, float ay, float ah, float[] bbox) {
+        // Decode bounding box (variance [0.1, 0.2] per InsightFace convention)
+        float cx = ax + bbox[0] * 0.1f * aw;
+        float cy = ay + bbox[1] * 0.1f * ah;
+        float w  = aw * (float) Math.exp(bbox[2] * 0.2f);
+        float h  = ah * (float) Math.exp(bbox[3] * 0.2f);
+
+        float x1 = (cx - w / 2f) * INPUT_SIZE;
+        float y1 = (cy - h / 2f) * INPUT_SIZE;
+        float x2 = (cx + w / 2f) * INPUT_SIZE;
+        float y2 = (cy + h / 2f) * INPUT_SIZE;
+
+        float scale = preprocessedImage.scale();
+        x1 = (x1 - preprocessedImage.padX()) / scale;
+        y1 = (y1 - preprocessedImage.padY()) / scale;
+        x2 = (x2 - preprocessedImage.padX()) / scale;
+        y2 = (y2 - preprocessedImage.padY()) / scale;
+
+        x1 = Math.max(0, Math.min(origW, x1));
+        y1 = Math.max(0, Math.min(origH, y1));
+        x2 = Math.max(0, Math.min(origW, x2));
+        y2 = Math.max(0, Math.min(origH, y2));
+
+        float bw = x2 - x1;
+        float bh = y2 - y1;
+        return new BoundingBox(x1, y1, bw, bh);
+    }
+
+    private record BoundingBox(float x1, float y1, float bw, float bh) {}
 
     /**
      * Greedy NMS over detected-face candidates.
