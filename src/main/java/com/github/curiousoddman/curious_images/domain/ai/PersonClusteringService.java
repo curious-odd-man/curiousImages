@@ -86,7 +86,6 @@ public class PersonClusteringService {
                 for (int j = i + 1; j < n; j++) {
                     float sim = cosineSim(vectors[i], vectors[j]);
                     if (sim > SIMILARITY_THRESHOLD) {
-                        log.info("MATCH {} {} sim={}", faceIds[i], faceIds[j], sim);
                         union(parent, i, j);
                     }
                 }
