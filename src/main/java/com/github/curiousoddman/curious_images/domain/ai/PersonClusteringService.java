@@ -38,7 +38,7 @@ import static com.github.curiousoddman.curious_images.persistence.ClipEmbeddingR
 public class PersonClusteringService {
 
     private static final float SIMILARITY_THRESHOLD = 0.4f;
-    private static final int   MIN_FACES_PER_PERSON = 3;
+    private static final int   MIN_FACES_PER_PERSON = 2;
     private static final int   PAIRWISE_SIZE_LIMIT  = 10_000;
     private static final int   DB_FLUSH_BATCH_SIZE  = 200;
 
@@ -77,12 +77,16 @@ public class PersonClusteringService {
 
         // Union-Find
         int[] parent = new int[n];
-        for (int i = 0; i < n; i++) parent[i] = i;
+        for (int i = 0; i < n; i++) {
+            parent[i] = i;
+        }
 
         if (n <= PAIRWISE_SIZE_LIMIT) {
             for (int i = 0; i < n; i++) {
                 for (int j = i + 1; j < n; j++) {
-                    if (cosineSim(vectors[i], vectors[j]) > SIMILARITY_THRESHOLD) {
+                    float sim = cosineSim(vectors[i], vectors[j]);
+                    if (sim > SIMILARITY_THRESHOLD) {
+                        log.info("MATCH {} {} sim={}", faceIds[i], faceIds[j], sim);
                         union(parent, i, j);
                     }
                 }
@@ -150,7 +154,9 @@ public class PersonClusteringService {
      */
     private float cosineSim(float[] a, float[] b) {
         float dot = 0;
-        for (int i = 0; i < a.length; i++) dot += a[i] * b[i];
+        for (int i = 0; i < a.length; i++) {
+            dot += a[i] * b[i];
+        }
         return dot;
     }
 

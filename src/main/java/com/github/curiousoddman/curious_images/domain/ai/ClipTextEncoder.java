@@ -47,11 +47,17 @@ public class ClipTextEncoder {
 
     static float[] l2Normalize(float[] v) {
         double norm = 0;
-        for (float x : v) norm += (double) x * x;
+        for (float x : v) {
+            norm += (double) x * x;
+        }
         norm = Math.sqrt(norm);
-        if (norm < 1e-10) return v;
+        if (norm < 1e-10) {
+            return v;
+        }
         float[] out = new float[v.length];
-        for (int i = 0; i < v.length; i++) out[i] = (float) (v[i] / norm);
+        for (int i = 0; i < v.length; i++) {
+            out[i] = (float) (v[i] / norm);
+        }
         return out;
     }
 }

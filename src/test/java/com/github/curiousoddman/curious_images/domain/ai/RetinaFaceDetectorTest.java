@@ -83,9 +83,12 @@ class RetinaFaceDetectorTest {
         g.setFont(new Font("Consolas", Font.PLAIN, 25));
         g.drawString("c=" + detectedFace.confidence(), x + 5, y - 5);
         g.setColor(Color.GREEN);
-        for (float[] landmark : detectedFace.landmarks()) {
-            int xx = (int) landmark[0];
-            int yy = (int) landmark[1];
+        float[][] landmarks = detectedFace.landmarks();
+        for (int i = 0; i < landmarks.length; i++) {
+            float[] landmark = landmarks[i];
+            int     xx       = (int) landmark[0];
+            int     yy       = (int) landmark[1];
+            g.drawString("lm" + i, xx, yy);
             g.drawOval(xx, yy, 2, 10);
             g.drawOval(xx, yy, 10, 2);
         }

@@ -210,9 +210,16 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                 List<FaceRecord> faces = faceRepo.findByPhotoId(photoId);
 
                 for (FaceRecord face : faces) {
-                    float[][]     landmarks = parseLandmarks(face.getLandmarkJson(), img.getWidth(), img.getHeight());
-                    BufferedImage aligned   = faceAligner.align(img, landmarks);
-                    float[]       embedding = arcFaceEncoder.encode(aligned);
+                    float[][] landmarks = parseLandmarks(face.getLandmarkJson());
+                    BufferedImage aligned = faceAligner.align(face.getId(), img, landmarks);
+/*                    Files.createDirectories(Path.of("debug"));
+                    ImageIO.write(
+                            aligned,
+                            "jpg",
+                            new File("debug/" + face.getId() + ".jpg")
+                    );*/
+
+                    float[] embedding = arcFaceEncoder.encode(aligned);
                     buffer.add(faceEmbeddingRepo.upsertQuery(face.getId(), embedding, ARCFACE_MODEL_VER));
                 }
                 buffer.add(aiStatusRepo.markFaceEmbedDoneQuery(photoId, now));
@@ -362,18 +369,12 @@ public class AiPipelineJob extends AbstractBackgroundJob {
      * Parses the stored normalised landmark JSON and converts back to pixel coordinates
      * in the original image space.
      */
-    private float[][] parseLandmarks(String json, int imageW, int imageH) {
+    private float[][] parseLandmarks(String json) {
         if (json == null) {
             return new float[5][2];
         }
         try {
-            float[][] normalised = objectMapper.readValue(json, float[][].class);
-            float[][] pixels     = new float[5][2];
-            for (int p = 0; p < 5; p++) {
-                pixels[p][0] = normalised[p][0] * imageW;
-                pixels[p][1] = normalised[p][1] * imageH;
-            }
-            return pixels;
+            return objectMapper.readValue(json, float[][].class);
         } catch (Exception e) {
             log.warn("Failed to parse landmark JSON, using zero landmarks", e);
             return new float[5][2];

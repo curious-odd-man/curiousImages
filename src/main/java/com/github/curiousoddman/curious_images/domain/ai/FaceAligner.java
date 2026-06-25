@@ -1,5 +1,6 @@
 package com.github.curiousoddman.curious_images.domain.ai;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.awt.*;
@@ -14,6 +15,7 @@ import java.awt.image.BufferedImage;
  * — no OpenCV dependency required.
  */
 @Component
+@Slf4j
 public class FaceAligner {
 
     /**
@@ -32,11 +34,12 @@ public class FaceAligner {
     /**
      * Crops and aligns a face from {@code source} using detected landmarks.
      *
+     * @param faceId
      * @param source    the full original image
      * @param landmarks float[5][2] of [x,y] landmark pixel coordinates in {@code source} space
      * @return a 112×112 RGB aligned face crop ready for ArcFace
      */
-    public BufferedImage align(BufferedImage source, float[][] landmarks) {
+    public BufferedImage align(Long faceId, BufferedImage source, float[][] landmarks) {
         AffineTransform t   = estimateSimilarityTransform(landmarks, REFERENCE);
         BufferedImage   out = new BufferedImage(OUT_SIZE, OUT_SIZE, BufferedImage.TYPE_INT_RGB);
         Graphics2D      g   = out.createGraphics();
@@ -85,6 +88,10 @@ public class FaceAligner {
             varSrc += sx * sx + sy * sy;
         }
         varSrc /= n;
+        sxx /= n;
+        sxy /= n;
+        syx /= n;
+        syy /= n;
 
         // 3. Compute rotation angle from the 2×2 covariance matrix
         //    For similarity: a = (sxx+syy), b = (syx-sxy)
