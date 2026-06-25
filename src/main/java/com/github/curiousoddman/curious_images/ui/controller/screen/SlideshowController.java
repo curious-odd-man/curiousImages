@@ -84,7 +84,7 @@ public class SlideshowController implements Initializable {
     private int               currentIndex;
 
     // ── Zoom / pan state ────────────────────────────────────────────────────
-    private static final double ZOOM_MIN  = 1.0;
+    private static final double ZOOM_MIN  = 0.5;
     private static final double ZOOM_MAX  = 10.0;
     private static final double ZOOM_STEP = 0.12; // fraction per scroll tick
 
@@ -224,7 +224,6 @@ public class SlideshowController implements Initializable {
     private void setupZoomAndPan() {
         // Scroll to zoom around cursor
         imagesPane.setOnScroll(e -> {
-            log.info("Scroll detected {}", e.getDeltaY());
             if (e.getDeltaY() == 0) {
                 return;
             }
