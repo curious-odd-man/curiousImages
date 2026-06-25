@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.net.URL;
 import java.util.List;
+import java.util.Objects;
 import java.util.ResourceBundle;
 
 import static com.sun.javafx.util.Utils.runOnFxThread;
@@ -96,8 +97,13 @@ public class SlideshowController implements Initializable {
     private double dragOriginX;
     private double dragOriginY;
 
+    /**
+     * Rotation degrees derived from EXIF orientation (0, 90, 180, 270).
+     */
+    private double currentRotation = 0.0;
 
-    private final PauseTransition zoomLabelTimer = new PauseTransition(Duration.seconds(2));
+
+    private final PauseTransition zoomLabelTimer = new PauseTransition(Duration.seconds(1));
 
     // ── Placeholder for missing thumbnail ───────────────────────────────────
     private Image noImageAvailable;
@@ -109,6 +115,14 @@ public class SlideshowController implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         noImageAvailable = new Image(getClass().getResourceAsStream("/img/noimage.png"));
+
+        for (ImageView iv : new ImageView[]{thumbnailImageView, fullImageView}) {
+            iv.setPreserveRatio(true);
+            iv.fitWidthProperty()
+              .bind(imagesPane.widthProperty());
+            iv.fitHeightProperty()
+              .bind(imagesPane.heightProperty());
+        }
 
         setupZoomAndPan();
         setupKeyboard();
@@ -146,7 +160,7 @@ public class SlideshowController implements Initializable {
 
         PhotoRecord photo = photos.get(index);
 
-        // Reset zoom/pan for each new photo
+        // Reset zoom/pan and rotation for each new photo
         resetZoomPan();
 
         // Update UI labels
@@ -179,6 +193,7 @@ public class SlideshowController implements Initializable {
                              // Only apply if the user hasn't navigated away
                              if (photos.get(currentIndex) == photo) {
                                  fullImageView.setImage(fullImage);
+                                 applyExifRotation(photo.getOrientation());
                                  crossFadeToFull();
                                  runOnFxThread(() -> rootPane.requestFocus());
                              }
@@ -288,10 +303,15 @@ public class SlideshowController implements Initializable {
         if (isZoomChanged) {
             int pct = (int) Math.round(zoomFactor * 100);
             zoomLabel.setText(pct + "%  ");
-            zoomLabel.setVisible(true);
+            zoomLabel.setOpacity(1);
 
             zoomLabelTimer.stop();
-            zoomLabelTimer.setOnFinished(e -> zoomLabel.setVisible(false));
+            zoomLabelTimer.setOnFinished(e -> {
+                FadeTransition fadeOut = new FadeTransition(Duration.millis(250), zoomLabel);
+                fadeOut.setFromValue(1);
+                fadeOut.setToValue(0);
+                fadeOut.play();
+            });
             zoomLabelTimer.playFromStart();
         }
     }
@@ -312,7 +332,45 @@ public class SlideshowController implements Initializable {
         zoomFactor = 1.0;
         translateX = 0.0;
         translateY = 0.0;
+        currentRotation = 0.0;
+        // Clear rotation on both views; thumbnail is pre-rotated so always 0
+        thumbnailImageView.setRotate(0);
+        fullImageView.setRotate(0);
         applyTransform(false);
+    }
+
+    /**
+     * Converts an EXIF orientation tag value to degrees and applies it to the full-res ImageView.
+     * Thumbnails are already pre-rotated and must NOT be rotated here.
+     * <p>
+     * EXIF orientation values:
+     * 1 = normal, 3 = 180°, 6 = 90° CW, 8 = 90° CCW (270° CW)
+     */
+    private void applyExifRotation(Integer exifOrientation) {
+        log.info("EXIF orientation raw value: {}", exifOrientation);
+
+        currentRotation = Objects.requireNonNullElse(exifOrientation, 0.0).intValue();
+        fullImageView.setRotate(currentRotation);
+
+        // For 90/270° rotations the image logical width/height are swapped relative to
+        // the pixel dimensions, so we need to swap the fit bindings so the image still
+        // fills the pane correctly and zoom/pan clamping uses the right dimensions.
+        boolean sideways = (currentRotation == 90.0 || currentRotation == 270.0);
+        fullImageView.fitWidthProperty()
+                     .unbind();
+        fullImageView.fitHeightProperty()
+                     .unbind();
+        if (sideways) {
+            fullImageView.fitWidthProperty()
+                         .bind(imagesPane.heightProperty());
+            fullImageView.fitHeightProperty()
+                         .bind(imagesPane.widthProperty());
+        } else {
+            fullImageView.fitWidthProperty()
+                         .bind(imagesPane.widthProperty());
+            fullImageView.fitHeightProperty()
+                         .bind(imagesPane.heightProperty());
+        }
     }
 
     // ────────────────────────────────────────────────────────────────────────
