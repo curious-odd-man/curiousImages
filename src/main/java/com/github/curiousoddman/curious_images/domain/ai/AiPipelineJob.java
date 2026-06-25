@@ -212,13 +212,6 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                 for (FaceRecord face : faces) {
                     float[][] landmarks = parseLandmarks(face.getLandmarkJson());
                     BufferedImage aligned = faceAligner.align(face.getId(), img, landmarks);
-/*                    Files.createDirectories(Path.of("debug"));
-                    ImageIO.write(
-                            aligned,
-                            "jpg",
-                            new File("debug/" + face.getId() + ".jpg")
-                    );*/
-
                     float[] embedding = arcFaceEncoder.encode(aligned);
                     buffer.add(faceEmbeddingRepo.upsertQuery(face.getId(), embedding, ARCFACE_MODEL_VER));
                 }
@@ -374,6 +367,7 @@ public class AiPipelineJob extends AbstractBackgroundJob {
             return new float[5][2];
         }
         try {
+            // FIXME: store landmarks in separate columns to avoid json parsing
             return objectMapper.readValue(json, float[][].class);
         } catch (Exception e) {
             log.warn("Failed to parse landmark JSON, using zero landmarks", e);

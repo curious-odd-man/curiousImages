@@ -55,6 +55,7 @@ public class PersonClusteringService {
      * every pipeline run or whenever embeddings change.
      */
     public void cluster() {
+        // TODO: refine logic - as AI suggested - union may can have members with long distance. instead should check new members against cluster "center"
         log.info("Starting person clustering...");
         List<FaceEmbeddingRecord> allEmbeddings = faceEmbeddingRepo.findAll();
         if (allEmbeddings.isEmpty()) {

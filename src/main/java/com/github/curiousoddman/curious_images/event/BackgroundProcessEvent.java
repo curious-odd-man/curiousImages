@@ -8,6 +8,7 @@ import org.springframework.context.ApplicationEvent;
 @Getter
 @Builder
 public class BackgroundProcessEvent extends ApplicationEvent {
+    // TODO: refactor this and improve progress bar - clear property names, progress bar instead of indicator, clear progress messages from all processes
     private final Object                     source;        // Duplicate this for @Builder to work
     private final String                     processName;
     private final String                     description;
