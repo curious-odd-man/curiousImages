@@ -7,8 +7,7 @@ import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
-import java.awt.Graphics2D;
-import java.awt.geom.AffineTransform;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,7 +33,7 @@ public class ThumbnailGenerator {
     private final ThumbnailCachePaths cachePaths;
     private final SourceImageDecoder  imageDecoder;
 
-    public record GeneratedThumbnail(String cachePath, int width, int height) {
+    public record GeneratedThumbnail(Path cachePath, int width, int height) {
     }
 
     /**
@@ -46,14 +45,14 @@ public class ThumbnailGenerator {
      * should simply not create a THUMBNAIL row in that case and let the UI fall back to
      * {@code img/noimage.png}, rather than failing the whole file's import.
      */
-    public Optional<GeneratedThumbnail> generate(long photoId, Path sourceFile, String extension, int rotationDegrees) {
+    public Optional<GeneratedThumbnail> generate(Path sourceFile, String extension, int rotationDegrees) {
         BufferedImage source = imageDecoder.decode(sourceFile, extension)
                                            .orElse(null);
         if (source == null) {
             return Optional.empty();
         }
         try {
-            return Optional.of(writeThumbnail(photoId, source, sourceFile, rotationDegrees));
+            return Optional.of(writeThumbnail(source, sourceFile, rotationDegrees, LONGEST_EDGE));
         } catch (IOException e) {
             log.warn("Failed to write thumbnail for {}", sourceFile, e);
             return Optional.empty();
@@ -72,15 +71,15 @@ public class ThumbnailGenerator {
      * @return {@code true} if a thumbnail was (re)generated, {@code false} if one already existed
      * on disk and nothing needed to be done
      */
-    public boolean ensureThumbnail(long photoId, Path sourceFile, String extension, int rotationDegrees) {
+    public boolean ensureThumbnail(Path sourceFile, String extension, int rotationDegrees) {
         Path resolved = cachePaths.resolve(sourceFile);
         if (Files.exists(resolved)) {
             return false;
         }
-        return generate(photoId, sourceFile, extension, rotationDegrees).isPresent();
+        return generate(sourceFile, extension, rotationDegrees).isPresent();
     }
 
-    private GeneratedThumbnail writeThumbnail(long photoId, BufferedImage source, Path sourceFile, int rotationDegrees) throws IOException {
+    public GeneratedThumbnail writeThumbnail(BufferedImage source, Path sourceFile, int rotationDegrees, int longestEdge) throws IOException {
         Path target = cachePaths.resolve(sourceFile);
         Files.createDirectories(target.getParent());
         List<Integer> allowedDegrees = List.of(0, 90, 180, 270);
@@ -94,13 +93,13 @@ public class ThumbnailGenerator {
         // the given box while preserving aspect ratio — exactly the "longest edge = 512px"
         // requirement from the product spec. Rotation already happened above, so this just resizes.
         BufferedImage resized = Thumbnails.of(oriented)
-                                          .size(LONGEST_EDGE, LONGEST_EDGE)
+                                          .size(longestEdge, longestEdge)
                                           .keepAspectRatio(true)
                                           .asBufferedImage();
 
         ImageIO.write(resized, "jpg", target.toFile());
 
-        return new GeneratedThumbnail(target.toString(), resized.getWidth(), resized.getHeight());
+        return new GeneratedThumbnail(target, resized.getWidth(), resized.getHeight());
     }
 
     /**

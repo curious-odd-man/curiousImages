@@ -170,6 +170,20 @@ public class FaceRecord extends UpdatableRecordImpl<FaceRecord> {
         return (LocalDateTime) get(9);
     }
 
+    /**
+     * Setter for <code>public.FACE.THUMBNAIL_ABSOLUTE_PATH</code>.
+     */
+    public void setThumbnailAbsolutePath(String value) {
+        set(10, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.THUMBNAIL_ABSOLUTE_PATH</code>.
+     */
+    public String getThumbnailAbsolutePath() {
+        return (String) get(10);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -193,7 +207,7 @@ public class FaceRecord extends UpdatableRecordImpl<FaceRecord> {
     /**
      * Create a detached, initialised FaceRecord
      */
-    public FaceRecord(Long id, Long photoId, Long personId, Double bboxX, Double bboxY, Double bboxW, Double bboxH, Double confidence, String landmarkJson, LocalDateTime createdAt) {
+    public FaceRecord(Long id, Long photoId, Long personId, Double bboxX, Double bboxY, Double bboxW, Double bboxH, Double confidence, String landmarkJson, LocalDateTime createdAt, String thumbnailAbsolutePath) {
         super(Face.FACE);
 
         setId(id);
@@ -206,6 +220,7 @@ public class FaceRecord extends UpdatableRecordImpl<FaceRecord> {
         setConfidence(confidence);
         setLandmarkJson(landmarkJson);
         setCreatedAt(createdAt);
+        setThumbnailAbsolutePath(thumbnailAbsolutePath);
         resetChangedOnNotNull();
     }
 }

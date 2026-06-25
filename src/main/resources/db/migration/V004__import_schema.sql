@@ -55,3 +55,4 @@ CREATE TABLE thumbnail
     height       INT,
     generated_at TIMESTAMP
 );
+

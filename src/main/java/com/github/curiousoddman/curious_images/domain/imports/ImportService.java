@@ -4,7 +4,6 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.ExtractedMetadata;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
-import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.LibraryUpdatedEvent;
 import com.github.curiousoddman.curious_images.event.RescanLibraryEvent;
 import com.github.curiousoddman.curious_images.event.RunAiPipelineEvent;
@@ -198,9 +197,9 @@ public class ImportService extends AbstractBackgroundJob {
 
     private void queueThumbnail(long photoId, Path file, String extension, int rotationDegrees,
                                 LocalDateTime now, List<Query> buffer) {
-        thumbnailGenerator.generate(photoId, file, extension, rotationDegrees)
+        thumbnailGenerator.generate(file, extension, rotationDegrees)
                           .ifPresent(thumbnail -> buffer.add(thumbnailRepository.upsertQuery(
-                                  photoId, thumbnail.cachePath(), thumbnail.width(), thumbnail.height(), now)));
+                                  photoId, thumbnail.cachePath().toString(), thumbnail.width(), thumbnail.height(), now)));
     }
 
     private long resolveFolderId(long importRootId, Path rootPath, Path dir,

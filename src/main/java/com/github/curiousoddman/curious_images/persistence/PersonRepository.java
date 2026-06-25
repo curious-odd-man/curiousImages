@@ -6,6 +6,7 @@ import org.jooq.DSLContext;
 import org.jooq.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -64,5 +65,27 @@ public class PersonRepository {
                   .set(PERSON.COVER_FACE_ID, faceId)
                   .set(PERSON.UPDATED_AT, now)
                   .where(PERSON.ID.eq(id));
+    }
+
+    /**
+     * Persists date of birth for a person. Execute immediately — called from UI thread via task.
+     */
+    public void updateDob(long id, LocalDate dob, LocalDateTime now) {
+        dsl.update(PERSON)
+           .set(PERSON.DATE_OF_BIRTH, dob)
+           .set(PERSON.UPDATED_AT, now)
+           .where(PERSON.ID.eq(id))
+           .execute();
+    }
+
+    /**
+     * Persists free-form notes for a person. Execute immediately — called from UI thread via task.
+     */
+    public void updateNotes(long id, String notes, LocalDateTime now) {
+        dsl.update(PERSON)
+           .set(PERSON.NOTES, notes)
+           .set(PERSON.UPDATED_AT, now)
+           .where(PERSON.ID.eq(id))
+           .execute();
     }
 }

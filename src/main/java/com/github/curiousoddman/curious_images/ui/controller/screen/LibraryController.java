@@ -3,7 +3,6 @@ package com.github.curiousoddman.curious_images.ui.controller.screen;
 import com.github.curiousoddman.curious_images.config.FxmlLoader;
 import com.github.curiousoddman.curious_images.config.FxmlView;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.AlbumRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FolderRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
@@ -62,7 +61,10 @@ import javafx.scene.control.TreeView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Modality;
@@ -80,7 +82,6 @@ import java.time.Month;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -115,6 +116,8 @@ public class LibraryController implements Initializable {
     private final SearchService             searchService;
     private final FaceRepository            faceRepository;
 
+    // ── FXML nodes ────────────────────────────────────────────────────────────
+
     @FXML
     public SplitPane                 librarySplitPane;
     @FXML
@@ -144,9 +147,33 @@ public class LibraryController implements Initializable {
     @FXML
     public Button                    clearSearchButton;
 
+    // ── NEW: content-switching nodes ──────────────────────────────────────────
+    /**
+     * Stack that holds both the photo grid and the person detail panel.
+     */
+    @FXML
+    public StackPane  contentStack;
+    /**
+     * The normal photo-grid BorderPane (layer 0 in the stack).
+     */
+    @FXML
+    public BorderPane photoGridView;
+    /**
+     * Container into which person_detail.fxml is injected (layer 1 in the stack).
+     */
+    @FXML
+    public AnchorPane personDetailContainer;
+
+    // ── Runtime state ─────────────────────────────────────────────────────────
 
     private Image                noImageAvailable;
     private DuplicatesController duplicatesController;
+
+    /**
+     * Lazily loaded on first PERSON selection.
+     * The FXML + controller are created once and reused for every subsequent person.
+     */
+    private PersonDetailController personDetailController;
 
     // ── Initialisation ────────────────────────────────────────────────────────
 
@@ -315,13 +342,10 @@ public class LibraryController implements Initializable {
                 if (children.size() < 4) {
                     return;
                 }
-
-                children
-                        .get(2)
+                children.get(2)
                         .getChildren()
                         .setAll(albumItems);
-                children
-                        .get(3)
+                children.get(3)
                         .getChildren()
                         .setAll(personItems);
             });
@@ -369,10 +393,9 @@ public class LibraryController implements Initializable {
 
         Map<Integer, Map<Integer, List<TimelineData.TimelineDay>>> byYearMonth = new LinkedHashMap<>();
         for (TimelineData.TimelineDay day : data.days()) {
-            byYearMonth
-                    .computeIfAbsent(day.year(), y -> new LinkedHashMap<>())
-                    .computeIfAbsent(day.month(), m -> new ArrayList<>())
-                    .add(day);
+            byYearMonth.computeIfAbsent(day.year(), y -> new LinkedHashMap<>())
+                       .computeIfAbsent(day.month(), m -> new ArrayList<>())
+                       .add(day);
         }
 
         List<TreeItem<LibraryTreeNode>> items = new ArrayList<>();
@@ -432,9 +455,8 @@ public class LibraryController implements Initializable {
     }
 
     private List<TreeItem<LibraryTreeNode>> buildAlbumItems() {
-        List<TreeItem<LibraryTreeNode>> items = new ArrayList<>();
-        // Group by type for sub-headers
-        Map<String, List<AlbumRecord>> byType = new LinkedHashMap<>();
+        List<TreeItem<LibraryTreeNode>> items  = new ArrayList<>();
+        Map<String, List<AlbumRecord>>  byType = new LinkedHashMap<>();
         for (AlbumRecord album : albumRepository.findAll()) {
             byType.computeIfAbsent(album.getType(), k -> new ArrayList<>())
                   .add(album);
@@ -448,9 +470,7 @@ public class LibraryController implements Initializable {
             };
             for (AlbumRecord album : entry.getValue()) {
                 items.add(treeItem(new LibraryTreeNode(
-                        album.getName(),
-                        new AlbumPayload(album.getId()),
-                        nodeType)));
+                        album.getName(), new AlbumPayload(album.getId()), nodeType)));
             }
         }
         return items;
@@ -459,13 +479,9 @@ public class LibraryController implements Initializable {
     private List<TreeItem<LibraryTreeNode>> buildPersonItems() {
         List<TreeItem<LibraryTreeNode>> items = new ArrayList<>();
         for (PersonRecord person : personRepository.findAll()) {
-            String label = person.getName() != null
-                    ? person.getName()
-                    : "Person #" + person.getId();
+            String label = person.getName() != null ? person.getName() : "Person #" + person.getId();
             items.add(treeItem(new LibraryTreeNode(
-                    label,
-                    new PersonPayload(person.getId()),
-                    NodeType.PERSON)));
+                    label, new PersonPayload(person.getId()), NodeType.PERSON)));
         }
         return items;
     }
@@ -474,25 +490,83 @@ public class LibraryController implements Initializable {
 
     private void onTreeSelectionChanged(TreeItem<LibraryTreeNode> selectedItem) {
         if (selectedItem == null || selectedItem.getValue() == null) {
+            showPhotoGrid();
             clearPhotoGrid();
             return;
         }
         NodePayload payload = selectedItem.getValue()
                                           .payload();
         if (payload == null) {
+            showPhotoGrid();
             clearPhotoGrid();
             return;
         }
-        // Clear any active search when navigating the tree
         clearSearchState();
         switch (payload) {
-            case FolderPayload fp -> loadPhotosForFolder(fp.folderId());
-            case TimelinePayload tp when tp.month() != null -> loadPhotosForTimeline(tp.year(), tp.month(), tp.day());
-            case TimelinePayload ignored -> clearPhotoGrid();
-            case UndatedPayload ignored -> loadPhotosUndated();
-            case AlbumPayload ap -> loadPhotosForAlbum(ap.albumId());
-            case PersonPayload pp -> loadPhotosForPerson(pp.personId());
+            case FolderPayload fp -> {
+                showPhotoGrid();
+                loadPhotosForFolder(fp.folderId());
+            }
+            case TimelinePayload tp when tp.month() != null -> {
+                showPhotoGrid();
+                loadPhotosForTimeline(tp.year(), tp.month(), tp.day());
+            }
+            case TimelinePayload ignored -> {
+                showPhotoGrid();
+                clearPhotoGrid();
+            }
+            case UndatedPayload ignored -> {
+                showPhotoGrid();
+                loadPhotosUndated();
+            }
+            case AlbumPayload ap -> {
+                showPhotoGrid();
+                loadPhotosForAlbum(ap.albumId());
+            }
+
+            // ── NEW: delegate to PersonDetailController ───────────────────────
+            case PersonPayload pp -> showPersonDetail(pp.personId());
         }
+    }
+
+    // ── NEW: person detail panel switching ────────────────────────────────────
+
+    /**
+     * Lazily loads {@code person_detail.fxml} on first call, then reuses the same
+     * controller instance for every subsequent person selection.
+     */
+    private void showPersonDetail(long personId) {
+        if (personDetailController == null) {
+            LoadedFxml<PersonDetailController> loaded = fxmlLoader.load(FxmlView.PERSON_DETAIL, null);
+            personDetailController = loaded.controller();
+
+            Parent view = loaded.parent();
+            // Stretch the injected view to fill the AnchorPane
+            AnchorPane.setTopAnchor(view, 0.0);
+            AnchorPane.setBottomAnchor(view, 0.0);
+            AnchorPane.setLeftAnchor(view, 0.0);
+            AnchorPane.setRightAnchor(view, 0.0);
+            personDetailContainer.getChildren()
+                                 .setAll(view);
+        }
+
+        // Swap visibility
+        photoGridView.setVisible(false);
+        photoGridView.setManaged(false);
+        personDetailContainer.setVisible(true);
+        personDetailContainer.setManaged(true);
+
+        personDetailController.loadPerson(personId);
+    }
+
+    /**
+     * Restores the normal photo-grid view.
+     */
+    private void showPhotoGrid() {
+        personDetailContainer.setVisible(false);
+        personDetailContainer.setManaged(false);
+        photoGridView.setVisible(true);
+        photoGridView.setManaged(true);
     }
 
     // ── Photo loading ─────────────────────────────────────────────────────────
@@ -551,26 +625,6 @@ public class LibraryController implements Initializable {
         t.start();
     }
 
-    private void loadPhotosForPerson(long personId) {
-        Thread t = new Thread(() -> {
-            List<Long> photoIds = new ArrayList<>(
-                    new LinkedHashSet<>(
-                            faceRepository.findByPersonId(personId)
-                                          .stream()
-                                          .map(FaceRecord::getPhotoId)
-                                          .toList()));
-            List<PhotoRecord> photos = photoIds.stream()
-                                               .map(id -> photoRepository.findById(id)
-                                                                         .orElse(null))
-                                               .filter(Objects::nonNull)
-                                               .toList();
-            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(photoIds);
-            runOnFxThread(() -> populatePhotoGrid(photos, thumbs));
-        });
-        t.setDaemon(true);
-        t.start();
-    }
-
     // ── Search ────────────────────────────────────────────────────────────────
 
     @FXML
@@ -581,7 +635,7 @@ public class LibraryController implements Initializable {
         }
 
         clearSearchButton.setVisible(true);
-        // Deselect the tree while showing search results
+        showPhotoGrid(); // make sure the grid is visible while showing search results
         libraryTreeView.getSelectionModel()
                        .clearSelection();
 

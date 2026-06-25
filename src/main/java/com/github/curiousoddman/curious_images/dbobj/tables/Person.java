@@ -9,6 +9,7 @@ import com.github.curiousoddman.curious_images.dbobj.Public;
 import com.github.curiousoddman.curious_images.dbobj.tables.Face.FacePath;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 
@@ -80,6 +81,16 @@ public class Person extends TableImpl<PersonRecord> {
      * The column <code>public.PERSON.COVER_FACE_ID</code>.
      */
     public final TableField<PersonRecord, Long> COVER_FACE_ID = createField(DSL.name("COVER_FACE_ID"), SQLDataType.BIGINT, this, "");
+
+    /**
+     * The column <code>public.PERSON.DATE_OF_BIRTH</code>.
+     */
+    public final TableField<PersonRecord, LocalDate> DATE_OF_BIRTH = createField(DSL.name("DATE_OF_BIRTH"), SQLDataType.LOCALDATE, this, "");
+
+    /**
+     * The column <code>public.PERSON.NOTES</code>.
+     */
+    public final TableField<PersonRecord, String> NOTES = createField(DSL.name("NOTES"), SQLDataType.VARCHAR, this, "");
 
     /**
      * The column <code>public.PERSON.CREATED_AT</code>.

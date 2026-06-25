@@ -6,6 +6,7 @@ package com.github.curiousoddman.curious_images.dbobj.tables.records;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.Person;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import javax.annotation.processing.Generated;
@@ -73,31 +74,59 @@ public class PersonRecord extends UpdatableRecordImpl<PersonRecord> {
     }
 
     /**
+     * Setter for <code>public.PERSON.DATE_OF_BIRTH</code>.
+     */
+    public void setDateOfBirth(LocalDate value) {
+        set(3, value);
+    }
+
+    /**
+     * Getter for <code>public.PERSON.DATE_OF_BIRTH</code>.
+     */
+    public LocalDate getDateOfBirth() {
+        return (LocalDate) get(3);
+    }
+
+    /**
+     * Setter for <code>public.PERSON.NOTES</code>.
+     */
+    public void setNotes(String value) {
+        set(4, value);
+    }
+
+    /**
+     * Getter for <code>public.PERSON.NOTES</code>.
+     */
+    public String getNotes() {
+        return (String) get(4);
+    }
+
+    /**
      * Setter for <code>public.PERSON.CREATED_AT</code>.
      */
     public void setCreatedAt(LocalDateTime value) {
-        set(3, value);
+        set(5, value);
     }
 
     /**
      * Getter for <code>public.PERSON.CREATED_AT</code>.
      */
     public LocalDateTime getCreatedAt() {
-        return (LocalDateTime) get(3);
+        return (LocalDateTime) get(5);
     }
 
     /**
      * Setter for <code>public.PERSON.UPDATED_AT</code>.
      */
     public void setUpdatedAt(LocalDateTime value) {
-        set(4, value);
+        set(6, value);
     }
 
     /**
      * Getter for <code>public.PERSON.UPDATED_AT</code>.
      */
     public LocalDateTime getUpdatedAt() {
-        return (LocalDateTime) get(4);
+        return (LocalDateTime) get(6);
     }
 
     // -------------------------------------------------------------------------
@@ -123,12 +152,14 @@ public class PersonRecord extends UpdatableRecordImpl<PersonRecord> {
     /**
      * Create a detached, initialised PersonRecord
      */
-    public PersonRecord(Long id, String name, Long coverFaceId, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public PersonRecord(Long id, String name, Long coverFaceId, LocalDate dateOfBirth, String notes, LocalDateTime createdAt, LocalDateTime updatedAt) {
         super(Person.PERSON);
 
         setId(id);
         setName(name);
         setCoverFaceId(coverFaceId);
+        setDateOfBirth(dateOfBirth);
+        setNotes(notes);
         setCreatedAt(createdAt);
         setUpdatedAt(updatedAt);
         resetChangedOnNotNull();

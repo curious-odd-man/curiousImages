@@ -18,11 +18,13 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
-<BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0"
-            prefHeight="1080.0" prefWidth="1920.0" xmlns="http://javafx.com/javafx/17.0.12"
-            xmlns:fx="http://javafx.com/fxml/1"
+
+<BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+            minHeight="0.0" minWidth="0.0" prefHeight="1080.0" prefWidth="1920.0"
+            xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.LibraryController">
     <center>
         <TabPane fx:id="mainTabPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
@@ -30,33 +32,49 @@
             <tabs>
                 <Tab text="Library">
                     <content>
-                        <SplitPane fx:id="librarySplitPane" dividerPositions="0.2559" maxHeight="1.7976931348623157E308"
-                                   maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0">
+                        <SplitPane fx:id="librarySplitPane" dividerPositions="0.2559"
+                                   maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                                   minHeight="0.0" minWidth="0.0">
                             <items>
+                                <!-- Left: library tree -->
                                 <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
                                             minHeight="0.0" minWidth="0.0">
                                     <children>
-                                        <TreeView fx:id="libraryTreeView" maxHeight="1.7976931348623157E308"
-                                                  maxWidth="1.7976931348623157E308" showRoot="false"
+                                        <TreeView fx:id="libraryTreeView"
+                                                  maxHeight="1.7976931348623157E308"
+                                                  maxWidth="1.7976931348623157E308"
+                                                  showRoot="false"
                                                   AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
                                                   AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
                                     </children>
                                 </AnchorPane>
-                                <!-- Right: photo grid for the selected folder / album / search results -->
+
+                                <!--
+                                    Right: StackPane with two layers.
+                                    Only one is visible at a time — toggled by LibraryController.
+
+                                    Layer 0 (photoGridView)   — shown for folders, timeline, albums, search.
+                                    Layer 1 (personDetailContainer) — shown when a PERSON node is selected;
+                                             content is loaded from person_detail.fxml and injected at runtime.
+                                -->
                                 <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
                                             minHeight="0.0" minWidth="0.0">
                                     <children>
-                                        <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
-                                                    AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
-                                                    AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-                                            <top>
-                                                <VBox spacing="0.0" BorderPane.alignment="CENTER">
-                                                    <!-- Search bar row -->
-                                                    <HBox alignment="CENTER_LEFT" spacing="8.0">
-                                                        <padding>
-                                                            <Insets bottom="4.0" left="10.0" right="10.0" top="6.0"/>
-                                                        </padding>
-                                                        <children>
+                                        <StackPane fx:id="contentStack"
+                                                   AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+                                                   AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+
+                                            <!-- ── Photo grid (default view) ── -->
+                                            <BorderPane fx:id="photoGridView"
+                                                        maxHeight="1.7976931348623157E308"
+                                                        maxWidth="1.7976931348623157E308">
+                                                <top>
+                                                    <VBox spacing="0.0" BorderPane.alignment="CENTER">
+                                                        <!-- Search bar row -->
+                                                        <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                                            <padding>
+                                                                <Insets bottom="4.0" left="10.0" right="10.0" top="6.0"/>
+                                                            </padding>
                                                             <TextField fx:id="searchField"
                                                                        promptText="Search photos... (semantic / AI)"
                                                                        HBox.hgrow="ALWAYS"/>
@@ -65,47 +83,52 @@
                                                             <Button fx:id="clearSearchButton" mnemonicParsing="false"
                                                                     onAction="#onClearSearchClicked" text="✕"
                                                                     visible="false"/>
-                                                        </children>
-                                                    </HBox>
-                                                    <!-- Thumbnail-size row -->
-                                                    <HBox alignment="CENTER_LEFT" spacing="8.0">
-                                                        <padding>
-                                                            <Insets bottom="6.0" left="10.0" right="10.0" top="4.0"/>
-                                                        </padding>
-                                                        <children>
+                                                        </HBox>
+                                                        <!-- Thumbnail-size row -->
+                                                        <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                                            <padding>
+                                                                <Insets bottom="6.0" left="10.0" right="10.0" top="4.0"/>
+                                                            </padding>
                                                             <Label text="Thumbnail size:"/>
                                                             <Slider fx:id="thumbnailSizeSlider" blockIncrement="16.0"
                                                                     max="320.0" min="64.0" prefWidth="200.0"
                                                                     value="128.0"/>
                                                             <Label fx:id="photoCountLabel" text=""/>
-                                                        </children>
-                                                    </HBox>
-                                                </VBox>
-                                            </top>
-                                            <center>
-                                                <ScrollPane fitToWidth="true" hbarPolicy="NEVER"
-                                                            maxHeight="1.7976931348623157E308"
-                                                            maxWidth="1.7976931348623157E308"
-                                                            BorderPane.alignment="CENTER">
-                                                    <content>
-                                                        <FlowPane fx:id="photoGridPane" hgap="8.0"
-                                                                  maxWidth="1.7976931348623157E308" vgap="8.0">
-                                                            <padding>
-                                                                <Insets bottom="10.0" left="10.0" right="10.0"
-                                                                        top="10.0"/>
-                                                            </padding>
-                                                        </FlowPane>
-                                                    </content>
-                                                </ScrollPane>
-                                            </center>
-                                        </BorderPane>
+                                                        </HBox>
+                                                    </VBox>
+                                                </top>
+                                                <center>
+                                                    <ScrollPane fitToWidth="true" hbarPolicy="NEVER"
+                                                                maxHeight="1.7976931348623157E308"
+                                                                maxWidth="1.7976931348623157E308"
+                                                                BorderPane.alignment="CENTER">
+                                                        <content>
+                                                            <FlowPane fx:id="photoGridPane" hgap="8.0"
+                                                                      maxWidth="1.7976931348623157E308" vgap="8.0">
+                                                                <padding>
+                                                                    <Insets bottom="10.0" left="10.0"
+                                                                            right="10.0" top="10.0"/>
+                                                                </padding>
+                                                            </FlowPane>
+                                                        </content>
+                                                    </ScrollPane>
+                                                </center>
+                                            </BorderPane>
+
+                                            <!-- ── Person detail panel (injected at runtime) ── -->
+                                            <AnchorPane fx:id="personDetailContainer"
+                                                        maxHeight="1.7976931348623157E308"
+                                                        maxWidth="1.7976931348623157E308"
+                                                        visible="false" managed="false"/>
+
+                                        </StackPane>
                                     </children>
                                 </AnchorPane>
                             </items>
                         </SplitPane>
                     </content>
                 </Tab>
-                <!-- Duplicates review: content is loaded from duplicates.fxml in LibraryController#initialize. -->
+                <!-- Duplicates review: content loaded from duplicates.fxml in LibraryController#initialize -->
                 <Tab fx:id="duplicatesTab" text="Duplicates"/>
             </tabs>
         </TabPane>
@@ -140,18 +163,15 @@
             <padding>
                 <Insets bottom="6.0" left="10.0" right="10.0" top="6.0"/>
             </padding>
-            <children>
-                <Button fx:id="backgroundProcessCancelButton" cancelButton="true" maxHeight="1.7976931348623157E308"
-                        maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onCancelBackgroundJob"
-                        text="❌" textFill="RED" visible="false">
-                    <font>
-                        <Font size="14.0"/>
-                    </font>
-                </Button>
-                <ProgressIndicator fx:id="backgroundProgressIndicator" progress="0.0"/>
-                <Label fx:id="backgroundProgressLabel"/>
-                <Label fx:id="backgroundProgressText" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS"/>
-            </children>
+            <Button fx:id="backgroundProcessCancelButton" cancelButton="true"
+                    maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                    mnemonicParsing="false" onAction="#onCancelBackgroundJob"
+                    text="❌" textFill="RED" visible="false">
+                <font><Font size="14.0"/></font>
+            </Button>
+            <ProgressIndicator fx:id="backgroundProgressIndicator" progress="0.0"/>
+            <Label fx:id="backgroundProgressLabel"/>
+            <Label fx:id="backgroundProgressText" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS"/>
         </HBox>
     </bottom>
 </BorderPane>

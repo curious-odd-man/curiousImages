@@ -6,6 +6,7 @@ import org.jooq.DSLContext;
 import org.jooq.Query;
 import org.springframework.stereotype.Repository;
 
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -27,7 +28,7 @@ public class FaceRepository {
      * via {@code dsl.transaction(cfg -> DSL.using(cfg).batch(buffer).execute())}.
      */
     public Query insertQuery(long photoId, double x, double y, double w, double h,
-                             double confidence, String landmarkJson, LocalDateTime now) {
+                             double confidence, String landmarkJson, LocalDateTime now, Path thumbnailPath) {
         return dsl.insertInto(FACE)
                   .set(FACE.PHOTO_ID, photoId)
                   .set(FACE.BBOX_X, x)
@@ -36,7 +37,9 @@ public class FaceRepository {
                   .set(FACE.BBOX_H, h)
                   .set(FACE.CONFIDENCE, confidence)
                   .set(FACE.LANDMARK_JSON, landmarkJson)
-                  .set(FACE.CREATED_AT, now);
+                  .set(FACE.CREATED_AT, now)
+                  .set(FACE.THUMBNAIL_ABSOLUTE_PATH, thumbnailPath.toAbsolutePath()
+                                                                  .toString());
     }
 
     public List<FaceRecord> findByPhotoId(long photoId) {

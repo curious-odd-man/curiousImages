@@ -14,7 +14,9 @@ import com.github.curiousoddman.curious_images.persistence.AiProcessingStatusRep
 import com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceEmbeddingRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
+import com.github.curiousoddman.curious_images.persistence.FaceThumbnailsRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
+import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import com.github.curiousoddman.curious_images.util.async.AbstractBackgroundJob;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -82,6 +85,8 @@ public class AiPipelineJob extends AbstractBackgroundJob {
     private final TimeProvider                 timeProvider;
     private final ApplicationEventPublisher    applicationEventPublisher;
     private final ObjectMapper                 objectMapper;
+    private final ThumbnailRepository          thumbnailRepository;
+    private final FaceThumbnailsRepository     faceThumbnailsRepository;
 
     // ── Event listener ────────────────────────────────────────────────────────
 
@@ -129,7 +134,6 @@ public class AiPipelineJob extends AbstractBackgroundJob {
 
             publishEnded("AI pipeline complete");
             applicationEventPublisher.publishEvent(new RegenerateAlbumsEvent(this));
-
         } catch (Exception e) {
             log.error("AI pipeline failed", e);
             publishFailed(e);
@@ -164,9 +168,10 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                 List<DetectedFace> faces = retinaFaceDetector.detect(img);
 
                 for (DetectedFace face : faces) {
+                    Path faceThumbnailPath = faceThumbnailsRepository.createFaceThumbnail(img, face);
                     buffer.add(faceRepo.insertQuery(
                             photoId, face.x(), face.y(), face.w(), face.h(),
-                            face.confidence(), toLandmarkJson(face.landmarks()), now));
+                            face.confidence(), toLandmarkJson(face.landmarks()), now, faceThumbnailPath));
                 }
                 buffer.add(aiStatusRepo.markFaceDetectDoneQuery(photoId, now));
 
@@ -210,9 +215,9 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                 List<FaceRecord> faces = faceRepo.findByPhotoId(photoId);
 
                 for (FaceRecord face : faces) {
-                    float[][] landmarks = parseLandmarks(face.getLandmarkJson());
-                    BufferedImage aligned = faceAligner.align(face.getId(), img, landmarks);
-                    float[] embedding = arcFaceEncoder.encode(aligned);
+                    float[][]     landmarks = parseLandmarks(face.getLandmarkJson());
+                    BufferedImage aligned   = faceAligner.align(face.getId(), img, landmarks);
+                    float[]       embedding = arcFaceEncoder.encode(aligned);
                     buffer.add(faceEmbeddingRepo.upsertQuery(face.getId(), embedding, ARCFACE_MODEL_VER));
                 }
                 buffer.add(aiStatusRepo.markFaceEmbedDoneQuery(photoId, now));

@@ -122,6 +122,11 @@ public class Face extends TableImpl<FaceRecord> {
      */
     public final TableField<FaceRecord, LocalDateTime> CREATED_AT = createField(DSL.name("CREATED_AT"), SQLDataType.LOCALDATETIME(6).nullable(false), this, "");
 
+    /**
+     * The column <code>public.FACE.THUMBNAIL_ABSOLUTE_PATH</code>.
+     */
+    public final TableField<FaceRecord, String> THUMBNAIL_ABSOLUTE_PATH = createField(DSL.name("THUMBNAIL_ABSOLUTE_PATH"), SQLDataType.VARCHAR(2048), this, "");
+
     private Face(Name alias, Table<FaceRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }

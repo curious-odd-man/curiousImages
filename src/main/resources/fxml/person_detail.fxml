@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.control.TreeView?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.StackPane?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17.0.12"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.PersonDetailController"
+            maxHeight="1.7976931348623157E308"
+            maxWidth="1.7976931348623157E308">
+
+    <top>
+        <!--
+            ═══════════════════════════════════════════════════════
+            PROFILE PANEL
+            Face thumbnail on the left, editable fields on the right
+            ═══════════════════════════════════════════════════════
+        -->
+        <TitledPane fx:id="profilePane" text="Person Profile" collapsible="true" expanded="true"
+                    maxWidth="1.7976931348623157E308" BorderPane.alignment="CENTER">
+            <content>
+                <HBox spacing="16.0">
+                    <padding><Insets bottom="12.0" left="12.0" right="12.0" top="8.0"/></padding>
+
+                    <!-- ── Face thumbnail + picker buttons ── -->
+                    <VBox alignment="TOP_CENTER" spacing="6.0" minWidth="140.0" maxWidth="140.0">
+                        <StackPane fx:id="faceImageStack" minWidth="128.0" minHeight="128.0"
+                                   maxWidth="128.0" maxHeight="128.0"
+                                   style="-fx-border-color: #aaaaaa; -fx-border-width: 1; -fx-border-radius: 4;">
+                            <ImageView fx:id="faceImageView"
+                                       fitWidth="128.0" fitHeight="128.0"
+                                       preserveRatio="true"/>
+                            <ProgressIndicator fx:id="faceLoadIndicator" visible="false"
+                                               maxWidth="48.0" maxHeight="48.0"/>
+                        </StackPane>
+                        <HBox spacing="4.0" alignment="CENTER">
+                            <Button fx:id="prevFaceButton" text="◀" onAction="#onPrevFace"
+                                    minWidth="32.0" disable="true"/>
+                            <Label fx:id="faceIndexLabel" text="1 / 1" minWidth="40.0"
+                                   style="-fx-alignment: center;"/>
+                            <Button fx:id="nextFaceButton" text="▶" onAction="#onNextFace"
+                                    minWidth="32.0" disable="true"/>
+                        </HBox>
+                        <Button text="Set as cover" onAction="#onSetCoverFace"
+                                maxWidth="1.7976931348623157E308"/>
+                    </VBox>
+
+                    <!-- ── Editable info fields ── -->
+                    <VBox spacing="10.0" HBox.hgrow="ALWAYS">
+
+                        <!-- Name -->
+                        <HBox spacing="8.0" alignment="CENTER_LEFT">
+                            <Label text="Name:" minWidth="100.0"
+                                   style="-fx-font-weight: bold;"/>
+                            <TextField fx:id="nameField" HBox.hgrow="ALWAYS"
+                                       promptText="Double-click to edit"
+                                       editable="false"
+                                       style="-fx-background-color: transparent; -fx-border-color: transparent;"/>
+                        </HBox>
+
+                        <!-- Date of Birth -->
+                        <HBox spacing="8.0" alignment="CENTER_LEFT">
+                            <Label text="Date of Birth:" minWidth="100.0"
+                                   style="-fx-font-weight: bold;"/>
+                            <TextField fx:id="dobField" HBox.hgrow="ALWAYS"
+                                       promptText="Double-click to edit (YYYY-MM-DD)"
+                                       editable="false"
+                                       style="-fx-background-color: transparent; -fx-border-color: transparent;"/>
+                        </HBox>
+
+                        <Separator/>
+
+                        <!-- Notes -->
+                        <VBox spacing="4.0">
+                            <Label text="Notes:" style="-fx-font-weight: bold;"/>
+                            <TextArea fx:id="notesArea"
+                                      promptText="Double-click to edit notes…"
+                                      editable="false"
+                                      wrapText="true"
+                                      prefRowCount="3"
+                                      style="-fx-background-color: transparent; -fx-border-color: transparent;"/>
+                        </VBox>
+
+                        <!-- Editing hint -->
+                        <Label fx:id="editHintLabel"
+                               text="Double-click any field to edit  ·  Press Enter (or Tab out) to save  ·  Esc to cancel"
+                               style="-fx-text-fill: #888888; -fx-font-size: 11;"/>
+                    </VBox>
+                </HBox>
+            </content>
+        </TitledPane>
+    </top>
+
+    <center>
+        <!--
+            ═══════════════════════════════════════════════════════
+            AGE-ALBUMS TREE  +  PHOTO GRID
+            Left: per-year sub-albums.  Right: photos for selection.
+            ═══════════════════════════════════════════════════════
+        -->
+        <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
+
+            <!-- Toolbar: thumbnail size + photo count -->
+            <top>
+                <HBox alignment="CENTER_LEFT" spacing="8.0">
+                    <padding><Insets bottom="4.0" left="10.0" right="10.0" top="4.0"/></padding>
+                    <Label text="Thumbnail size:"/>
+                    <Slider fx:id="thumbnailSizeSlider" blockIncrement="16.0"
+                            max="320.0" min="64.0" prefWidth="180.0" value="128.0"/>
+                    <Label fx:id="photoCountLabel" text=""/>
+                </HBox>
+            </top>
+
+            <left>
+                <!--
+                    Age-album tree: shows years (age) as collapsible groups,
+                    plus an "Undated" leaf at the bottom.
+                -->
+                <AnchorPane minWidth="160.0" maxWidth="200.0"
+                            maxHeight="1.7976931348623157E308">
+                    <TreeView fx:id="ageAlbumTree" showRoot="false"
+                              AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0"
+                              AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"/>
+                </AnchorPane>
+            </left>
+
+            <center>
+                <ScrollPane fitToWidth="true" hbarPolicy="NEVER"
+                            maxHeight="1.7976931348623157E308"
+                            maxWidth="1.7976931348623157E308">
+                    <content>
+                        <FlowPane fx:id="photoGridPane" hgap="8.0" vgap="8.0"
+                                  maxWidth="1.7976931348623157E308">
+                            <padding><Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/></padding>
+                        </FlowPane>
+                    </content>
+                </ScrollPane>
+            </center>
+
+        </BorderPane>
+    </center>
+
+</BorderPane>

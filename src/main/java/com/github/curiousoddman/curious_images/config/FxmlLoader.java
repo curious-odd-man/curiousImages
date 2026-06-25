@@ -15,7 +15,7 @@ import java.util.ResourceBundle;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class FxmlLoader {
+public class FxmlLoader {   // FIXME: wrong place for class
     private final ApplicationContext context;
 
     @SneakyThrows

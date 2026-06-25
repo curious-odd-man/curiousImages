@@ -1,8 +1,10 @@
 CREATE TABLE person
 (
     id            BIGSERIAL PRIMARY KEY,
-    name          VARCHAR(256),              -- user-assigned; NULL until named
-    cover_face_id BIGINT,                   -- FK to face(id), nullable
+    name          VARCHAR(256), -- user-assigned; NULL until named
+    cover_face_id BIGINT,       -- FK to face(id), nullable
+    date_of_birth DATE,
+    notes         TEXT,
     created_at    TIMESTAMP NOT NULL,
     updated_at    TIMESTAMP
 );
@@ -16,6 +18,6 @@ ALTER TABLE face
 CREATE TABLE face_embedding
 (
     face_id   BIGINT PRIMARY KEY REFERENCES face (id) ON DELETE CASCADE,
-    embedding BINARY(2048) NOT NULL,        -- float32[512], L2-normalised
-    model_ver VARCHAR(32)  NOT NULL         -- e.g. "arcface_r50"
+    embedding BINARY(2048) NOT NULL, -- float32[512], L2-normalised
+    model_ver VARCHAR(32)  NOT NULL  -- e.g. "arcface_r50"
 );
