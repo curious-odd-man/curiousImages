@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.util.VersionService;
 import javafx.stage.Stage;
 import lombok.RequiredArgsConstructor;
@@ -14,9 +15,9 @@ import org.springframework.context.annotation.Lazy;
 @RequiredArgsConstructor
 public class ApplicationConfig {
 
-    private final FxmlLoader                fxmlLoader;
+    private final FxmlLoader fxmlLoader;
     @Value("${spring.title}")
-    private final String                    applicationTitle;
+    private final String     applicationTitle;
     private final ApplicationEventPublisher eventPublisher;
     private final VersionService            versionService;
 

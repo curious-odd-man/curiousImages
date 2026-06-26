@@ -1,4 +1,4 @@
-package com.github.curiousoddman.curious_images.config;
+package com.github.curiousoddman.curious_images.ui;
 
 import com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController;
 import com.github.curiousoddman.curious_images.ui.controller.screen.LibraryController;
@@ -6,7 +6,6 @@ import com.github.curiousoddman.curious_images.ui.controller.screen.PersonDetail
 import com.github.curiousoddman.curious_images.ui.controller.screen.RescanLibraryController;
 import com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController;
 
-// FIXME: wrong place for class
 public record FxmlView<T>(String fxmlPath, Class<T> controllerClass) {
     public static final FxmlView<LibraryController>       LIBRARY       = new FxmlView<>("/fxml/library.fxml", LibraryController.class);
     public static final FxmlView<RescanLibraryController> RESCAN_MODAL  = new FxmlView<>("/fxml/rescan-modal.fxml", RescanLibraryController.class);

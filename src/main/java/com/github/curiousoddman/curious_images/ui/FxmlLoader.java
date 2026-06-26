@@ -1,4 +1,4 @@
-package com.github.curiousoddman.curious_images.config;
+package com.github.curiousoddman.curious_images.ui;
 
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import javafx.fxml.FXMLLoader;
@@ -15,7 +15,7 @@ import java.util.ResourceBundle;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class FxmlLoader {   // FIXME: wrong place for class
+public class FxmlLoader {
     private final ApplicationContext context;
 
     @SneakyThrows

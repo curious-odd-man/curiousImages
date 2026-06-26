@@ -2,6 +2,8 @@ package com.github.curiousoddman.curious_images.config;
 
 import com.github.curiousoddman.curious_images.event.UserShutdownApplication;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
+import com.github.curiousoddman.curious_images.ui.FxmlLoader;
+import com.github.curiousoddman.curious_images.ui.FxmlView;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;

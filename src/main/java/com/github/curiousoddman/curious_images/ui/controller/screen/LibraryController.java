@@ -1,7 +1,7 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
-import com.github.curiousoddman.curious_images.config.FxmlLoader;
-import com.github.curiousoddman.curious_images.config.FxmlView;
+import com.github.curiousoddman.curious_images.ui.FxmlLoader;
+import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.AlbumRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FolderRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRecord;
