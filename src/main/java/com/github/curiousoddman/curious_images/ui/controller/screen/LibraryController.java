@@ -16,6 +16,7 @@ import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.LibraryUpdatedEvent;
 import com.github.curiousoddman.curious_images.event.RunAiPipelineEvent;
+import com.github.curiousoddman.curious_images.event.payload.BackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.TimelineData;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
@@ -49,7 +50,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Slider;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.Tab;
@@ -64,6 +65,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
@@ -92,6 +94,7 @@ import java.util.concurrent.TimeUnit;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController.getImage;
 import static com.sun.javafx.util.Utils.runOnFxThread;
+import static javafx.scene.control.ProgressIndicator.INDETERMINATE_PROGRESS;
 
 @Lazy
 @Slf4j
@@ -127,14 +130,6 @@ public class LibraryController implements Initializable {
     @FXML
     public Slider                    thumbnailSizeSlider;
     @FXML
-    public Label                     backgroundProgressLabel;
-    @FXML
-    public Label                     backgroundProgressText;
-    @FXML
-    public Button                    backgroundProcessCancelButton;
-    @FXML
-    public ProgressIndicator         backgroundProgressIndicator;
-    @FXML
     public Label                     photoCountLabel;
     @FXML
     public TabPane                   mainTabPane;
@@ -146,23 +141,28 @@ public class LibraryController implements Initializable {
     public Button                    searchButton;
     @FXML
     public Button                    clearSearchButton;
+    @FXML
+    public StackPane                 contentStack;
+    @FXML
+    public BorderPane                photoGridView;
+    @FXML
+    public AnchorPane                personDetailContainer;
 
-    // ── NEW: content-switching nodes ──────────────────────────────────────────
-    /**
-     * Stack that holds both the photo grid and the person detail panel.
-     */
     @FXML
-    public StackPane  contentStack;
-    /**
-     * The normal photo-grid BorderPane (layer 0 in the stack).
-     */
+    public HBox        backgroundProgressContainer;
     @FXML
-    public BorderPane photoGridView;
-    /**
-     * Container into which person_detail.fxml is injected (layer 1 in the stack).
-     */
+    public Label       backgroundProcessTitleLabel;
     @FXML
-    public AnchorPane personDetailContainer;
+    public Button      backgroundProcessCancelButton;
+    @FXML
+    public StackPane   backgroundProgressBarContainer;
+    @FXML
+    public ProgressBar backgroundProgressBar;
+    @FXML
+    public Label       backgroundProgressLabel;
+    @FXML
+    public Label       backgroundProgressDescription;
+
 
     // ── Runtime state ─────────────────────────────────────────────────────────
 
@@ -244,24 +244,17 @@ public class LibraryController implements Initializable {
 
     @EventListener
     public void onBackgroundProcessEvent(BackgroundProcessEvent event) {
-        runOnFxThread(() -> {
-            int     maxProgress     = event.getMaxProgress();
-            int     currentProgress = event.getProgress();
-            boolean displayProgress = maxProgress > 0;
+        boolean                  terminal = event.isTerminal();
+        BackgroundProcessPayload payload  = event.getPayload();
 
-            backgroundProgressIndicator.setProgress(
-                    displayProgress
-                            ? (double) currentProgress / maxProgress
-                            : 0f
-            );
-            backgroundProgressLabel.setText(displayProgress
-                    ? currentProgress + " / " + maxProgress
-                    : event.getDescription());
-            backgroundProgressText.setText(event.getCurrentItem() == null ? "" : event.getCurrentItem());
-            boolean terminal = event.getEventType()
-                                    .isTerminal();
-            backgroundProcessCancelButton.setVisible(!terminal);
-            backgroundProgressIndicator.setVisible(!terminal || !displayProgress);
+        runOnFxThread(() -> {
+            backgroundProcessTitleLabel.setText(payload.getProcessName());
+            backgroundProgressContainer.setVisible(!terminal);
+            backgroundProgressBar.setProgress(payload.hasProgress()
+                    ? payload.getProgressNormalized()
+                    : INDETERMINATE_PROGRESS);
+            backgroundProgressLabel.setText(payload.hasProgress() ? payload.getProgressText() : "");
+            backgroundProgressDescription.setText(payload.getProgressDetails());
         });
     }
 

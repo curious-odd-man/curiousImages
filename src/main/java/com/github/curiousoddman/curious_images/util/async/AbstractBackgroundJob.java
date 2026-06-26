@@ -2,6 +2,9 @@ package com.github.curiousoddman.curious_images.util.async;
 
 import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
+import com.github.curiousoddman.curious_images.event.payload.EndedBackgroundProcessPayload;
+import com.github.curiousoddman.curious_images.event.payload.IndeterminateBackgroundProcessPayload;
+import com.github.curiousoddman.curious_images.event.payload.ProgressBackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.event.types.BackgroundProcessEventType;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
@@ -83,11 +86,17 @@ public abstract class AbstractBackgroundJob {
     }
 
     protected void publishStarted(String description) {
-        eventPublisher().publishEvent(eventBuilder()
-                .eventType(BackgroundProcessEventType.STARTED)
-                .description(description)
-                .maxProgress(-1)
-                .build());
+        IndeterminateBackgroundProcessPayload payload = indeterminatePayloadBuilder()
+                .progressDetails(description)
+                .build();
+
+        eventPublisher().publishEvent(
+                new BackgroundProcessEvent(
+                        this,
+                        BackgroundProcessEventType.STARTED,
+                        payload
+                )
+        );
     }
 
     /**
@@ -96,12 +105,19 @@ public abstract class AbstractBackgroundJob {
      * go through {@link #publishProgress} instead.
      */
     protected void publishInProgress(String description, int progress, int maxProgress) {
-        eventPublisher().publishEvent(eventBuilder()
-                .eventType(BackgroundProcessEventType.IN_PROGRESS)
-                .description(description)
-                .progress(progress)
+        ProgressBackgroundProcessPayload payload = progressPayloadBuilder()
+                .progressDetails(description)
+                .currentProgress(progress)
                 .maxProgress(maxProgress)
-                .build());
+                .build();
+
+        eventPublisher().publishEvent(
+                new BackgroundProcessEvent(
+                        this,
+                        BackgroundProcessEventType.IN_PROGRESS,
+                        payload
+                )
+        );
     }
 
     /**
@@ -110,47 +126,88 @@ public abstract class AbstractBackgroundJob {
      * {@code isLastItem} is {@code true}. Synchronized so it's safe to call from multiple worker
      * threads concurrently (e.g. a parallel hashing pool reporting as each task completes).
      */
-    protected synchronized void publishProgress(String description, int progress, int maxProgress,
+    protected synchronized void publishProgress(String phaseText, int progress, int maxProgress,
                                                 String currentItem, boolean isLastItem) {
         long nowMs = System.currentTimeMillis();
         if (!isLastItem && nowMs - lastProgressPublishMs < PROGRESS_PUBLISH_INTERVAL_MS) {
             return;
         }
         lastProgressPublishMs = nowMs;
-        eventPublisher().publishEvent(eventBuilder()
-                .eventType(BackgroundProcessEventType.IN_PROGRESS)
-                .description(description)
-                .progress(progress)
+
+        ProgressBackgroundProcessPayload payload = progressPayloadBuilder()
+                .progressDetails(currentItem)
+                .currentProgress(progress)
                 .maxProgress(maxProgress)
-                .currentItem(currentItem)
-                .build());
+                .progressText(phaseText + ": " + progress + "/" + maxProgress)
+                .build();
+
+        eventPublisher().publishEvent(
+                new BackgroundProcessEvent(
+                        this,
+                        BackgroundProcessEventType.IN_PROGRESS,
+                        payload
+                )
+        );
     }
 
-    protected void publishInterrupted(String description) {
-        eventPublisher().publishEvent(eventBuilder()
-                .eventType(BackgroundProcessEventType.INTERRUPTED)
-                .description(description)
-                .build());
+    protected void publishInterrupted() {
+        EndedBackgroundProcessPayload payload = endedPayloadBuilder()
+                .progressDetails("Interrupted")
+                .build();
+
+        eventPublisher().publishEvent(
+                new BackgroundProcessEvent(
+                        this,
+                        BackgroundProcessEventType.INTERRUPTED,
+                        payload
+                )
+        );
     }
 
     protected void publishFailed(Exception e) {
-        eventPublisher().publishEvent(eventBuilder()
-                .eventType(BackgroundProcessEventType.FAILED)
-                .description(getProcessName() + " failed: " + e.getMessage())
+        EndedBackgroundProcessPayload payload = endedPayloadBuilder()
+                .progressDetails(" failed: " + e.getMessage())
                 .error(e)
-                .build());
+                .build();
+
+        eventPublisher().publishEvent(
+                new BackgroundProcessEvent(
+                        this,
+                        BackgroundProcessEventType.FAILED,
+                        payload
+                )
+        );
     }
 
     protected void publishEnded(String description) {
-        eventPublisher().publishEvent(eventBuilder()
-                .eventType(BackgroundProcessEventType.ENDED)
-                .description(description)
-                .build());
+        EndedBackgroundProcessPayload payload = endedPayloadBuilder()
+                .progressDetails(description)
+                .build();
+
+        eventPublisher().publishEvent(
+                new BackgroundProcessEvent(
+                        this,
+                        BackgroundProcessEventType.ENDED,
+                        payload
+                )
+        );
     }
 
-    private BackgroundProcessEvent.BackgroundProcessEventBuilder eventBuilder() {
-        return BackgroundProcessEvent.builder()
-                                     .source(this)
-                                     .processName(getProcessName());
+    private IndeterminateBackgroundProcessPayload.IndeterminateBackgroundProcessPayloadBuilder indeterminatePayloadBuilder() {
+        return IndeterminateBackgroundProcessPayload
+                .builder()
+                .processName(getProcessName());
+    }
+
+    private ProgressBackgroundProcessPayload.ProgressBackgroundProcessPayloadBuilder progressPayloadBuilder() {
+        return ProgressBackgroundProcessPayload
+                .builder()
+                .processName(getProcessName());
+    }
+
+    private EndedBackgroundProcessPayload.EndedBackgroundProcessPayloadBuilder endedPayloadBuilder() {
+        return EndedBackgroundProcessPayload
+                .builder()
+                .processName(getProcessName());
     }
 }

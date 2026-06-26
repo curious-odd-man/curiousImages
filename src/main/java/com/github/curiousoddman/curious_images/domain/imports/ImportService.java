@@ -96,14 +96,14 @@ public class ImportService extends AbstractBackgroundJob {
 
             List<Path> files = scan(rootPath);
             log.info("Discovered {} supported files under {}", files.size(), rootPathString);
-            publishInProgress("Importing photos...", 0, files.size());
+            publishInProgress("Reading files", 0, files.size());
 
             List<Query> buffer = new ArrayList<>(DB_FLUSH_BATCH_SIZE);
             for (int i = 0; i < files.size(); i++) {
                 if (isInterruptRequested()) {
                     flush(buffer);
                     log.info("Import scan interrupted after {} files", i);
-                    publishInterrupted("Interrupted");
+                    publishInterrupted();
                     return;
                 }
 
@@ -123,7 +123,7 @@ public class ImportService extends AbstractBackgroundJob {
                 if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
                     flush(buffer);
                 }
-                publishProgress("Importing photos...", i + 1, files.size(),
+                publishProgress("Reading files", i + 1, files.size(),
                         file.toString(), i == files.size() - 1);
             }
             flush(buffer);
@@ -147,7 +147,7 @@ public class ImportService extends AbstractBackgroundJob {
                                         Path file, List<Query> buffer) throws IOException {
         long folderId = resolveFolderId(importRootId, rootPath, file.getParent(), folderIdCache);
         String absolutePath = file.toAbsolutePath()
-                             .toString();
+                                  .toString();
         String filename = file.getFileName()
                               .toString();
         String        extension = extensionOf(filename);
@@ -199,7 +199,8 @@ public class ImportService extends AbstractBackgroundJob {
                                 LocalDateTime now, List<Query> buffer) {
         thumbnailGenerator.generate(file, extension, rotationDegrees)
                           .ifPresent(thumbnail -> buffer.add(thumbnailRepository.upsertQuery(
-                                  photoId, thumbnail.cachePath().toString(), thumbnail.width(), thumbnail.height(), now)));
+                                  photoId, thumbnail.cachePath()
+                                                    .toString(), thumbnail.width(), thumbnail.height(), now)));
     }
 
     private long resolveFolderId(long importRootId, Path rootPath, Path dir,

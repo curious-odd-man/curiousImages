@@ -1,7 +1,6 @@
 package com.github.curiousoddman.curious_images.domain.dedupe;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoHashRecord;
-import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.DuplicateJobRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
@@ -14,7 +13,6 @@ import org.jooq.Query;
 import org.jooq.impl.DSL;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
@@ -109,7 +107,7 @@ public class DuplicateDetectionService extends AbstractBackgroundJob {
                 duplicateJobRepository.markInterrupted(jobId, timeProvider.now());
                 log.info("Duplicate detection interrupted after hashing {} of {} photos",
                         processed.get(), photos.size());
-                publishInterrupted("Interrupted");
+                publishInterrupted();
                 return;
             }
 
@@ -191,7 +189,7 @@ public class DuplicateDetectionService extends AbstractBackgroundJob {
                 // same "don't fail the whole job over one bad file" policy as ImportService.
 
                 int done = processed.incrementAndGet();
-                publishProgress("Hashing photos...", done, totalPhotos, result.absolutePath(), done == totalPhotos);
+                publishProgress("Hashing photos", done, totalPhotos, result.absolutePath(), done == totalPhotos);
             }
             flush(buffer);
             return false;
