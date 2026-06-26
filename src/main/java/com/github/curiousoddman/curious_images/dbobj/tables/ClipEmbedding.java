@@ -158,12 +158,12 @@ public class ClipEmbedding extends TableImpl<ClipEmbeddingRecord> {
 
     @Override
     public UniqueKey<ClipEmbeddingRecord> getPrimaryKey() {
-        return Keys.CONSTRAINT_9E;
+        return Keys.CONSTRAINT_9;
     }
 
     @Override
     public List<ForeignKey<ClipEmbeddingRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.CONSTRAINT_9E7);
+        return Arrays.asList(Keys.CONSTRAINT_9E);
     }
 
     private transient PhotoPath _photo;
@@ -173,7 +173,7 @@ public class ClipEmbedding extends TableImpl<ClipEmbeddingRecord> {
      */
     public PhotoPath photo() {
         if (_photo == null)
-            _photo = new PhotoPath(this, Keys.CONSTRAINT_9E7, null);
+            _photo = new PhotoPath(this, Keys.CONSTRAINT_9E, null);
 
         return _photo;
     }

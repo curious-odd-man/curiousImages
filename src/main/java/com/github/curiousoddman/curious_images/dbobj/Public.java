@@ -4,7 +4,6 @@
 package com.github.curiousoddman.curious_images.dbobj;
 
 
-import com.github.curiousoddman.curious_images.dbobj.tables.AiProcessingStatus;
 import com.github.curiousoddman.curious_images.dbobj.tables.Album;
 import com.github.curiousoddman.curious_images.dbobj.tables.AlbumPhoto;
 import com.github.curiousoddman.curious_images.dbobj.tables.ClipEmbedding;
@@ -53,11 +52,6 @@ public class Public extends SchemaImpl {
      * The reference instance of <code>public</code>
      */
     public static final Public PUBLIC = new Public();
-
-    /**
-     * The table <code>public.AI_PROCESSING_STATUS</code>.
-     */
-    public final AiProcessingStatus AI_PROCESSING_STATUS = AiProcessingStatus.AI_PROCESSING_STATUS;
 
     /**
      * The table <code>public.ALBUM</code>.
@@ -160,7 +154,6 @@ public class Public extends SchemaImpl {
     @Override
     public final List<Table<?>> getTables() {
         return Arrays.asList(
-            AiProcessingStatus.AI_PROCESSING_STATUS,
             Album.ALBUM,
             AlbumPhoto.ALBUM_PHOTO,
             ClipEmbedding.CLIP_EMBEDDING,

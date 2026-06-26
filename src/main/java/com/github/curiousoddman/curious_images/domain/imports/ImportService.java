@@ -7,7 +7,6 @@ import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMeta
 import com.github.curiousoddman.curious_images.event.LibraryUpdatedEvent;
 import com.github.curiousoddman.curious_images.event.RescanLibraryEvent;
 import com.github.curiousoddman.curious_images.event.RunAiPipelineEvent;
-import com.github.curiousoddman.curious_images.persistence.AiProcessingStatusRepository;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
@@ -68,7 +67,6 @@ public class ImportService extends AbstractBackgroundJob {
     private final FolderRepository             folderRepository;
     private final PhotoRepository              photoRepository;
     private final ThumbnailRepository          thumbnailRepository;
-    private final AiProcessingStatusRepository aiProcessingStatusRepository;
     private final PhotoMetadataExtractor       metadataExtractor;
     private final ThumbnailGenerator           thumbnailGenerator;
     private final TimeProvider                 timeProvider;
@@ -177,8 +175,7 @@ public class ImportService extends AbstractBackgroundJob {
                     metadata.cameraModel(), metadata.lensModel(),
                     metadata.exifExtraJson(), now));
             queueThumbnail(photoId, file, extension, metadata.orientationDegrees(), now, buffer);
-            // FIXME: This is a poor choice. I think we need to track AI status in the same photo table. Or populate this table at the start...
-            buffer.add(aiProcessingStatusRepository.upsertQuery(photoId, now));
+            buffer.add(photoRepository.resetAiFields());
             return ImportOutcome.UPDATED;
         }
 
@@ -190,8 +187,6 @@ public class ImportService extends AbstractBackgroundJob {
                 metadata.cameraModel(), metadata.lensModel(),
                 metadata.exifExtraJson(), now);
         queueThumbnail(photoId, file, extension, metadata.orientationDegrees(), now, buffer);
-        // Queue an ai_processing_status row so AiPipelineJob picks this photo up.
-        buffer.add(aiProcessingStatusRepository.upsertQuery(photoId, now));
         return ImportOutcome.IMPORTED;
     }
 

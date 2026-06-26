@@ -21,26 +21,33 @@ CREATE TABLE folder
 
 CREATE TABLE photo
 (
-    id                  BIGSERIAL PRIMARY KEY,
-    folder_id           BIGINT REFERENCES folder (id),
-    absolute_path       VARCHAR(2048) UNIQUE,
-    filename            VARCHAR(512),
-    extension           VARCHAR(10),
-    file_size           BIGINT,
-    image_width         INT,
-    image_height        INT,
-    capture_date        TIMESTAMP,
-    capture_date_source VARCHAR(20), -- EXIF_ORIGINAL | EXIF_DIGITIZED | FILESYSTEM
-    imported_at         TIMESTAMP,
-    last_seen_at        TIMESTAMP,
-    orientation         INT NOT NULL DEFAULT 0,
-    camera_make         VARCHAR(100),
-    camera_model        VARCHAR(100),
-    lens_model          VARCHAR(150),
-    exif_extra          JSON,
-    gps_lat             DOUBLE,
-    gps_lon             DOUBLE,
-    gps_altitude        DOUBLE
+    id                   BIGSERIAL PRIMARY KEY,
+    folder_id            BIGINT REFERENCES folder (id),
+    absolute_path        VARCHAR(2048) UNIQUE,
+    filename             VARCHAR(512),
+    extension            VARCHAR(10),
+    file_size            BIGINT,
+    image_width          INT,
+    image_height         INT,
+    capture_date         TIMESTAMP,
+    capture_date_source  VARCHAR(20), -- EXIF_ORIGINAL | EXIF_DIGITIZED | FILESYSTEM
+    imported_at          TIMESTAMP,
+    last_seen_at         TIMESTAMP,
+    orientation          INT      NOT NULL DEFAULT 0,
+    camera_make          VARCHAR(100),
+    camera_model         VARCHAR(100),
+    lens_model           VARCHAR(150),
+    exif_extra           JSON,
+    gps_lat              DOUBLE,
+    gps_lon              DOUBLE,
+    gps_altitude         DOUBLE,
+    ai_face_detect_done  BOOLEAN  NOT NULL DEFAULT FALSE,
+    ai_face_embed_done   BOOLEAN  NOT NULL DEFAULT FALSE,
+    ai_clip_embed_done   BOOLEAN  NOT NULL DEFAULT FALSE,
+    ai_lucene_index_done BOOLEAN  NOT NULL DEFAULT FALSE,
+    ai_last_error        VARCHAR(1024),
+    ai_retry_count       SMALLINT NOT NULL DEFAULT 0,
+    ai_updated_at        TIMESTAMP
 );
 
 CREATE INDEX idx_photo_folder ON photo (folder_id);

@@ -7,7 +7,6 @@ package com.github.curiousoddman.curious_images.dbobj.tables;
 import com.github.curiousoddman.curious_images.dbobj.Indexes;
 import com.github.curiousoddman.curious_images.dbobj.Keys;
 import com.github.curiousoddman.curious_images.dbobj.Public;
-import com.github.curiousoddman.curious_images.dbobj.tables.AiProcessingStatus.AiProcessingStatusPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.Album.AlbumPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.AlbumPhoto.AlbumPhotoPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.ClipEmbedding.ClipEmbeddingPath;
@@ -180,6 +179,41 @@ public class Photo extends TableImpl<PhotoRecord> {
      */
     public final TableField<PhotoRecord, Double> GPS_ALTITUDE = createField(DSL.name("GPS_ALTITUDE"), SQLDataType.DOUBLE, this, "");
 
+    /**
+     * The column <code>public.PHOTO.AI_FACE_DETECT_DONE</code>.
+     */
+    public final TableField<PhotoRecord, Boolean> AI_FACE_DETECT_DONE = createField(DSL.name("AI_FACE_DETECT_DONE"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field(DSL.raw("FALSE"), SQLDataType.BOOLEAN)), this, "");
+
+    /**
+     * The column <code>public.PHOTO.AI_FACE_EMBED_DONE</code>.
+     */
+    public final TableField<PhotoRecord, Boolean> AI_FACE_EMBED_DONE = createField(DSL.name("AI_FACE_EMBED_DONE"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field(DSL.raw("FALSE"), SQLDataType.BOOLEAN)), this, "");
+
+    /**
+     * The column <code>public.PHOTO.AI_CLIP_EMBED_DONE</code>.
+     */
+    public final TableField<PhotoRecord, Boolean> AI_CLIP_EMBED_DONE = createField(DSL.name("AI_CLIP_EMBED_DONE"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field(DSL.raw("FALSE"), SQLDataType.BOOLEAN)), this, "");
+
+    /**
+     * The column <code>public.PHOTO.AI_LUCENE_INDEX_DONE</code>.
+     */
+    public final TableField<PhotoRecord, Boolean> AI_LUCENE_INDEX_DONE = createField(DSL.name("AI_LUCENE_INDEX_DONE"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field(DSL.raw("FALSE"), SQLDataType.BOOLEAN)), this, "");
+
+    /**
+     * The column <code>public.PHOTO.AI_LAST_ERROR</code>.
+     */
+    public final TableField<PhotoRecord, String> AI_LAST_ERROR = createField(DSL.name("AI_LAST_ERROR"), SQLDataType.VARCHAR(1024), this, "");
+
+    /**
+     * The column <code>public.PHOTO.AI_RETRY_COUNT</code>.
+     */
+    public final TableField<PhotoRecord, Short> AI_RETRY_COUNT = createField(DSL.name("AI_RETRY_COUNT"), SQLDataType.SMALLINT.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.SMALLINT)), this, "");
+
+    /**
+     * The column <code>public.PHOTO.AI_UPDATED_AT</code>.
+     */
+    public final TableField<PhotoRecord, LocalDateTime> AI_UPDATED_AT = createField(DSL.name("AI_UPDATED_AT"), SQLDataType.LOCALDATETIME(6), this, "");
+
     private Photo(Name alias, Table<PhotoRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }
@@ -342,19 +376,6 @@ public class Photo extends TableImpl<PhotoRecord> {
         return _albumPhoto;
     }
 
-    private transient AiProcessingStatusPath _aiProcessingStatus;
-
-    /**
-     * Get the implicit to-many join path to the
-     * <code>public.AI_PROCESSING_STATUS</code> table
-     */
-    public AiProcessingStatusPath aiProcessingStatus() {
-        if (_aiProcessingStatus == null)
-            _aiProcessingStatus = new AiProcessingStatusPath(this, null, Keys.CONSTRAINT_9C.getInverseKey());
-
-        return _aiProcessingStatus;
-    }
-
     private transient ClipEmbeddingPath _clipEmbedding;
 
     /**
@@ -363,7 +384,7 @@ public class Photo extends TableImpl<PhotoRecord> {
      */
     public ClipEmbeddingPath clipEmbedding() {
         if (_clipEmbedding == null)
-            _clipEmbedding = new ClipEmbeddingPath(this, null, Keys.CONSTRAINT_9E7.getInverseKey());
+            _clipEmbedding = new ClipEmbeddingPath(this, null, Keys.CONSTRAINT_9E.getInverseKey());
 
         return _clipEmbedding;
     }

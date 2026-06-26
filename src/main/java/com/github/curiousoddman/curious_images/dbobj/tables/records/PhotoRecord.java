@@ -311,6 +311,104 @@ public class PhotoRecord extends UpdatableRecordImpl<PhotoRecord> {
         return (Double) get(19);
     }
 
+    /**
+     * Setter for <code>public.PHOTO.AI_FACE_DETECT_DONE</code>.
+     */
+    public void setAiFaceDetectDone(Boolean value) {
+        set(20, value);
+    }
+
+    /**
+     * Getter for <code>public.PHOTO.AI_FACE_DETECT_DONE</code>.
+     */
+    public Boolean getAiFaceDetectDone() {
+        return (Boolean) get(20);
+    }
+
+    /**
+     * Setter for <code>public.PHOTO.AI_FACE_EMBED_DONE</code>.
+     */
+    public void setAiFaceEmbedDone(Boolean value) {
+        set(21, value);
+    }
+
+    /**
+     * Getter for <code>public.PHOTO.AI_FACE_EMBED_DONE</code>.
+     */
+    public Boolean getAiFaceEmbedDone() {
+        return (Boolean) get(21);
+    }
+
+    /**
+     * Setter for <code>public.PHOTO.AI_CLIP_EMBED_DONE</code>.
+     */
+    public void setAiClipEmbedDone(Boolean value) {
+        set(22, value);
+    }
+
+    /**
+     * Getter for <code>public.PHOTO.AI_CLIP_EMBED_DONE</code>.
+     */
+    public Boolean getAiClipEmbedDone() {
+        return (Boolean) get(22);
+    }
+
+    /**
+     * Setter for <code>public.PHOTO.AI_LUCENE_INDEX_DONE</code>.
+     */
+    public void setAiLuceneIndexDone(Boolean value) {
+        set(23, value);
+    }
+
+    /**
+     * Getter for <code>public.PHOTO.AI_LUCENE_INDEX_DONE</code>.
+     */
+    public Boolean getAiLuceneIndexDone() {
+        return (Boolean) get(23);
+    }
+
+    /**
+     * Setter for <code>public.PHOTO.AI_LAST_ERROR</code>.
+     */
+    public void setAiLastError(String value) {
+        set(24, value);
+    }
+
+    /**
+     * Getter for <code>public.PHOTO.AI_LAST_ERROR</code>.
+     */
+    public String getAiLastError() {
+        return (String) get(24);
+    }
+
+    /**
+     * Setter for <code>public.PHOTO.AI_RETRY_COUNT</code>.
+     */
+    public void setAiRetryCount(Short value) {
+        set(25, value);
+    }
+
+    /**
+     * Getter for <code>public.PHOTO.AI_RETRY_COUNT</code>.
+     */
+    public Short getAiRetryCount() {
+        return (Short) get(25);
+    }
+
+    /**
+     * Setter for <code>public.PHOTO.AI_UPDATED_AT</code>.
+     */
+    public void setAiUpdatedAt(LocalDateTime value) {
+        set(26, value);
+    }
+
+    /**
+     * Getter for <code>public.PHOTO.AI_UPDATED_AT</code>.
+     */
+    public LocalDateTime getAiUpdatedAt() {
+        return (LocalDateTime) get(26);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -334,7 +432,7 @@ public class PhotoRecord extends UpdatableRecordImpl<PhotoRecord> {
     /**
      * Create a detached, initialised PhotoRecord
      */
-    public PhotoRecord(Long id, Long folderId, String absolutePath, String filename, String extension, Long fileSize, Integer imageWidth, Integer imageHeight, LocalDateTime captureDate, String captureDateSource, LocalDateTime importedAt, LocalDateTime lastSeenAt, Integer orientation, String cameraMake, String cameraModel, String lensModel, JSON exifExtra, Double gpsLat, Double gpsLon, Double gpsAltitude) {
+    public PhotoRecord(Long id, Long folderId, String absolutePath, String filename, String extension, Long fileSize, Integer imageWidth, Integer imageHeight, LocalDateTime captureDate, String captureDateSource, LocalDateTime importedAt, LocalDateTime lastSeenAt, Integer orientation, String cameraMake, String cameraModel, String lensModel, JSON exifExtra, Double gpsLat, Double gpsLon, Double gpsAltitude, Boolean aiFaceDetectDone, Boolean aiFaceEmbedDone, Boolean aiClipEmbedDone, Boolean aiLuceneIndexDone, String aiLastError, Short aiRetryCount, LocalDateTime aiUpdatedAt) {
         super(Photo.PHOTO);
 
         setId(id);
@@ -357,6 +455,13 @@ public class PhotoRecord extends UpdatableRecordImpl<PhotoRecord> {
         setGpsLat(gpsLat);
         setGpsLon(gpsLon);
         setGpsAltitude(gpsAltitude);
+        setAiFaceDetectDone(aiFaceDetectDone);
+        setAiFaceEmbedDone(aiFaceEmbedDone);
+        setAiClipEmbedDone(aiClipEmbedDone);
+        setAiLuceneIndexDone(aiLuceneIndexDone);
+        setAiLastError(aiLastError);
+        setAiRetryCount(aiRetryCount);
+        setAiUpdatedAt(aiUpdatedAt);
         resetChangedOnNotNull();
     }
 }

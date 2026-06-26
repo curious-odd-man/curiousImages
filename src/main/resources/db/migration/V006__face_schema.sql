@@ -17,16 +17,3 @@ CREATE TABLE face
 CREATE INDEX idx_face_photo ON face (photo_id);
 CREATE INDEX idx_face_person ON face (person_id);
 
--- One row per photo: tracks where each photo is in the AI processing pipeline.
--- Kept separate from PHOTO (same discipline as THUMBNAIL and PHOTO_HASH).
-CREATE TABLE ai_processing_status
-(
-    photo_id          BIGINT PRIMARY KEY REFERENCES photo (id) ON DELETE CASCADE,
-    face_detect_done  BOOLEAN  NOT NULL DEFAULT FALSE,
-    face_embed_done   BOOLEAN  NOT NULL DEFAULT FALSE,
-    clip_embed_done   BOOLEAN  NOT NULL DEFAULT FALSE,
-    lucene_index_done BOOLEAN  NOT NULL DEFAULT FALSE,
-    last_error        VARCHAR(1024),
-    retry_count       SMALLINT NOT NULL DEFAULT 0,
-    updated_at        TIMESTAMP
-);

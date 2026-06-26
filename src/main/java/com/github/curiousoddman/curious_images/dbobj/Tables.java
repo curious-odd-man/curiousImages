@@ -4,7 +4,6 @@
 package com.github.curiousoddman.curious_images.dbobj;
 
 
-import com.github.curiousoddman.curious_images.dbobj.tables.AiProcessingStatus;
 import com.github.curiousoddman.curious_images.dbobj.tables.Album;
 import com.github.curiousoddman.curious_images.dbobj.tables.AlbumPhoto;
 import com.github.curiousoddman.curious_images.dbobj.tables.ClipEmbedding;
@@ -39,11 +38,6 @@ import javax.annotation.processing.Generated;
 )
 @SuppressWarnings({ "all", "unchecked", "rawtypes", "this-escape" })
 public class Tables {
-
-    /**
-     * The table <code>public.AI_PROCESSING_STATUS</code>.
-     */
-    public static final AiProcessingStatus AI_PROCESSING_STATUS = AiProcessingStatus.AI_PROCESSING_STATUS;
 
     /**
      * The table <code>public.ALBUM</code>.

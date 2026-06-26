@@ -4,6 +4,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.domain.dedupe.PhotoForHashing;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.CaptureDateSource;
 import com.github.curiousoddman.curious_images.model.TimelineData;
+import com.github.curiousoddman.curious_images.util.TimeProvider;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.JSON;
@@ -29,7 +30,8 @@ import static com.github.curiousoddman.curious_images.dbobj.Tables.PHOTO;
 @Repository
 @RequiredArgsConstructor
 public class PhotoRepository {
-    private final DSLContext dsl;
+    private final DSLContext   dsl;
+    private final TimeProvider timeProvider;
 
     public Optional<PhotoRecord> findByAbsolutePath(String absolutePath) {
         return Optional.ofNullable(
@@ -67,6 +69,7 @@ public class PhotoRepository {
                   .set(PHOTO.EXIF_EXTRA, toJson(exifExtraJson))
                   .set(PHOTO.IMPORTED_AT, now)
                   .set(PHOTO.LAST_SEEN_AT, now)
+                  .set(PHOTO.AI_UPDATED_AT, now)
                   .returning(PHOTO.ID)
                   .fetchOne()
                   .getId();
@@ -207,5 +210,97 @@ public class PhotoRepository {
                 dsl.selectFrom(PHOTO)
                    .where(PHOTO.ID.eq(photoId))
                    .fetchOne());
+    }
+
+    public Query markFaceDetectDoneQuery(long photoId, LocalDateTime now) {
+        return dsl.update(PHOTO)
+                  .set(PHOTO.AI_FACE_DETECT_DONE, true)
+                  .set(PHOTO.AI_UPDATED_AT, now)
+                  .where(PHOTO.ID.eq(photoId));
+    }
+
+    public Query markFaceEmbedDoneQuery(long photoId, LocalDateTime now) {
+        return dsl.update(PHOTO)
+                  .set(PHOTO.AI_FACE_EMBED_DONE, true)
+                  .set(PHOTO.AI_UPDATED_AT, now)
+                  .where(PHOTO.ID.eq(photoId));
+    }
+
+    public Query markClipEmbedDoneQuery(long photoId, LocalDateTime now) {
+        return dsl.update(PHOTO)
+                  .set(PHOTO.AI_CLIP_EMBED_DONE, true)
+                  .set(PHOTO.AI_UPDATED_AT, now)
+                  .where(PHOTO.ID.eq(photoId));
+    }
+
+    public Query markLuceneIndexDoneQuery(long photoId, LocalDateTime now) {
+        return dsl.update(PHOTO)
+                  .set(PHOTO.AI_LUCENE_INDEX_DONE, true)
+                  .set(PHOTO.AI_UPDATED_AT, now)
+                  .where(PHOTO.ID.eq(photoId));
+    }
+
+    public Query markErrorQuery(long photoId, String errorMessage, LocalDateTime now) {
+        String truncated = errorMessage != null && errorMessage.length() > 1024
+                ? errorMessage.substring(0, 1021) + "..."
+                : errorMessage;
+        return dsl.update(PHOTO)
+                  .set(PHOTO.AI_LAST_ERROR, truncated)
+                  .set(PHOTO.AI_RETRY_COUNT,
+                          PHOTO.AI_RETRY_COUNT.add((short) 1))
+                  .set(PHOTO.AI_UPDATED_AT, now)
+                  .where(PHOTO.ID.eq(photoId));
+    }
+
+    /**
+     * Returns photo IDs that still need face detection (status row exists but flag is false).
+     */
+    public List<Long> findPendingFaceDetect() {
+        return dsl.select(PHOTO.ID)
+                  .from(PHOTO)
+                  .where(PHOTO.AI_FACE_DETECT_DONE.eq(false))
+                  .fetch(PHOTO.ID);
+    }
+
+    /**
+     * Returns photo IDs that still need face embedding.
+     */
+    public List<Long> findPendingFaceEmbed() {
+        return dsl.select(PHOTO.ID)
+                  .from(PHOTO)
+                  .where(PHOTO.AI_FACE_DETECT_DONE.eq(true))
+                  .and(PHOTO.AI_FACE_EMBED_DONE.eq(false))
+                  .fetch(PHOTO.ID);
+    }
+
+    /**
+     * Returns photo IDs that still need CLIP embedding.
+     */
+    public List<Long> findPendingClipEmbed() {
+        return dsl.select(PHOTO.ID)
+                  .from(PHOTO)
+                  .where(PHOTO.AI_CLIP_EMBED_DONE.eq(false))
+                  .fetch(PHOTO.ID);
+    }
+
+    /**
+     * Returns photo IDs that still need Lucene indexing.
+     */
+    public List<Long> findPendingLuceneIndex() {
+        return dsl.select(PHOTO.ID)
+                  .from(PHOTO)
+                  .where(PHOTO.AI_CLIP_EMBED_DONE.eq(true))
+                  .and(PHOTO.AI_LUCENE_INDEX_DONE.eq(false))
+                  .fetch(PHOTO.ID);
+    }
+
+    public Query resetAiFields() {
+        return dsl
+                .update(PHOTO)
+                .set(PHOTO.AI_UPDATED_AT, timeProvider.now())
+                .set(PHOTO.AI_CLIP_EMBED_DONE, false)
+                .set(PHOTO.AI_FACE_DETECT_DONE, false)
+                .set(PHOTO.AI_FACE_EMBED_DONE, false)
+                .set(PHOTO.AI_LUCENE_INDEX_DONE, false);
     }
 }

@@ -10,7 +10,6 @@ import com.github.curiousoddman.curious_images.domain.index.ClipVectorIndex;
 import com.github.curiousoddman.curious_images.domain.index.FaceVectorIndex;
 import com.github.curiousoddman.curious_images.event.RegenerateAlbumsEvent;
 import com.github.curiousoddman.curious_images.event.RunAiPipelineEvent;
-import com.github.curiousoddman.curious_images.persistence.AiProcessingStatusRepository;
 import com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceEmbeddingRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
@@ -48,7 +47,7 @@ import static com.github.curiousoddman.curious_images.domain.common.thumbnail.Th
  *   <li>Lucene vector indexing</li>
  *   <li>Person clustering</li>
  * </ol>
- * Each stage queries {@link AiProcessingStatusRepository} for photos not yet at that stage,
+ * Each stage queries {@link PhotoRepository} for photos not yet at that stage,
  * so the job is fully resumable: restarting after a crash picks up exactly where it left off.
  * <p>
  * Triggered by {@link RunAiPipelineEvent}, published by {@code ImportService} after a
@@ -68,23 +67,22 @@ public class AiPipelineJob extends AbstractBackgroundJob {
 
     // ── Dependencies ──────────────────────────────────────────────────────────
 
-    private final DSLContext                   dsl;
-    private final PhotoRepository              photoRepo;
-    private final FaceRepository               faceRepo;
-    private final FaceEmbeddingRepository      faceEmbeddingRepo;
-    private final ClipEmbeddingRepository      clipEmbeddingRepo;
-    private final AiProcessingStatusRepository aiStatusRepo;
-    private final RetinaFaceDetector           retinaFaceDetector;
-    private final ArcFaceEncoder               arcFaceEncoder;
-    private final FaceAligner                  faceAligner;
-    private final ClipImageEncoder             clipImageEncoder;
-    private final ClipVectorIndex              clipVectorIndex;
-    private final FaceVectorIndex              faceVectorIndex;
-    private final PersonClusteringService      personClusteringService;
-    private final TimeProvider                 timeProvider;
-    private final ApplicationEventPublisher    applicationEventPublisher;
-    private final ObjectMapper                 objectMapper;
-    private final FaceThumbnailsRepository     faceThumbnailsRepository;
+    private final DSLContext                dsl;
+    private final PhotoRepository           photoRepo;
+    private final FaceRepository            faceRepo;
+    private final FaceEmbeddingRepository   faceEmbeddingRepo;
+    private final ClipEmbeddingRepository   clipEmbeddingRepo;
+    private final RetinaFaceDetector        retinaFaceDetector;
+    private final ArcFaceEncoder            arcFaceEncoder;
+    private final FaceAligner               faceAligner;
+    private final ClipImageEncoder          clipImageEncoder;
+    private final ClipVectorIndex           clipVectorIndex;
+    private final FaceVectorIndex           faceVectorIndex;
+    private final PersonClusteringService   personClusteringService;
+    private final TimeProvider              timeProvider;
+    private final ApplicationEventPublisher applicationEventPublisher;
+    private final ObjectMapper              objectMapper;
+    private final FaceThumbnailsRepository  faceThumbnailsRepository;
 
     // ── Event listener ────────────────────────────────────────────────────────
 
@@ -143,7 +141,7 @@ public class AiPipelineJob extends AbstractBackgroundJob {
     // ── Stage 1: Face detection ───────────────────────────────────────────────
 
     private void runFaceDetection() {
-        List<Long> photoIds = aiStatusRepo.findPendingFaceDetect();
+        List<Long> photoIds = photoRepo.findPendingFaceDetect();
         if (photoIds.isEmpty()) {
             log.info("Face detection: no pending photos");
             return;
@@ -173,11 +171,11 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                             photoId, face.x(), face.y(), face.w(), face.h(),
                             face.confidence(), toLandmarkJson(face.landmarks()), now, faceThumbnailPath));
                 }
-                buffer.add(aiStatusRepo.markFaceDetectDoneQuery(photoId, now));
+                buffer.add(photoRepo.markFaceDetectDoneQuery(photoId, now));
 
             } catch (Exception e) {
                 log.warn("Face detection failed for photo {}", photoId, e);
-                buffer.add(aiStatusRepo.markErrorQuery(photoId, e.getMessage(), now));
+                buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
             }
 
             if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
@@ -192,7 +190,7 @@ public class AiPipelineJob extends AbstractBackgroundJob {
     // ── Stage 2: Face embedding (ArcFace) ────────────────────────────────────
 
     private void runFaceEmbedding() {
-        List<Long> photoIds = aiStatusRepo.findPendingFaceEmbed();
+        List<Long> photoIds = photoRepo.findPendingFaceEmbed();
         if (photoIds.isEmpty()) {
             log.info("Face embedding: no pending photos");
             return;
@@ -223,11 +221,11 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                     float[]       embedding = arcFaceEncoder.encode(aligned);
                     buffer.add(faceEmbeddingRepo.upsertQuery(face.getId(), embedding, ARCFACE_MODEL_VER));
                 }
-                buffer.add(aiStatusRepo.markFaceEmbedDoneQuery(photoId, now));
+                buffer.add(photoRepo.markFaceEmbedDoneQuery(photoId, now));
 
             } catch (Exception e) {
                 log.warn("Face embedding failed for photo {}", photoId, e);
-                buffer.add(aiStatusRepo.markErrorQuery(photoId, e.getMessage(), now));
+                buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
             }
 
             if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
@@ -242,7 +240,7 @@ public class AiPipelineJob extends AbstractBackgroundJob {
     // ── Stage 3: CLIP image embedding ────────────────────────────────────────
 
     private void runClipEmbedding() {
-        List<Long> photoIds = aiStatusRepo.findPendingClipEmbed();
+        List<Long> photoIds = photoRepo.findPendingClipEmbed();
         if (photoIds.isEmpty()) {
             log.info("CLIP embedding: no pending photos");
             return;
@@ -266,10 +264,10 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                 BufferedImage img       = loadImageOriented(photo.getAbsolutePath(), photo.getOrientation());
                 float[]       embedding = clipImageEncoder.encode(img);
                 buffer.add(clipEmbeddingRepo.upsertQuery(photoId, embedding, CLIP_IMAGE_MODEL_VER));
-                buffer.add(aiStatusRepo.markClipEmbedDoneQuery(photoId, now));
+                buffer.add(photoRepo.markClipEmbedDoneQuery(photoId, now));
             } catch (Exception e) {
                 log.warn("CLIP embedding failed for photo {}", photoId, e);
-                buffer.add(aiStatusRepo.markErrorQuery(photoId, e.getMessage(), now));
+                buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
             }
 
             if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
@@ -284,7 +282,7 @@ public class AiPipelineJob extends AbstractBackgroundJob {
     // ── Stage 4: Lucene indexing ──────────────────────────────────────────────
 
     private void runLuceneIndexing() throws Exception {
-        List<Long> photoIds = aiStatusRepo.findPendingLuceneIndex();
+        List<Long> photoIds = photoRepo.findPendingLuceneIndex();
         if (photoIds.isEmpty()) {
             log.info("Lucene indexing: no pending photos");
             return;
@@ -326,11 +324,11 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                     }
                 }
 
-                statusBuffer.add(aiStatusRepo.markLuceneIndexDoneQuery(photoId, now));
+                statusBuffer.add(photoRepo.markLuceneIndexDoneQuery(photoId, now));
 
             } catch (Exception e) {
                 log.warn("Lucene indexing failed for photo {}", photoId, e);
-                statusBuffer.add(aiStatusRepo.markErrorQuery(photoId, e.getMessage(), now));
+                statusBuffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
             }
 
             if (statusBuffer.size() >= DB_FLUSH_BATCH_SIZE) {
