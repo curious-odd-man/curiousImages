@@ -113,9 +113,54 @@ public class Face extends TableImpl<FaceRecord> {
     public final TableField<FaceRecord, Double> CONFIDENCE = createField(DSL.name("CONFIDENCE"), SQLDataType.DOUBLE.nullable(false), this, "");
 
     /**
-     * The column <code>public.FACE.LANDMARK_JSON</code>.
+     * The column <code>public.FACE.LANDMARK_LEFT_EYE_X</code>.
      */
-    public final TableField<FaceRecord, String> LANDMARK_JSON = createField(DSL.name("LANDMARK_JSON"), SQLDataType.VARCHAR(512), this, "");
+    public final TableField<FaceRecord, Double> LANDMARK_LEFT_EYE_X = createField(DSL.name("LANDMARK_LEFT_EYE_X"), SQLDataType.DOUBLE, this, "");
+
+    /**
+     * The column <code>public.FACE.LANDMARK_LEFT_EYE_Y</code>.
+     */
+    public final TableField<FaceRecord, Double> LANDMARK_LEFT_EYE_Y = createField(DSL.name("LANDMARK_LEFT_EYE_Y"), SQLDataType.DOUBLE, this, "");
+
+    /**
+     * The column <code>public.FACE.LANDMARK_RIGHT_EYE_X</code>.
+     */
+    public final TableField<FaceRecord, Double> LANDMARK_RIGHT_EYE_X = createField(DSL.name("LANDMARK_RIGHT_EYE_X"), SQLDataType.DOUBLE, this, "");
+
+    /**
+     * The column <code>public.FACE.LANDMARK_RIGHT_EYE_Y</code>.
+     */
+    public final TableField<FaceRecord, Double> LANDMARK_RIGHT_EYE_Y = createField(DSL.name("LANDMARK_RIGHT_EYE_Y"), SQLDataType.DOUBLE, this, "");
+
+    /**
+     * The column <code>public.FACE.LANDMARK_NOSE_X</code>.
+     */
+    public final TableField<FaceRecord, Double> LANDMARK_NOSE_X = createField(DSL.name("LANDMARK_NOSE_X"), SQLDataType.DOUBLE, this, "");
+
+    /**
+     * The column <code>public.FACE.LANDMARK_NOSE_Y</code>.
+     */
+    public final TableField<FaceRecord, Double> LANDMARK_NOSE_Y = createField(DSL.name("LANDMARK_NOSE_Y"), SQLDataType.DOUBLE, this, "");
+
+    /**
+     * The column <code>public.FACE.LANDMARK_LEFT_MOUTH_X</code>.
+     */
+    public final TableField<FaceRecord, Double> LANDMARK_LEFT_MOUTH_X = createField(DSL.name("LANDMARK_LEFT_MOUTH_X"), SQLDataType.DOUBLE, this, "");
+
+    /**
+     * The column <code>public.FACE.LANDMARK_LEFT_MOUTH_Y</code>.
+     */
+    public final TableField<FaceRecord, Double> LANDMARK_LEFT_MOUTH_Y = createField(DSL.name("LANDMARK_LEFT_MOUTH_Y"), SQLDataType.DOUBLE, this, "");
+
+    /**
+     * The column <code>public.FACE.LANDMARK_RIGHT_MOUTH_X</code>.
+     */
+    public final TableField<FaceRecord, Double> LANDMARK_RIGHT_MOUTH_X = createField(DSL.name("LANDMARK_RIGHT_MOUTH_X"), SQLDataType.DOUBLE, this, "");
+
+    /**
+     * The column <code>public.FACE.LANDMARK_RIGHT_MOUTH_Y</code>.
+     */
+    public final TableField<FaceRecord, Double> LANDMARK_RIGHT_MOUTH_Y = createField(DSL.name("LANDMARK_RIGHT_MOUTH_Y"), SQLDataType.DOUBLE, this, "");
 
     /**
      * The column <code>public.FACE.CREATED_AT</code>.

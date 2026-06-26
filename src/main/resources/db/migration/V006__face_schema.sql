@@ -10,7 +10,16 @@ CREATE TABLE face
     bbox_w                  FLOAT     NOT NULL,
     bbox_h                  FLOAT     NOT NULL,
     confidence              FLOAT     NOT NULL,
-    landmark_json           VARCHAR(512),       -- JSON array of 5 [x,y] pairs, normalised
+    landmark_left_eye_x     FLOAT,
+    landmark_left_eye_y     FLOAT,
+    landmark_right_eye_x    FLOAT,
+    landmark_right_eye_y    FLOAT,
+    landmark_nose_x         FLOAT,
+    landmark_nose_y         FLOAT,
+    landmark_left_mouth_x   FLOAT,
+    landmark_left_mouth_y   FLOAT,
+    landmark_right_mouth_x  FLOAT,
+    landmark_right_mouth_y  FLOAT,
     created_at              TIMESTAMP NOT NULL,
     thumbnail_absolute_path VARCHAR(2048)
 );

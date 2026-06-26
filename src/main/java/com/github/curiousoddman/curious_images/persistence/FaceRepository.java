@@ -28,7 +28,7 @@ public class FaceRepository {
      * via {@code dsl.transaction(cfg -> DSL.using(cfg).batch(buffer).execute())}.
      */
     public Query insertQuery(long photoId, double x, double y, double w, double h,
-                             double confidence, String landmarkJson, LocalDateTime now, Path thumbnailPath) {
+                             double confidence, Landmarks landmarks, LocalDateTime now, Path thumbnailPath) {
         return dsl.insertInto(FACE)
                   .set(FACE.PHOTO_ID, photoId)
                   .set(FACE.BBOX_X, x)
@@ -36,7 +36,16 @@ public class FaceRepository {
                   .set(FACE.BBOX_W, w)
                   .set(FACE.BBOX_H, h)
                   .set(FACE.CONFIDENCE, confidence)
-                  .set(FACE.LANDMARK_JSON, landmarkJson)
+                  .set(FACE.LANDMARK_LEFT_EYE_X, landmarks.leftEyeX())
+                  .set(FACE.LANDMARK_LEFT_EYE_Y, landmarks.leftEyeY())
+                  .set(FACE.LANDMARK_RIGHT_EYE_X, landmarks.rightEyeX())
+                  .set(FACE.LANDMARK_RIGHT_EYE_Y, landmarks.rightEyeY())
+                  .set(FACE.LANDMARK_NOSE_X, landmarks.noseX())
+                  .set(FACE.LANDMARK_NOSE_Y, landmarks.noseY())
+                  .set(FACE.LANDMARK_LEFT_MOUTH_X, landmarks.leftMouthX())
+                  .set(FACE.LANDMARK_LEFT_MOUTH_Y, landmarks.leftMouthY())
+                  .set(FACE.LANDMARK_RIGHT_MOUTH_X, landmarks.rightMouthX())
+                  .set(FACE.LANDMARK_RIGHT_MOUTH_Y, landmarks.rightMouthY())
                   .set(FACE.CREATED_AT, now)
                   .set(FACE.THUMBNAIL_ABSOLUTE_PATH, thumbnailPath.toAbsolutePath()
                                                                   .toString());

@@ -1,6 +1,5 @@
 package com.github.curiousoddman.curious_images.domain.ai;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ClipEmbeddingRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceEmbeddingRecord;
@@ -14,6 +13,7 @@ import com.github.curiousoddman.curious_images.persistence.ClipEmbeddingReposito
 import com.github.curiousoddman.curious_images.persistence.FaceEmbeddingRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceThumbnailsRepository;
+import com.github.curiousoddman.curious_images.persistence.Landmarks;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import com.github.curiousoddman.curious_images.util.async.AbstractBackgroundJob;
@@ -169,7 +169,7 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                     Path faceThumbnailPath = faceThumbnailsRepository.createFaceThumbnail(img, face);
                     buffer.add(faceRepo.insertQuery(
                             photoId, face.x(), face.y(), face.w(), face.h(),
-                            face.confidence(), toLandmarkJson(face.landmarks()), now, faceThumbnailPath));
+                            face.confidence(), toLandmarks(face.landmarks()), now, faceThumbnailPath));
                 }
                 buffer.add(photoRepo.markFaceDetectDoneQuery(photoId, now));
 
@@ -216,7 +216,7 @@ public class AiPipelineJob extends AbstractBackgroundJob {
                 List<FaceRecord> faces = faceRepo.findByPhotoId(photoId);
 
                 for (FaceRecord face : faces) {
-                    float[][]     landmarks = parseLandmarks(face.getLandmarkJson());
+                    float[][]     landmarks = parseLandmarks(face);
                     BufferedImage aligned   = faceAligner.align(face.getId(), img, landmarks);
                     float[]       embedding = arcFaceEncoder.encode(aligned);
                     buffer.add(faceEmbeddingRepo.upsertQuery(face.getId(), embedding, ARCFACE_MODEL_VER));
@@ -356,30 +356,61 @@ public class AiPipelineJob extends AbstractBackgroundJob {
 
     /**
      * Serialises 5×2 landmark pixel coordinates to a compact JSON array.
+     * 0 = left eye
+     * 1 = right eye
+     * 2 = nose
+     * 3 = left mouth corner
+     * 4 = right mouth corner
      */
-    private String toLandmarkJson(float[][] landmarks) {
-        try {
-            return objectMapper.writeValueAsString(landmarks);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialise landmarks", e);
-        }
+    private Landmarks toLandmarks(float[][] landmarks) {
+        return new Landmarks(
+                landmarks[0][0],
+                landmarks[0][1],
+                landmarks[1][0],
+                landmarks[1][1],
+                landmarks[2][0],
+                landmarks[2][1],
+                landmarks[3][0],
+                landmarks[3][1],
+                landmarks[4][0],
+                landmarks[4][1]
+        );
     }
 
     /**
      * Parses the stored normalised landmark JSON and converts back to pixel coordinates
      * in the original image space.
+     * 0 = left eye
+     * 1 = right eye
+     * 2 = nose
+     * 3 = left mouth corner
+     * 4 = right mouth corner
      */
-    private float[][] parseLandmarks(String json) {
-        if (json == null) {
-            return new float[5][2];
+    private float[][] parseLandmarks(FaceRecord landmarks) {
+        float[][] floats = new float[5][2];
+        if (landmarks != null) {
+            floats[0][0] = landmarks.getLandmarkLeftEyeX()
+                                    .floatValue();
+            floats[0][1] = landmarks.getLandmarkLeftEyeY()
+                                    .floatValue();
+            floats[1][0] = landmarks.getLandmarkRightEyeX()
+                                    .floatValue();
+            floats[1][1] = landmarks.getLandmarkRightEyeY()
+                                    .floatValue();
+            floats[2][0] = landmarks.getLandmarkNoseX()
+                                    .floatValue();
+            floats[2][1] = landmarks.getLandmarkNoseY()
+                                    .floatValue();
+            floats[3][0] = landmarks.getLandmarkLeftMouthX()
+                                    .floatValue();
+            floats[3][1] = landmarks.getLandmarkLeftMouthY()
+                                    .floatValue();
+            floats[4][0] = landmarks.getLandmarkRightMouthX()
+                                    .floatValue();
+            floats[4][1] = landmarks.getLandmarkRightMouthY()
+                                    .floatValue();
         }
-        try {
-            // FIXME: store landmarks in separate columns to avoid json parsing
-            return objectMapper.readValue(json, float[][].class);
-        } catch (Exception e) {
-            log.warn("Failed to parse landmark JSON, using zero landmarks", e);
-            return new float[5][2];
-        }
+        return floats;
     }
 
     private void flush(List<Query> buffer) {
