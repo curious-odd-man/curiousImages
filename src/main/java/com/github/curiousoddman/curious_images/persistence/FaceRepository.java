@@ -9,8 +9,10 @@ import org.springframework.stereotype.Repository;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import static com.github.curiousoddman.curious_images.dbobj.Tables.FACE;
+import static java.util.stream.Collectors.toMap;
 
 /**
  * Hand-written jOOQ repository for {@code face}.
@@ -90,5 +92,22 @@ public class FaceRepository {
         ctx.deleteFrom(FACE)
            .where(FACE.PHOTO_ID.eq(photoId))
            .execute();
+    }
+
+    /**
+     * Clears the PERSON_ID column on every FACE row without touching Person data.
+     * Called at the start of a full recluster pass.
+     */
+    public void clearAllPersonAssignments() {
+        dsl.update(FACE)
+           .set(FACE.PERSON_ID, (Long) null)
+           .execute();
+    }
+
+    public Map<Long, Long> loadFacePersonSnapshot() {
+        return dsl.selectFrom(FACE)
+                  .stream()
+                  .filter(f -> f.getPersonId() != null)
+                  .collect(toMap(FaceRecord::getId, FaceRecord::getPersonId));
     }
 }
