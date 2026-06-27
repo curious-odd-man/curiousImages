@@ -113,7 +113,7 @@ public class PersonClusteringService {
             }
 
             // Assign all faces to a new person
-            long personId = personRepo.insert(null, faceIds[group.get(0)], now);
+            long personId = personRepo.insert(null, faceIds[group.getFirst()], now);
             personsCreated++;
 
             for (int idx : group) {
@@ -125,8 +125,7 @@ public class PersonClusteringService {
         }
         flush(buffer);
 
-        log.info("Person clustering complete: {} persons created from {} faces",
-                personsCreated, n);
+        log.info("Person clustering complete: {} persons created from {} faces", personsCreated, n);
         publisher.publishEvent(new PersonsUpdatedEvent(this));
     }
 
