@@ -1,7 +1,5 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
-import com.github.curiousoddman.curious_images.ui.FxmlLoader;
-import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.AlbumRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FolderRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRecord;
@@ -19,15 +17,17 @@ import com.github.curiousoddman.curious_images.event.RunAiPipelineEvent;
 import com.github.curiousoddman.curious_images.event.payload.BackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.TimelineData;
+import com.github.curiousoddman.curious_images.model.bundle.AddFilesBundle;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
 import com.github.curiousoddman.curious_images.persistence.AlbumPhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.AlbumRepository;
-import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
+import com.github.curiousoddman.curious_images.ui.FxmlLoader;
+import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeCell;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeNode;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeNode.NodeType;
@@ -37,6 +37,7 @@ import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.FolderPayloa
 import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.PersonPayload;
 import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.TimelinePayload;
 import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.UndatedPayload;
+import com.github.curiousoddman.curious_images.util.HumanReadableUtils;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import javafx.beans.InvalidationListener;
 import javafx.collections.ObservableList;
@@ -57,11 +58,15 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.DragEvent;
+import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
@@ -79,6 +84,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
 import java.net.URL;
 import java.time.Month;
 import java.time.format.TextStyle;
@@ -117,7 +123,6 @@ public class LibraryController implements Initializable {
     private final PersonRepository          personRepository;
     private final DuplicateDetectionService duplicateDetectionService;
     private final SearchService             searchService;
-    private final FaceRepository            faceRepository;
 
     // ── FXML nodes ────────────────────────────────────────────────────────────
 
@@ -162,7 +167,6 @@ public class LibraryController implements Initializable {
     public Label       backgroundProgressLabel;
     @FXML
     public Label       backgroundProgressDescription;
-
 
     // ── Runtime state ─────────────────────────────────────────────────────────
 
@@ -320,17 +324,16 @@ public class LibraryController implements Initializable {
      */
     @EventListener
     public void onAiPipelineComplete(AiPipelineCompleteEvent event) {
+        // FIXME: Albums - are those needed = person albums - doubt so
         log.info("AI pipeline complete — refreshing Albums and People tree sections");
         Thread t = new Thread(() -> {
             List<TreeItem<LibraryTreeNode>> albumItems  = buildAlbumItems();
             List<TreeItem<LibraryTreeNode>> personItems = buildPersonItems();
             runOnFxThread(() -> {
-                // Navigate to the Albums and People roots by position (indices 2 and 3)
                 TreeItem<LibraryTreeNode> root = libraryTreeView.getRoot();
                 if (root == null) {
                     return;
                 }
-
                 ObservableList<TreeItem<LibraryTreeNode>> children = root.getChildren();
                 if (children.size() < 4) {
                     return;
@@ -429,11 +432,9 @@ public class LibraryController implements Initializable {
                                      new TimelinePayload(year, month, day.day()),
                                      NodeType.TIMELINE_DAY)));
                 }
-
                 yearItem.getChildren()
                         .add(monthItem);
             }
-
             items.add(yearItem);
         }
 
@@ -443,7 +444,6 @@ public class LibraryController implements Initializable {
                     new UndatedPayload(),
                     NodeType.TIMELINE_UNDATED)));
         }
-
         return items;
     }
 
@@ -516,25 +516,17 @@ public class LibraryController implements Initializable {
                 showPhotoGrid();
                 loadPhotosForAlbum(ap.albumId());
             }
-
-            // ── NEW: delegate to PersonDetailController ───────────────────────
             case PersonPayload pp -> showPersonDetail(pp.personId());
         }
     }
 
-    // ── NEW: person detail panel switching ────────────────────────────────────
+    // ── Person detail panel ───────────────────────────────────────────────────
 
-    /**
-     * Lazily loads {@code person_detail.fxml} on first call, then reuses the same
-     * controller instance for every subsequent person selection.
-     */
     private void showPersonDetail(long personId) {
         if (personDetailController == null) {
             LoadedFxml<PersonDetailController> loaded = fxmlLoader.load(FxmlView.PERSON_DETAIL, null);
             personDetailController = loaded.controller();
-
             Parent view = loaded.parent();
-            // Stretch the injected view to fill the AnchorPane
             AnchorPane.setTopAnchor(view, 0.0);
             AnchorPane.setBottomAnchor(view, 0.0);
             AnchorPane.setLeftAnchor(view, 0.0);
@@ -542,19 +534,13 @@ public class LibraryController implements Initializable {
             personDetailContainer.getChildren()
                                  .setAll(view);
         }
-
-        // Swap visibility
         photoGridView.setVisible(false);
         photoGridView.setManaged(false);
         personDetailContainer.setVisible(true);
         personDetailContainer.setManaged(true);
-
         personDetailController.loadPerson(personId);
     }
 
-    /**
-     * Restores the normal photo-grid view.
-     */
     private void showPhotoGrid() {
         personDetailContainer.setVisible(false);
         personDetailContainer.setManaged(false);
@@ -626,12 +612,10 @@ public class LibraryController implements Initializable {
         if (query == null || query.isBlank()) {
             return;
         }
-
         clearSearchButton.setVisible(true);
-        showPhotoGrid(); // make sure the grid is visible while showing search results
+        showPhotoGrid();
         libraryTreeView.getSelectionModel()
                        .clearSelection();
-
         Thread t = new Thread(() -> {
             try {
                 List<Long> photoIds = searchService.semanticSearch(query, SEARCH_TOP_K);
@@ -729,32 +713,23 @@ public class LibraryController implements Initializable {
     }
 
     private static String formatFileSize(Long bytes) {
-        return humanReadableSize(bytes);
-    }
-
-    static String humanReadableSize(Long bytes) {
-        if (bytes == null) {
-            return "unknown";
-        }
-        double   size      = bytes;
-        String[] units     = {"B", "KB", "MB", "GB"};
-        int      unitIndex = 0;
-        while (size >= 1024.0 && unitIndex < units.length - 1) {
-            size /= 1024.0;
-            unitIndex++;
-        }
-        return String.format("%.1f %s", size, units[unitIndex]);
+        return HumanReadableUtils.size(bytes);
     }
 
     private static TreeItem<LibraryTreeNode> treeItem(LibraryTreeNode node) {
         return new TreeItem<>(node);
     }
 
+    // ── Menu actions ──────────────────────────────────────────────────────────
+
+    /**
+     * Existing: single-root rescan via the path-entry modal.
+     */
     @FXML
     @SneakyThrows
     public void onRescanMenuClicked(ActionEvent actionEvent) {
         Stage stage = new Stage();
-        Parent root = fxmlLoader.load(FxmlView.RESCAN_MODAL, new RescanBundle("D:\\Programming\\sample-data"))
+        Parent root = fxmlLoader.load(FxmlView.RE_SCAN_MODAL, new RescanBundle("D:\\Programming\\sample-data"))
                                 .parent();
         stage.setScene(new Scene(root));
         stage.setTitle("Rescan library");
@@ -762,6 +737,35 @@ public class LibraryController implements Initializable {
         stage.initOwner(backgroundProcessCancelButton.getScene()
                                                      .getWindow());
         stage.showAndWait();
+    }
+
+    /**
+     * NEW: opens a checkbox-picker modal listing all known import roots so the
+     * user can choose which ones to rescan. Scans are run sequentially in a
+     * single background job by {@link com.github.curiousoddman.curious_images.domain.imports.ImportService#startMultiRootScan}.
+     */
+    @FXML
+    @SneakyThrows
+    public void onRescanRootsMenuClicked(ActionEvent actionEvent) {
+        Stage stage = new Stage();
+        Parent root = fxmlLoader.load(FxmlView.RESCAN_ROOTS, null)
+                                .parent();
+        stage.setScene(new Scene(root));
+        stage.setTitle("Rescan existing roots");
+        stage.initModality(Modality.APPLICATION_MODAL);
+        stage.initOwner(backgroundProcessCancelButton.getScene()
+                                                     .getWindow());
+        stage.showAndWait();
+    }
+
+    /**
+     * NEW: opens the Add Files dialog with no pre-fill (menu-triggered path).
+     * DnD-triggered opens go through {@link #onTreeDragDropped}.
+     */
+    @FXML
+    @SneakyThrows
+    public void onAddFilesMenuClicked(ActionEvent actionEvent) {
+        openAddFilesDialog(new AddFilesBundle(List.of(), null));
     }
 
     @FXML
@@ -772,6 +776,144 @@ public class LibraryController implements Initializable {
     @FXML
     public void onTriggerAiPipeline(ActionEvent event) {
         eventPublisher.publishEvent(new RunAiPipelineEvent(this));
+    }
+
+    // ── Drag-and-drop onto the library TreeView ───────────────────────────────
+
+    /**
+     * Accepts a drag if the dragboard contains at least one file.
+     * Highlights the tree view with a COPY cursor to give clear visual feedback.
+     */
+    @FXML
+    public void onTreeDragOver(DragEvent event) {
+        Dragboard db = event.getDragboard();
+        if (db.hasFiles()) {
+            event.acceptTransferModes(TransferMode.COPY);
+        }
+        event.consume();
+    }
+
+    /**
+     * Handles a file/folder drop onto the library tree.
+     * <p>
+     * Resolves the drop target node to determine whether the user dropped onto
+     * an {@code IMPORT_ROOT} or {@code FOLDER} node — if so, that node's root
+     * path is pre-filled as the destination in the Add Files dialog. Any other
+     * drop target (header nodes, timeline, etc.) opens the dialog with no
+     * pre-fill, letting the user choose the destination manually.
+     */
+    @FXML
+    public void onTreeDragDropped(DragEvent event) {
+        Dragboard db = event.getDragboard();
+        if (!db.hasFiles()) {
+            event.setDropCompleted(false);
+            event.consume();
+            return;
+        }
+
+        List<String> droppedPaths = db.getFiles()
+                                      .stream()
+                                      .map(File::getAbsolutePath)
+                                      .toList();
+
+        // ── Resolve the drop-target node ──────────────────────────────────────
+        String prefilledRoot = resolveDropTargetRootPath(event);
+
+        AddFilesBundle bundle = new AddFilesBundle(droppedPaths, prefilledRoot);
+        openAddFilesDialog(bundle);
+
+        event.setDropCompleted(true);
+        event.consume();
+    }
+
+    /**
+     * Inspects the node under the mouse at the time of the drop. Returns the
+     * import-root path if the node is an {@code IMPORT_ROOT} or {@code FOLDER},
+     * {@code null} otherwise.
+     */
+    private String resolveDropTargetRootPath(DragEvent event) {
+        // Pick the cell directly under the cursor
+        Node picked = event.getPickResult()
+                           .getIntersectedNode();
+        while (picked != null && !(picked instanceof TreeCell)) {
+            picked = picked.getParent();
+        }
+        if (picked instanceof TreeCell<?> cell) {
+            Object value = cell.getItem();
+            if (value instanceof LibraryTreeNode node) {
+                NodeType type = node.type();
+                if (type == NodeType.IMPORT_ROOT) {
+                    // The node label IS the root path
+                    return node.displayName();
+                }
+                if (type == NodeType.FOLDER) {
+                    // Walk up the tree to find the enclosing IMPORT_ROOT
+                    TreeItem<?> item = libraryTreeView.getRoot();
+                    return findImportRootPath(libraryTreeView.getRoot(), node.displayName());
+                }
+            }
+        }
+        return null; // user dropped on a non-folder node; dialog will ask
+    }
+
+    /**
+     * Walks the tree depth-first to find the {@code IMPORT_ROOT} ancestor of a
+     * node whose label matches {@code targetLabel}. Returns the root's label
+     * (which equals its path) or {@code null} if not found.
+     */
+    private String findImportRootPath(TreeItem<LibraryTreeNode> subtree, String targetLabel) {
+        if (subtree == null) {
+            return null;
+        }
+        for (TreeItem<LibraryTreeNode> child : subtree.getChildren()) {
+            LibraryTreeNode node = child.getValue();
+            if (node == null) {
+                continue;
+            }
+            if (node.type() == NodeType.IMPORT_ROOT) {
+                // Search this root's subtree
+                if (containsLabel(child, targetLabel)) {
+                    return node.displayName();
+                }
+            } else {
+                String found = findImportRootPath(child, targetLabel);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean containsLabel(TreeItem<LibraryTreeNode> subtree, String label) {
+        if (subtree == null) {
+            return false;
+        }
+        LibraryTreeNode val = subtree.getValue();
+        if (val != null && label.equals(val.displayName())) {
+            return true;
+        }
+        for (TreeItem<LibraryTreeNode> child : subtree.getChildren()) {
+            if (containsLabel(child, label)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ── Add Files dialog helper ───────────────────────────────────────────────
+
+    @SneakyThrows
+    private void openAddFilesDialog(AddFilesBundle bundle) {
+        Stage stage = new Stage();
+        Parent root = fxmlLoader.load(FxmlView.ADD_FILES, bundle)
+                                .parent();
+        stage.setScene(new Scene(root));
+        stage.setTitle("Add files / folders");
+        stage.initModality(Modality.APPLICATION_MODAL);
+        stage.initOwner(backgroundProcessCancelButton.getScene()
+                                                     .getWindow());
+        stage.showAndWait();
     }
 
     private void openSlideshow(List<PhotoRecord> photos, int startIndex) {

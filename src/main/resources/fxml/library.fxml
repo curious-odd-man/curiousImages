@@ -16,7 +16,23 @@
                                 <!-- Left: library tree -->
                                 <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0">
                                     <children>
-                                        <TreeView fx:id="libraryTreeView" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" showRoot="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+                                        <!--
+                                            DnD: files and folders dropped anywhere on the tree view
+                                            are handled by LibraryController#onTreeDragOver /
+                                            onTreeDragDropped. When dropped onto an IMPORT_ROOT or
+                                            FOLDER node the root path is pre-filled in the dialog;
+                                            a drop on any other node defaults to no pre-fill.
+                                        -->
+                                        <TreeView fx:id="libraryTreeView"
+                                                  maxHeight="1.7976931348623157E308"
+                                                  maxWidth="1.7976931348623157E308"
+                                                  showRoot="false"
+                                                  onDragOver="#onTreeDragOver"
+                                                  onDragDropped="#onTreeDragDropped"
+                                                  AnchorPane.bottomAnchor="0.0"
+                                                  AnchorPane.leftAnchor="0.0"
+                                                  AnchorPane.rightAnchor="0.0"
+                                                  AnchorPane.topAnchor="0.0" />
                                     </children>
                                 </AnchorPane>
 
@@ -89,9 +105,19 @@
             <menus>
                 <Menu mnemonicParsing="false" text="File">
                     <items>
+                        <!-- Existing: single-root rescan via path-entry modal -->
                         <MenuItem mnemonicParsing="false" onAction="#onRescanMenuClicked" text="Rescan library..." />
+
+                        <!-- NEW: multi-root rescan via checkbox picker -->
+                        <MenuItem mnemonicParsing="false" onAction="#onRescanRootsMenuClicked" text="Rescan existing roots..." />
+
+                        <!-- NEW: add new files / folders via copy or new-root -->
+                        <MenuItem mnemonicParsing="false" onAction="#onAddFilesMenuClicked" text="Add files / folders..." />
+
+                        <SeparatorMenuItem />
                         <MenuItem mnemonicParsing="false" onAction="#onFindDuplicates" text="Find duplicates" />
                         <MenuItem mnemonicParsing="false" onAction="#onTriggerAiPipeline" text="Trigger AI pipeline" />
+                        <SeparatorMenuItem />
                         <MenuItem mnemonicParsing="false" text="Close" />
                     </items>
                 </Menu>

@@ -47,7 +47,7 @@ import java.util.Random;
 import java.util.ResourceBundle;
 
 import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
-import static com.github.curiousoddman.curious_images.ui.controller.screen.LibraryController.humanReadableSize;
+import static com.github.curiousoddman.curious_images.util.HumanReadableUtils.size;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController.getImage;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
@@ -650,7 +650,7 @@ public class PersonDetailController implements Initializable {
     }
 
     private String buildPhotoDetailsText(PhotoRecord photo) {
-        return getPhotoDetailsText(photo, humanReadableSize(photo.getFileSize()));
+        return getPhotoDetailsText(photo, size(photo.getFileSize()));
     }
 
     // ── Utilities ─────────────────────────────────────────────────────────────

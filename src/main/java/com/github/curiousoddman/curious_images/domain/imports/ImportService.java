@@ -7,6 +7,7 @@ import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMeta
 import com.github.curiousoddman.curious_images.event.LibraryUpdatedEvent;
 import com.github.curiousoddman.curious_images.event.RescanLibraryEvent;
 import com.github.curiousoddman.curious_images.event.RunAiPipelineEvent;
+import com.github.curiousoddman.curious_images.model.AddFilesRequest;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
@@ -50,6 +51,18 @@ import java.util.Set;
  * false) so {@code AiPipelineJob} knows exactly which photos need processing on its next run.
  * Photos that are skipped as unchanged on rescan do NOT get a new status row — their existing
  * row (from a previous run) keeps its flags, so partial pipeline progress is never discarded.
+ *
+ * <h3>New entry points (added for multi-root and add-files support)</h3>
+ * <ul>
+ *   <li>{@link #startMultiRootScan(List)} — accepts a list of root paths and scans them
+ *       sequentially inside a single background job. Used by
+ *       {@link com.github.curiousoddman.curious_images.ui.controller.screen.RescanRootsController}.</li>
+ *   <li>{@link #runImportInternal(String)} — package-accessible; runs a single root scan
+ *       synchronously (blocking, on the calling thread). Called by
+ *       {@link AddFilesService} to sequence multiple roots without spawning competing jobs.</li>
+ *   <li>{@link #isRunning()} — exposes the single-flight flag for the "block if busy" check
+ *       in {@link AddFilesService#start(AddFilesRequest)}.</li>
+ * </ul>
  */
 @Slf4j
 @Component
@@ -62,15 +75,17 @@ public class ImportService extends AbstractBackgroundJob {
     private static final int         DB_FLUSH_BATCH_SIZE      = 200;
     private static final int         APPROXIMATE_LIBRARY_SIZE = 25_000;
 
-    private final DSLContext                   dsl;
-    private final ImportRootRepository         importRootRepository;
-    private final FolderRepository             folderRepository;
-    private final PhotoRepository              photoRepository;
-    private final ThumbnailRepository          thumbnailRepository;
-    private final PhotoMetadataExtractor       metadataExtractor;
-    private final ThumbnailGenerator           thumbnailGenerator;
-    private final TimeProvider                 timeProvider;
-    private final ApplicationEventPublisher    applicationEventPublisher;
+    private final DSLContext                dsl;
+    private final ImportRootRepository      importRootRepository;
+    private final FolderRepository          folderRepository;
+    private final PhotoRepository           photoRepository;
+    private final ThumbnailRepository       thumbnailRepository;
+    private final PhotoMetadataExtractor    metadataExtractor;
+    private final ThumbnailGenerator        thumbnailGenerator;
+    private final TimeProvider              timeProvider;
+    private final ApplicationEventPublisher applicationEventPublisher;
+
+    // ── Single-root event-driven entry point (existing) ───────────────────────
 
     @EventListener
     public void onRescanEvent(RescanLibraryEvent event) {
@@ -78,12 +93,64 @@ public class ImportService extends AbstractBackgroundJob {
             log.warn("Import already running, ignoring new RescanLibraryEvent for {}", event.getPath());
             return;
         }
-        new Thread(() -> runImport(event.getPath()), "import-scan").start();
+        new Thread(() -> {
+            try {
+                runImportInternal(event.getPath());
+                applicationEventPublisher.publishEvent(new LibraryUpdatedEvent(this));
+            } finally {
+                finish();
+            }
+        }, "import-scan").start();
     }
 
-    private void runImport(String rootPathString) {
+    // ── Multi-root entry point (new) ──────────────────────────────────────────
+
+    /**
+     * Scans each path in {@code rootPaths} sequentially inside a single background job.
+     * After all roots are processed, publishes {@link LibraryUpdatedEvent}.
+     *
+     * @return {@code true} if the job was accepted and started;
+     * {@code false} if an import is already running (caller must show an error dialog).
+     */
+    public boolean startMultiRootScan(List<String> rootPaths) {
+        if (!tryStart()) {
+            log.warn("Import already running, ignoring startMultiRootScan for {} roots", rootPaths.size());
+            return false;
+        }
+        new Thread(() -> {
+            try {
+                for (int i = 0; i < rootPaths.size(); i++) {
+                    if (isInterruptRequested()) {
+                        publishInterrupted();
+                        return;
+                    }
+                    log.info("Multi-root scan: root {} of {}: {}", i + 1, rootPaths.size(), rootPaths.get(i));
+                    runImportInternal(rootPaths.get(i));
+                }
+                // Single LibraryUpdatedEvent at the end covers all roots
+                applicationEventPublisher.publishEvent(new LibraryUpdatedEvent(this));
+            } finally {
+                finish();
+            }
+        }, "import-scan-multi").start();
+        return true;
+    }
+
+    // ── Internal scan (synchronous, called on the background thread) ──────────
+
+    /**
+     * Runs the full import scan for a single root path synchronously on the
+     * calling thread. Package-accessible so that {@link AddFilesService} can
+     * sequence several roots inside its own background job without triggering a
+     * second competing single-flight guard.
+     * <p>
+     * Unlike {@link #runImport(String)}, this method does <em>not</em> publish
+     * {@link LibraryUpdatedEvent} — the caller is responsible for doing that
+     * after all roots have been processed.
+     */
+    void runImportInternal(String rootPathString) {
         log.info("Starting import scan of {}", rootPathString);
-        publishStarted("Discovering files...");
+        publishStarted("Discovering files…");
         int imported = 0;
         int skipped  = 0;
         int errors   = 0;
@@ -101,8 +168,7 @@ public class ImportService extends AbstractBackgroundJob {
                 if (isInterruptRequested()) {
                     flush(buffer);
                     log.info("Import scan interrupted after {} files", i);
-                    publishInterrupted();
-                    return;
+                    return; // caller handles publishInterrupted
                 }
 
                 Path file = files.get(i);
@@ -131,14 +197,13 @@ public class ImportService extends AbstractBackgroundJob {
                     rootPathString, imported, skipped, errors);
             publishEnded("Imported/updated %d, skipped %d unchanged, %d errors"
                     .formatted(imported, skipped, errors));
-            applicationEventPublisher.publishEvent(new LibraryUpdatedEvent(this));
         } catch (Exception e) {
             log.error("Import scan of {} failed", rootPathString, e);
             publishFailed(e);
-        } finally {
-            finish();
         }
     }
+
+    // ── File-level import (unchanged) ─────────────────────────────────────────
 
     private ImportOutcome importOneFile(Path rootPath, long importRootId,
                                         Map<Path, Long> folderIdCache,

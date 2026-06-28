@@ -44,7 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 
-import static com.github.curiousoddman.curious_images.ui.controller.screen.LibraryController.humanReadableSize;
+import static com.github.curiousoddman.curious_images.util.HumanReadableUtils.size;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController.getImage;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
@@ -377,7 +377,7 @@ public class DuplicatesController implements Initializable {
     }
 
     private static String formatFileSize(Long bytes) {
-        return humanReadableSize(bytes);
+        return size(bytes);
     }
 
     // ----------------------------------------------------------------------------------------

@@ -45,6 +45,10 @@ public abstract class AbstractBackgroundJob {
 
     protected abstract String getProcessName();
 
+    public boolean isRunning() {
+        return running.get();
+    }
+
     /**
      * Attempts to claim the single-flight slot for this job. Returns {@code false} (and changes
      * nothing) if a run is already in progress — the caller should log and return without

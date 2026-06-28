@@ -6,7 +6,7 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.text.Font?>
 <AnchorPane prefHeight="167.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.RescanLibraryController">
+            fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.ReScanLibraryController">
     <children>
         <TextField fx:id="path" layoutX="22.0" layoutY="35.0" prefHeight="51.0" prefWidth="503.0"/>
         <Button layoutX="525.0" layoutY="35.0" mnemonicParsing="false" onAction="#onChoosePath" text="📂">

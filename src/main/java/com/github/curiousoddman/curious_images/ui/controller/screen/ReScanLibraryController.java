@@ -21,7 +21,7 @@ import java.util.ResourceBundle;
 @Lazy
 @Component
 @RequiredArgsConstructor
-public class RescanLibraryController implements Initializable {
+public class ReScanLibraryController implements Initializable {
     private final ApplicationEventPublisher eventPublisher;
     @FXML
     public        TextField                 path;

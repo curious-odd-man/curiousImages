@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<!--
+    Modal: Add files / folders to the library.
+    Shown when:
+      • user clicks File > Add files / folders…
+      • user drops files / folders onto an IMPORT_ROOT or FOLDER tree node
+         (the controller receives the pre-filled drop-target root via AddFilesBundle)
+
+    Controller: AddFilesController
+    Bundle key in FxmlView: ADD_FILES
+-->
+<VBox spacing="14.0" prefWidth="540.0"
+      xmlns="http://javafx.com/javafx/17.0.12"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.AddFilesController">
+    <padding>
+        <Insets bottom="18.0" left="18.0" right="18.0" top="18.0" />
+    </padding>
+
+    <!-- ── Section 1: What to add ─────────────────────────────────────────── -->
+    <Label text="Source files / folders" style="-fx-font-weight: bold;" />
+
+    <VBox spacing="6.0">
+        <!-- List of paths to be imported (populated from DnD or file chooser) -->
+        <ListView fx:id="sourcePathsList" prefHeight="110.0" />
+        <HBox spacing="8.0">
+            <Button text="Browse…"         onAction="#onBrowseSource"     mnemonicParsing="false" />
+            <Button text="Remove selected" onAction="#onRemoveSourceEntry" mnemonicParsing="false" />
+        </HBox>
+    </VBox>
+
+    <Separator />
+
+    <!-- ── Section 2: How to import ──────────────────────────────────────── -->
+    <Label text="Import mode" style="-fx-font-weight: bold;" />
+
+    <VBox spacing="6.0">
+        <RadioButton fx:id="modeNewRoot" text="Register as a new import root (files stay in place)"
+                     selected="true" mnemonicParsing="false">
+            <toggleGroup>
+                <ToggleGroup fx:id="modeGroup" />
+            </toggleGroup>
+        </RadioButton>
+        <RadioButton fx:id="modeCopy"    text="Copy into a destination folder, then import"
+                     toggleGroup="$modeGroup" mnemonicParsing="false" />
+
+        <!-- Destination row — shown only when 'Copy' is selected -->
+        <HBox fx:id="destinationRow" spacing="8.0" alignment="CENTER_LEFT"
+              managed="false" visible="false">
+            <padding>
+                <Insets left="24.0" />
+            </padding>
+            <Label text="Destination:" />
+            <TextField fx:id="destinationField" promptText="Choose destination folder…"
+                       HBox.hgrow="ALWAYS" editable="false" />
+            <Button text="Browse…" onAction="#onBrowseDestination" mnemonicParsing="false" />
+        </HBox>
+    </VBox>
+
+    <Separator />
+
+    <!-- ── Section 3: Post-import options ───────────────────────────────── -->
+    <Label text="After import" style="-fx-font-weight: bold;" />
+
+    <VBox spacing="6.0">
+        <CheckBox fx:id="runAiCheckBox"
+                  text="Run AI pipeline immediately (face detection, CLIP embeddings, clustering)"
+                  selected="true" mnemonicParsing="false" />
+        <CheckBox fx:id="runDedupeCheckBox"
+                  text="Run duplicate detection immediately"
+                  selected="false" mnemonicParsing="false" />
+    </VBox>
+
+    <Separator />
+
+    <!-- ── Buttons ────────────────────────────────────────────────────────── -->
+    <HBox alignment="CENTER_RIGHT" spacing="8.0">
+        <Button text="Start import" onAction="#onStartImport"
+                defaultButton="true" mnemonicParsing="false"
+                style="-fx-font-weight: bold;" />
+        <Button text="Cancel" onAction="#onCancel" mnemonicParsing="false" />
+    </HBox>
+</VBox>

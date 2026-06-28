@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<!--
+    Modal: lets the user pick which import roots to rescan.
+    Controller: RescanRootsController
+    Bundle key in FxmlView: RESCAN_ROOTS
+-->
+
+<VBox spacing="12.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.RescanRootsController">
+    <padding>
+        <Insets bottom="16.0" left="16.0" right="16.0" top="16.0" />
+    </padding>
+
+    <Label style="-fx-font-weight: bold;" text="Select roots to rescan:" />
+
+    <!-- Scrollable list of CheckBoxes, one per import root -->
+    <ScrollPane fitToWidth="true" hbarPolicy="NEVER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="220.0">
+        <content>
+            <VBox fx:id="rootsContainer" spacing="6.0">
+                <padding>
+                    <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+                </padding>
+            </VBox>
+        </content>
+    </ScrollPane>
+
+    <!-- Select all / none shortcuts -->
+    <HBox spacing="8.0" VBox.vgrow="ALWAYS">
+        <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onSelectAll" text="Select all" HBox.hgrow="ALWAYS" />
+        <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onSelectNone" text="Select none" HBox.hgrow="ALWAYS" />
+    </HBox>
+
+    <Separator />
+
+    <!-- OK / Cancel -->
+    <HBox alignment="CENTER_RIGHT" spacing="8.0">
+        <Button defaultButton="true" mnemonicParsing="false" onAction="#onRescan" style="-fx-font-weight: bold;" text="Rescan selected" />
+        <Button mnemonicParsing="false" onAction="#onCancel" text="Cancel" />
+    </HBox>
+</VBox>
