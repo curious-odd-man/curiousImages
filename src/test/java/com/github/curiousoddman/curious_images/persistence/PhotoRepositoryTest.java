@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images.persistence;
 
 import com.github.curiousoddman.curious_images.domain.imports.metadata.CaptureDateSource;
+import com.github.curiousoddman.curious_images.util.TimeProvider;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -21,7 +22,7 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
 
     @Test
     void findByAbsolutePathReturnsEmptyWhenNotImportedYet() {
-        PhotoRepository repository = new PhotoRepository(dsl);
+        PhotoRepository repository = new PhotoRepository(dsl, new TimeProvider());
 
         assertTrue(repository.findByAbsolutePath("D:\\Photos\\a.jpg")
                              .isEmpty());
@@ -29,7 +30,7 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
 
     @Test
     void insertThenFindByAbsolutePathRoundTrips() {
-        PhotoRepository repository  = new PhotoRepository(dsl);
+        PhotoRepository repository  = new PhotoRepository(dsl, new TimeProvider());
         long            folderId    = aFolderId();
         LocalDateTime   now         = LocalDateTime.of(2024, 6, 1, 12, 0);
         LocalDateTime   captureDate = LocalDateTime.of(2023, 6, 15, 14, 30);
@@ -57,7 +58,7 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
 
     @Test
     void absolutePathIsUniqueAcrossInserts() {
-        PhotoRepository repository = new PhotoRepository(dsl);
+        PhotoRepository repository = new PhotoRepository(dsl, new TimeProvider());
         long            folderId   = aFolderId();
         LocalDateTime   now        = LocalDateTime.now();
 
@@ -69,7 +70,7 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
 
     @Test
     void touchLastSeenAtQueryOnlyUpdatesThatColumn() {
-        PhotoRepository repository = new PhotoRepository(dsl);
+        PhotoRepository repository = new PhotoRepository(dsl, new TimeProvider());
         long            folderId   = aFolderId();
         LocalDateTime   importedAt = LocalDateTime.of(2024, 1, 1, 0, 0);
         long photoId = repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg",
@@ -89,7 +90,7 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
 
     @Test
     void updateMetadataQueryUpdatesFileSizeDimensionsAndCaptureDate() {
-        PhotoRepository repository = new PhotoRepository(dsl);
+        PhotoRepository repository = new PhotoRepository(dsl, new TimeProvider());
         long            folderId   = aFolderId();
         long photoId = repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg",
                 100L, 800, 600, null, null, 0, "", "", "", "", LocalDateTime.now());

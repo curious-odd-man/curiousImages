@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.github.curiousoddman.curious_images.domain.ai.AiPipelineJob.loadImageOriented;
-import static com.github.curiousoddman.curious_images.domain.imports.ImportService.extensionOf;
+import static com.github.curiousoddman.curious_images.util.FileUtils.extensionOf;
 
 @Slf4j
 class RetinaFaceDetectorTest {

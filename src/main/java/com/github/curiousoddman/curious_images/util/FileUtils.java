@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Locale;
 
 @UtilityClass
 public class FileUtils {
@@ -19,5 +20,11 @@ public class FileUtils {
         }
         Files.createDirectories(dest.getParent());
         Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    public static String extensionOf(String filename) {
+        int dot = filename.lastIndexOf('.');
+        return dot < 0 ? "" : filename.substring(dot + 1)
+                                      .toLowerCase(Locale.ROOT);
     }
 }

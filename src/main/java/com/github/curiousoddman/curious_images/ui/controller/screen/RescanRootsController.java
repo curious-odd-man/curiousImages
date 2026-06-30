@@ -1,8 +1,10 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRecord;
-import com.github.curiousoddman.curious_images.domain.imports.ImportService;
+import com.github.curiousoddman.curious_images.domain.imports.ImportJob;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
+import com.github.curiousoddman.curious_images.util.async.jobs.JobDescriptor;
+import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Component;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 /**
@@ -25,7 +28,7 @@ import java.util.ResourceBundle;
  * <p>
  * Shows a checkbox list of every known import root so the user can pick which
  * ones to rescan. Clicking "Rescan selected" hands the chosen paths to
- * {@link ImportService#startMultiRootScan(List)}, which runs them sequentially
+ * {@link ImportJob#startMultiRootScan(List)}, which runs them sequentially
  * inside a single background job. If a scan is already running the service
  * returns {@code false} and a blocking alert is shown instead.
  */
@@ -36,7 +39,7 @@ import java.util.ResourceBundle;
 public class RescanRootsController implements Initializable {
 
     private final ImportRootRepository importRootRepository;
-    private final ImportService        importService;
+    private final JobManager           jobManager;
 
     @FXML
     public VBox rootsContainer;
@@ -82,7 +85,9 @@ public class RescanRootsController implements Initializable {
             return;
         }
 
-        boolean started = importService.startMultiRootScan(selected);
+        Optional<JobDescriptor> submit = jobManager.submitImportJob(selected);
+
+        boolean started = submit.isPresent();
         if (!started) {
             showError("Scan already running",
                     "A library scan is already in progress.\n"

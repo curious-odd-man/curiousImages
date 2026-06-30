@@ -1,86 +1,32 @@
 package com.github.curiousoddman.curious_images.domain.imports;
 
-import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateDetectionService;
-import com.github.curiousoddman.curious_images.event.RunAiPipelineEvent;
 import com.github.curiousoddman.curious_images.model.AddFilesRequest;
 import com.github.curiousoddman.curious_images.util.CopyFileTreeVisitor;
 import com.github.curiousoddman.curious_images.util.FileUtils;
-import com.github.curiousoddman.curious_images.util.async.AbstractBackgroundJob;
+import com.github.curiousoddman.curious_images.util.async.jobs.BackgroundJob;
+import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-/**
- * Background job that handles the "Add files / folders" workflow:
- * <ol>
- *   <li>Optionally copies source trees into a destination folder, preserving
- *       subfolder structure (skips files that already exist at the destination
- *       with the same size — cheap idempotency, same philosophy as
- *       {@link ImportService}).</li>
- *   <li>Resolves the effective scan roots (destination when copying, original
- *       source paths when registering in-place as new roots) and hands each one
- *       to {@link ImportService#runImportInternal(String)} sequentially.</li>
- *   <li>Optionally fires {@link RunAiPipelineEvent} and/or starts
- *       {@link DuplicateDetectionService} after the scan completes.</li>
- * </ol>
- *
- * <h3>Concurrency / single-flight</h3>
- * {@link AbstractBackgroundJob#tryStart()} is checked at entry. If
- * {@link ImportService} is already running its own scan,
- * {@link ImportService#tryStart()} will return {@code false} when called from
- * here. However, this service and {@code ImportService} share no guard; the
- * caller ({@link com.github.curiousoddman.curious_images.ui.controller.screen.AddFilesController})
- * calls {@link #start(AddFilesRequest)} and shows a blocking alert when
- * {@code false} is returned, per the spec. Both services extend
- * {@link AbstractBackgroundJob} independently, so the UI is responsible for
- * not starting a second job while the first is running (the controllers check
- * {@link #isRunning()} / {@link ImportService#isRunning()} before opening the
- * dialogs).
- */
 @Slf4j
-@Component
 @RequiredArgsConstructor
-public class AddFilesService extends AbstractBackgroundJob {
+public class AddFilesJob extends BackgroundJob {
 
     public static final String ADD_FILES = "Add Files";
 
-    private final ImportService             importService;
-    private final DuplicateDetectionService duplicateDetectionService;
-    private final ApplicationEventPublisher applicationEventPublisher;
-
-    // ── Public API ────────────────────────────────────────────────────────────
-
-    /**
-     * Starts the add-files job on a dedicated background thread.
-     *
-     * @return {@code true}  if the job was accepted and started;
-     * {@code false} if this service OR {@link ImportService} is already
-     * running (caller must show a blocking error dialog).
-     */
-    public boolean start(AddFilesRequest request) {
-        if (importService.isRunning()) {
-            log.warn("AddFilesService: ImportService is already running — refusing to start");
-            return false;
-        }
-        if (!tryStart()) {
-            log.warn("AddFilesService: already running — refusing to start");
-            return false;
-        }
-        Thread t = new Thread(() -> run(request), "add-files");
-        t.setDaemon(true);
-        t.start();
-        return true;
-    }
+    private final ImportJob       importJob;
+    private final JobManager      jobManager;
+    private final AddFilesRequest request;
 
     // ── Core logic ────────────────────────────────────────────────────────────
 
-    private void run(AddFilesRequest request) {
+    @Override
+    public void runImpl() {
         publishStarted("Preparing to add files…");
         try {
             List<String> scanRoots;
@@ -115,27 +61,24 @@ public class AddFilesService extends AbstractBackgroundJob {
                  * sequence multiple roots in a single background job without going
                  * through the event bus (which would start a competing background job).
                  */
-                importService.runImportInternal(root);
+                importJob.runImportInternal(root);
             }
 
             publishEnded("Files added successfully");
 
             // ── Phase 3: optional post-processing ─────────────────────────────
-            // FIXME: These 2 will fire progress events -> ui will be broken. Should I use single threaded executor to effectively has only 1 background task running all the time?
             if (request.runAiPipeline()) {
                 log.info("AddFilesService: triggering AI pipeline");
-                applicationEventPublisher.publishEvent(new RunAiPipelineEvent(this));
+                jobManager.submitAiPipelineJob();
             }
             if (request.runDuplicateDetection()) {
                 log.info("AddFilesService: triggering duplicate detection");
-                duplicateDetectionService.start();
+                jobManager.submitDuplicatesJob();
             }
 
         } catch (Exception e) {
             log.error("AddFilesService failed", e);
             publishFailed(e);
-        } finally {
-            finish();
         }
     }
 
@@ -148,7 +91,7 @@ public class AddFilesService extends AbstractBackgroundJob {
      * with the exact same byte-size are skipped (cheap idempotency — no checksum).
      *
      * @return list of effective scan roots inside the destination to be handed
-     * to {@link ImportService}
+     * to {@link ImportJob}
      */
     private List<String> copySourcesIntoDestination(AddFilesRequest request) throws IOException {
         Path         destRoot  = Path.of(request.destinationFolder());
@@ -180,15 +123,8 @@ public class AddFilesService extends AbstractBackgroundJob {
         return scanRoots;
     }
 
-    // ── AbstractBackgroundJob ─────────────────────────────────────────────────
-
     @Override
-    protected ApplicationEventPublisher eventPublisher() {
-        return applicationEventPublisher;
-    }
-
-    @Override
-    protected String getProcessName() {
+    public String getProcessName() {
         return ADD_FILES;
     }
 }

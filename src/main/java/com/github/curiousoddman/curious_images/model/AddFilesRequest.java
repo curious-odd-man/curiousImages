@@ -1,7 +1,6 @@
 package com.github.curiousoddman.curious_images.model;
 
-import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateDetectionService;
-import com.github.curiousoddman.curious_images.event.RunAiPipelineEvent;
+import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateDetectionJob;
 
 import java.util.List;
 
@@ -13,8 +12,7 @@ import java.util.List;
  *                              {@code false} → register in-place as new import roots.
  * @param destinationFolder     Target folder for copies; {@code null} when
  *                              {@code copyToDestination} is {@code false}.
- * @param runAiPipeline         Fire {@link RunAiPipelineEvent} after import.
- * @param runDuplicateDetection Start {@link DuplicateDetectionService} after import.
+ * @param runDuplicateDetection Start {@link DuplicateDetectionJob} after import.
  */
 public record AddFilesRequest(
         List<String> sourcePaths,

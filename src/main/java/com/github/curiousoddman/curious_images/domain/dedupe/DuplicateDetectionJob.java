@@ -5,15 +5,13 @@ import com.github.curiousoddman.curious_images.persistence.DuplicateGroupReposit
 import com.github.curiousoddman.curious_images.persistence.DuplicateJobRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
-import com.github.curiousoddman.curious_images.util.async.AbstractBackgroundJob;
+import com.github.curiousoddman.curious_images.util.async.jobs.BackgroundJob;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.jooq.Query;
 import org.jooq.impl.DSL;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -45,37 +43,22 @@ import java.util.concurrent.atomic.AtomicInteger;
  * is CPU-bound image decoding, not I/O-bound waiting.
  */
 @Slf4j
-@Component
 @RequiredArgsConstructor
-public class DuplicateDetectionService extends AbstractBackgroundJob {
+public class DuplicateDetectionJob extends BackgroundJob {
     public static final String DUPLICATE_DETECTION = "Duplicate Detection";
-
     private static final int DB_FLUSH_BATCH_SIZE = 200;
 
-    private final DSLContext                dsl;
-    private final PhotoRepository           photoRepository;
-    private final PhotoHashRepository       photoHashRepository;
-    private final DuplicateJobRepository    duplicateJobRepository;
-    private final DuplicateGroupRepository  duplicateGroupRepository;
-    private final PixelHasher               pixelHasher;
-    private final TimeProvider              timeProvider;
-    @Value("${app.duplicate-detection.thread-count:4}")
-    private final int                       threadCount;
-    private final ApplicationEventPublisher applicationEventPublisher;
+    private final DSLContext               dsl;
+    private final PhotoRepository          photoRepository;
+    private final PhotoHashRepository      photoHashRepository;
+    private final DuplicateJobRepository   duplicateJobRepository;
+    private final DuplicateGroupRepository duplicateGroupRepository;
+    private final PixelHasher              pixelHasher;
+    private final TimeProvider             timeProvider;
+    private final int                      threadCount;
 
-    /**
-     * Fire-and-forget entry point: starts detection on a background thread and returns
-     * immediately. No-op (logs a warning) if a run is already in progress.
-     */
-    public void start() {
-        if (!tryStart()) {
-            log.warn("Duplicate detection already running, ignoring request");
-            return;
-        }
-        new Thread(this::runDetection, "duplicate-detection").start();
-    }
-
-    private void runDetection() {
+    @Override
+    public void runImpl() {
         log.info("Starting duplicate detection");
         publishStarted("Loading photo library...");
         long jobId = -1;
@@ -124,8 +107,7 @@ public class DuplicateDetectionService extends AbstractBackgroundJob {
                 duplicateJobRepository.markFailed(jobId, timeProvider.now(), String.valueOf(e.getMessage()));
             }
             publishFailed(e);
-        } finally {
-            finish();
+            throw e;
         }
     }
 
@@ -245,12 +227,7 @@ public class DuplicateDetectionService extends AbstractBackgroundJob {
     }
 
     @Override
-    protected ApplicationEventPublisher eventPublisher() {
-        return applicationEventPublisher;
-    }
-
-    @Override
-    protected String getProcessName() {
+    public String getProcessName() {
         return DUPLICATE_DETECTION;
     }
 

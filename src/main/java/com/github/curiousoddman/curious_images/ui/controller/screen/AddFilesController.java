@@ -1,8 +1,9 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
-import com.github.curiousoddman.curious_images.domain.imports.AddFilesService;
 import com.github.curiousoddman.curious_images.model.AddFilesRequest;
 import com.github.curiousoddman.curious_images.model.bundle.AddFilesBundle;
+import com.github.curiousoddman.curious_images.util.async.jobs.JobDescriptor;
+import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 /**
@@ -33,7 +35,6 @@ import java.util.ResourceBundle;
  * Accepts an {@link AddFilesBundle} pre-populated by either the menu action
  * (empty) or by a drag-and-drop drop event on the library tree (source paths +
  * pre-filled destination root). Validates inputs and delegates to
- * {@link AddFilesService#start(AddFilesRequest)}.
  * <p>
  * The dialog is opened by {@code LibraryController} via
  * {@code FxmlLoader.load(FxmlView.ADD_FILES, bundle)}, so the bundle is injected
@@ -46,7 +47,7 @@ import java.util.ResourceBundle;
 @RequiredArgsConstructor
 public class AddFilesController implements Initializable {
 
-    private final AddFilesService addFilesService;
+    private final JobManager jobManager;
 
     // ── FXML nodes ────────────────────────────────────────────────────────────
 
@@ -170,7 +171,8 @@ public class AddFilesController implements Initializable {
                 runDedupeCheckBox.isSelected()
         );
 
-        boolean started = addFilesService.start(request);
+        Optional<JobDescriptor> submitted = jobManager.submitAddFilesJob(request);
+        boolean                 started   = submitted.isPresent();
         if (!started) {
             showError("Import already running",
                     "A library scan is already in progress.\n"

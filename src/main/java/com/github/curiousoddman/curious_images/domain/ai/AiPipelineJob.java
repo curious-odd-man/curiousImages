@@ -1,6 +1,5 @@
 package com.github.curiousoddman.curious_images.domain.ai;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ClipEmbeddingRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceEmbeddingRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
@@ -8,7 +7,6 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.domain.index.ClipVectorIndex;
 import com.github.curiousoddman.curious_images.domain.index.FaceVectorIndex;
 import com.github.curiousoddman.curious_images.event.RegenerateAlbumsEvent;
-import com.github.curiousoddman.curious_images.event.RunAiPipelineEvent;
 import com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceEmbeddingRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
@@ -16,15 +14,12 @@ import com.github.curiousoddman.curious_images.persistence.FaceThumbnailsReposit
 import com.github.curiousoddman.curious_images.persistence.Landmarks;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
-import com.github.curiousoddman.curious_images.util.async.AbstractBackgroundJob;
+import com.github.curiousoddman.curious_images.util.async.jobs.BackgroundJob;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.jooq.Query;
 import org.jooq.impl.DSL;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -38,27 +33,9 @@ import java.util.Map;
 
 import static com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator.rotate;
 
-/**
- * Orchestrates the full AI processing pipeline for newly imported photos:
- * <ol>
- *   <li>Face detection (RetinaFace)</li>
- *   <li>Face embedding (ArcFace)</li>
- *   <li>CLIP image embedding</li>
- *   <li>Lucene vector indexing</li>
- *   <li>Person clustering</li>
- * </ol>
- * Each stage queries {@link PhotoRepository} for photos not yet at that stage,
- * so the job is fully resumable: restarting after a crash picks up exactly where it left off.
- * <p>
- * Triggered by {@link RunAiPipelineEvent}, published by {@code ImportService} after a
- * successful import. A single-flight guard (from {@link AbstractBackgroundJob#tryStart()})
- * prevents concurrent runs.
- */
 @Slf4j
-@Component
 @RequiredArgsConstructor
-public class AiPipelineJob extends AbstractBackgroundJob {
-
+public class AiPipelineJob extends BackgroundJob {
     public static final String AI_PIPELINE = "AI Pipeline";
 
     private static final int    DB_FLUSH_BATCH_SIZE  = 50;
@@ -67,39 +44,25 @@ public class AiPipelineJob extends AbstractBackgroundJob {
 
     // ── Dependencies ──────────────────────────────────────────────────────────
 
-    private final DSLContext                dsl;
-    private final PhotoRepository           photoRepo;
-    private final FaceRepository            faceRepo;
-    private final FaceEmbeddingRepository   faceEmbeddingRepo;
-    private final ClipEmbeddingRepository   clipEmbeddingRepo;
-    private final RetinaFaceDetector        retinaFaceDetector;
-    private final ArcFaceEncoder            arcFaceEncoder;
-    private final FaceAligner               faceAligner;
-    private final ClipImageEncoder          clipImageEncoder;
-    private final ClipVectorIndex           clipVectorIndex;
-    private final FaceVectorIndex           faceVectorIndex;
-    private final PersonClusteringService   personClusteringService;
-    private final TimeProvider              timeProvider;
-    private final ApplicationEventPublisher applicationEventPublisher;
-    private final ObjectMapper              objectMapper;
-    private final FaceThumbnailsRepository  faceThumbnailsRepository;
-
-    // ── Event listener ────────────────────────────────────────────────────────
-
-    @EventListener
-    public void onRunAiPipeline(RunAiPipelineEvent event) {
-        if (!tryStart()) {
-            log.warn("AI pipeline already running, ignoring new RunAiPipelineEvent");
-            return;
-        }
-        Thread t = new Thread(this::run, "ai-pipeline");
-        t.setDaemon(true);
-        t.start();
-    }
+    private final DSLContext               dsl;
+    private final PhotoRepository          photoRepo;
+    private final FaceRepository           faceRepo;
+    private final FaceEmbeddingRepository  faceEmbeddingRepo;
+    private final ClipEmbeddingRepository  clipEmbeddingRepo;
+    private final RetinaFaceDetector       retinaFaceDetector;
+    private final ArcFaceEncoder           arcFaceEncoder;
+    private final FaceAligner              faceAligner;
+    private final ClipImageEncoder         clipImageEncoder;
+    private final ClipVectorIndex          clipVectorIndex;
+    private final FaceVectorIndex          faceVectorIndex;
+    private final PersonClusteringService  personClusteringService;
+    private final TimeProvider             timeProvider;
+    private final FaceThumbnailsRepository faceThumbnailsRepository;
 
     // ── Pipeline orchestration ────────────────────────────────────────────────
 
-    private void run() {
+    @Override
+    public void runImpl() throws Exception {
         publishStarted("Starting AI pipeline...");
         try {
             runFaceDetection();
@@ -129,12 +92,11 @@ public class AiPipelineJob extends AbstractBackgroundJob {
             personClusteringService.cluster();
 
             publishEnded("AI pipeline complete");
-            applicationEventPublisher.publishEvent(new RegenerateAlbumsEvent(this));
+            eventPublisher.publishEvent(new RegenerateAlbumsEvent(this));
         } catch (Exception e) {
             log.error("AI pipeline failed", e);
             publishFailed(e);
-        } finally {
-            finish();
+            throw e;
         }
     }
 
@@ -424,12 +386,7 @@ public class AiPipelineJob extends AbstractBackgroundJob {
     }
 
     @Override
-    protected ApplicationEventPublisher eventPublisher() {
-        return applicationEventPublisher;
-    }
-
-    @Override
-    protected String getProcessName() {
+    public String getProcessName() {
         return AI_PIPELINE;
     }
 }

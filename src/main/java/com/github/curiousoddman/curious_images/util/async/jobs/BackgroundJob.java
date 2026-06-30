@@ -1,92 +1,74 @@
-package com.github.curiousoddman.curious_images.util.async;
+package com.github.curiousoddman.curious_images.util.async.jobs;
 
 import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
-import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.payload.EndedBackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.event.payload.IndeterminateBackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.event.payload.ProgressBackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.event.types.BackgroundProcessEventType;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import static com.github.curiousoddman.curious_images.util.async.jobs.JobStatus.COMPLETED;
+import static com.github.curiousoddman.curious_images.util.async.jobs.JobStatus.FAILED;
+import static com.github.curiousoddman.curious_images.util.async.jobs.JobStatus.INTERRUPTED;
+import static com.github.curiousoddman.curious_images.util.async.jobs.JobStatus.INTERRUPT_REQUESTED;
+import static com.github.curiousoddman.curious_images.util.async.jobs.JobStatus.NEVER_RUN;
+import static com.github.curiousoddman.curious_images.util.async.jobs.JobStatus.RUNNING;
 
-/**
- * Shared run-state and event-publishing machinery for long-running background jobs (import scan,
- * duplicate detection, ...). Extracted from the original {@code ImportService}, which had this
- * logic embedded directly. A subclass gets, for free:
- * <ul>
- *     <li>A single-flight guard ({@link #tryStart()} / {@link #finish()}) so a second invocation
- *     while a run is already in progress is rejected rather than started concurrently.</li>
- *     <li>A cooperative interrupt flag ({@link #requestInterrupt()} / {@link #isInterruptRequested()}).
- *     Nothing here pre-empts a running thread — the job's own loop must poll it.</li>
- *     <li>{@link BackgroundProcessEvent} publishing for each lifecycle stage, tagged with this
- *     job's {@code processName} so the UI can tell jobs apart.</li>
- *     <li>Throttled per-item progress publishing ({@link #publishProgress}) so a tight loop
- *     doesn't flood the event bus — safe to call concurrently from a worker pool.</li>
- * </ul>
- * <p>
- * Cancellation note: {@link #requestInterrupt()} is meant to be called from a job-agnostic
- * {@code @EventListener} on {@code InterruptBackgroundProcessEvent}, exactly as
- * {@code ImportService} did before this extraction — that event carries no job identifier, so it
- * interrupts whichever job(s) happen to be running. Fine as long as this application never
- * intentionally runs two background jobs at once; worth revisiting if that ever changes.
- */
-public abstract class AbstractBackgroundJob {
-
+@Slf4j
+public abstract class BackgroundJob {
     private static final int PROGRESS_PUBLISH_INTERVAL_MS = 100;
 
-    private final AtomicBoolean running = new AtomicBoolean(false);
+    @Getter
+    private volatile JobStatus jobStatus             = NEVER_RUN;
+    private volatile long      lastProgressPublishMs = 0;
 
-    private volatile boolean shouldInterrupt;
-    private volatile long    lastProgressPublishMs;
+    protected ApplicationEventPublisher eventPublisher;
 
-    protected abstract ApplicationEventPublisher eventPublisher();
+    public abstract String getProcessName();
 
-    protected abstract String getProcessName();
+    public void run(ApplicationEventPublisher applicationEventPublisher) {
+        if (isInterruptRequested()) {
+            log.info("Job interrupted before running");
+            jobStatus = INTERRUPTED;
+            return;
+        }
+        eventPublisher = applicationEventPublisher;
+        try {
+            log.info("Set running...");
+            jobStatus = RUNNING;
+            lastProgressPublishMs = 0;
+            runImpl();
+            if (jobStatus == INTERRUPT_REQUESTED) {
+                log.info("Job interrupted...");
+                jobStatus = INTERRUPTED;
+            } else {
+                log.info("Job completed");
+                jobStatus = COMPLETED;
+            }
+        } catch (Exception e) {
+            log.info("Job failed");
+            jobStatus = FAILED;
+        }
+    }
+
+    public abstract void runImpl() throws Exception;
 
     public boolean isRunning() {
-        return running.get();
+        return jobStatus == RUNNING;
     }
 
-    /**
-     * Attempts to claim the single-flight slot for this job. Returns {@code false} (and changes
-     * nothing) if a run is already in progress — the caller should log and return without
-     * starting a thread. On success, resets the interrupt flag and progress throttle so the new
-     * run starts clean.
-     */
-    protected boolean tryStart() {
-        if (!running.compareAndSet(false, true)) {
-            return false;
-        }
-        shouldInterrupt = false;
-        lastProgressPublishMs = 0;
-        return true;
-    }
-
-    /**
-     * Releases the single-flight slot. Must be called from a {@code finally} block around the
-     * job's run method, on every exit path (success, interrupt, or failure).
-     */
-    protected void finish() {
-        running.set(false);
-    }
-
-    /**
-     * Requests cooperative cancellation. Call this from an {@code @EventListener} on
-     * {@code InterruptBackgroundProcessEvent}. No-op if no run is in progress.
-     */
-    @EventListener
-    public void requestInterrupt(InterruptBackgroundProcessEvent event) {
-        shouldInterrupt = true;
+    public void requestInterrupt() {
+        jobStatus = INTERRUPT_REQUESTED;
     }
 
     /**
      * The job's run loop should poll this periodically (e.g. once per item, or once per
      * completed hashing task) and stop promptly once it flips to {@code true}.
      */
-    protected boolean isInterruptRequested() {
-        return shouldInterrupt;
+    public boolean isInterruptRequested() {
+        return jobStatus == INTERRUPT_REQUESTED || jobStatus == INTERRUPTED;
     }
 
     protected void publishStarted(String description) {
@@ -94,7 +76,7 @@ public abstract class AbstractBackgroundJob {
                 .progressDetails(description)
                 .build();
 
-        eventPublisher().publishEvent(
+        eventPublisher.publishEvent(
                 new BackgroundProcessEvent(
                         this,
                         BackgroundProcessEventType.STARTED,
@@ -115,7 +97,7 @@ public abstract class AbstractBackgroundJob {
                 .maxProgress(maxProgress)
                 .build();
 
-        eventPublisher().publishEvent(
+        eventPublisher.publishEvent(
                 new BackgroundProcessEvent(
                         this,
                         BackgroundProcessEventType.IN_PROGRESS,
@@ -145,7 +127,7 @@ public abstract class AbstractBackgroundJob {
                 .progressText(phaseText + ": " + progress + "/" + maxProgress)
                 .build();
 
-        eventPublisher().publishEvent(
+        eventPublisher.publishEvent(
                 new BackgroundProcessEvent(
                         this,
                         BackgroundProcessEventType.IN_PROGRESS,
@@ -159,7 +141,7 @@ public abstract class AbstractBackgroundJob {
                 .progressDetails("Interrupted")
                 .build();
 
-        eventPublisher().publishEvent(
+        eventPublisher.publishEvent(
                 new BackgroundProcessEvent(
                         this,
                         BackgroundProcessEventType.INTERRUPTED,
@@ -174,7 +156,7 @@ public abstract class AbstractBackgroundJob {
                 .error(e)
                 .build();
 
-        eventPublisher().publishEvent(
+        eventPublisher.publishEvent(
                 new BackgroundProcessEvent(
                         this,
                         BackgroundProcessEventType.FAILED,
@@ -188,7 +170,7 @@ public abstract class AbstractBackgroundJob {
                 .progressDetails(description)
                 .build();
 
-        eventPublisher().publishEvent(
+        eventPublisher.publishEvent(
                 new BackgroundProcessEvent(
                         this,
                         BackgroundProcessEventType.ENDED,

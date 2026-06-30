@@ -6,14 +6,11 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRe
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
-import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateDetectionService;
 import com.github.curiousoddman.curious_images.domain.search.SearchService;
 import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferencesService;
 import com.github.curiousoddman.curious_images.event.AiPipelineCompleteEvent;
 import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
-import com.github.curiousoddman.curious_images.event.InterruptBackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.LibraryUpdatedEvent;
-import com.github.curiousoddman.curious_images.event.RunAiPipelineEvent;
 import com.github.curiousoddman.curious_images.event.payload.BackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.TimelineData;
@@ -39,6 +36,7 @@ import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.TimelinePayl
 import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.UndatedPayload;
 import com.github.curiousoddman.curious_images.util.HumanReadableUtils;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
+import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.beans.InvalidationListener;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -79,7 +77,6 @@ import javafx.stage.Stage;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -111,18 +108,17 @@ public class LibraryController implements Initializable {
 
     private static final int SEARCH_TOP_K = 50;
 
-    private final ApplicationEventPublisher eventPublisher;
-    private final FxmlLoader                fxmlLoader;
-    private final UserPreferencesService    userPreferencesService;
-    private final ImportRootRepository      importRootRepository;
-    private final FolderRepository          folderRepository;
-    private final PhotoRepository           photoRepository;
-    private final ThumbnailRepository       thumbnailRepository;
-    private final AlbumRepository           albumRepository;
-    private final AlbumPhotoRepository      albumPhotoRepository;
-    private final PersonRepository          personRepository;
-    private final DuplicateDetectionService duplicateDetectionService;
-    private final SearchService             searchService;
+    private final FxmlLoader             fxmlLoader;
+    private final UserPreferencesService userPreferencesService;
+    private final ImportRootRepository   importRootRepository;
+    private final FolderRepository       folderRepository;
+    private final PhotoRepository        photoRepository;
+    private final ThumbnailRepository    thumbnailRepository;
+    private final AlbumRepository        albumRepository;
+    private final AlbumPhotoRepository   albumPhotoRepository;
+    private final PersonRepository       personRepository;
+    private final SearchService          searchService;
+    private final JobManager             jobManager;
 
     // ── FXML nodes ────────────────────────────────────────────────────────────
 
@@ -264,7 +260,7 @@ public class LibraryController implements Initializable {
 
     @FXML
     public void onCancelBackgroundJob(ActionEvent actionEvent) {
-        eventPublisher.publishEvent(new InterruptBackgroundProcessEvent(this));
+        jobManager.interruptCurrentJob();
     }
 
     // ── Tree building ─────────────────────────────────────────────────────────
@@ -739,11 +735,6 @@ public class LibraryController implements Initializable {
         stage.showAndWait();
     }
 
-    /**
-     * NEW: opens a checkbox-picker modal listing all known import roots so the
-     * user can choose which ones to rescan. Scans are run sequentially in a
-     * single background job by {@link com.github.curiousoddman.curious_images.domain.imports.ImportService#startMultiRootScan}.
-     */
     @FXML
     @SneakyThrows
     public void onRescanRootsMenuClicked(ActionEvent actionEvent) {
@@ -770,12 +761,12 @@ public class LibraryController implements Initializable {
 
     @FXML
     public void onFindDuplicates(ActionEvent event) {
-        duplicateDetectionService.start();
+        jobManager.submitDuplicatesJob();
     }
 
     @FXML
     public void onTriggerAiPipeline(ActionEvent event) {
-        eventPublisher.publishEvent(new RunAiPipelineEvent(this));
+        jobManager.submitAiPipelineJob();
     }
 
     // ── Drag-and-drop onto the library TreeView ───────────────────────────────
