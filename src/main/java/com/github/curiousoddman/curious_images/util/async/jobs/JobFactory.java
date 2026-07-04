@@ -64,7 +64,6 @@ public class JobFactory {
     private final FaceVectorIndex          faceVectorIndex;
     private final PersonClusteringService  personClusteringService;
     private final FaceThumbnailsRepository faceThumbnailsRepository;
-    private final JobManager               jobManager;
 
     public ImportJob createImportJob(List<String> paths) {
         return new ImportJob(
@@ -112,7 +111,7 @@ public class JobFactory {
         );
     }
 
-    public AddFilesJob createAddFilesJob(AddFilesRequest request) {
+    public AddFilesJob createAddFilesJob(AddFilesRequest request, JobManager jobManager) {
         return new AddFilesJob(
                 createImportJob(List.of()),
                 jobManager,

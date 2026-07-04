@@ -194,6 +194,6 @@ public class JobManager {
     }
 
     public Optional<JobDescriptor> submitAddFilesJob(AddFilesRequest request) {
-        return submit(jobFactory.createAddFilesJob(request));
+        return submit(jobFactory.createAddFilesJob(request, this));
     }
 }
