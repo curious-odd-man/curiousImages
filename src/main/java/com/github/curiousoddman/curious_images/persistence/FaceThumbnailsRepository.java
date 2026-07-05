@@ -14,8 +14,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Repository
 @RequiredArgsConstructor
 public class FaceThumbnailsRepository {
-    public static final int FACE_THUMBNAIL_SIZE  = 128;
-    public static final int MAX_DIRECTORIES      = 100;
+    public static final int FACE_THUMBNAIL_SIZE = 128;
+    public static final int MAX_DIRECTORIES     = 100;
 
     private final ThumbnailGenerator thumbnailGenerator;
     private final AtomicInteger      faceCounter = new AtomicInteger(0);

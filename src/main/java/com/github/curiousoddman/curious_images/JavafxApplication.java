@@ -1,8 +1,8 @@
 package com.github.curiousoddman.curious_images;
 
 import com.github.curiousoddman.curious_images.app.preloader.MainSceneVisible;
-import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.config.StageManager;
+import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.screen.LibraryController;
 import javafx.application.Application;
 import javafx.scene.image.Image;

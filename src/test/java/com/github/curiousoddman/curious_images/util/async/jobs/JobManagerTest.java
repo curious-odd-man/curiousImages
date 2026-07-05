@@ -15,11 +15,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link JobManager}.
- *
+ * <p>
  * JobManager spins up a real background worker thread in its constructor, so these tests
  * use latches / short polling loops rather than mocking the threading away. Each test creates
  * its own JobManager instance and tears it down via close() to avoid leaking worker threads.
@@ -57,7 +59,8 @@ class JobManagerTest {
         Optional<JobDescriptor> descriptor = manager.submit(job);
 
         assertThat(descriptor).isPresent();
-        assertThat(descriptor.get().getName()).isEqualTo("job-a");
+        assertThat(descriptor.get()
+                             .getName()).isEqualTo("job-a");
         job.release(); // let the worker finish so it doesn't linger
     }
 
@@ -69,10 +72,10 @@ class JobManagerTest {
         manager.submit(running);
         waitUntilCurrentJobPresent();
 
-        BlockingJob queuedFirst = new BlockingJob("queued-1");
+        BlockingJob queuedFirst           = new BlockingJob("queued-1");
         BlockingJob queuedSecondSameClass = new BlockingJob("queued-2");
 
-        Optional<JobDescriptor> firstQueued = manager.submit(queuedFirst);
+        Optional<JobDescriptor> firstQueued  = manager.submit(queuedFirst);
         Optional<JobDescriptor> secondQueued = manager.submit(queuedSecondSameClass);
 
         assertThat(firstQueued).isEmpty();
@@ -89,8 +92,8 @@ class JobManagerTest {
         manager.submit(running);
         waitUntilCurrentJobPresent();
 
-        BlockingJob sameClass = new BlockingJob("another");
-        Optional<JobDescriptor> result = manager.submit(sameClass);
+        BlockingJob             sameClass = new BlockingJob("another");
+        Optional<JobDescriptor> result    = manager.submit(sameClass);
 
         assertThat(result).isEmpty();
 
@@ -104,7 +107,7 @@ class JobManagerTest {
         manager.submit(running);
         waitUntilCurrentJobPresent();
 
-        OtherBlockingJob other = new OtherBlockingJob("other");
+        OtherBlockingJob        other  = new OtherBlockingJob("other");
         Optional<JobDescriptor> result = manager.submit(other);
 
         assertThat(result).isPresent();
@@ -126,8 +129,8 @@ class JobManagerTest {
     @Test
     void submitImportJobDelegatesToJobFactoryAndSubmits() {
         newManager();
-        BlockingJob importJob = new BlockingJob("import");
-        List<String> paths = List.of("/a/b.png", "/a/c.png");
+        BlockingJob  importJob = new BlockingJob("import");
+        List<String> paths     = List.of("/a/b.png", "/a/c.png");
         when(jobFactory.createImportJob(paths)).thenReturn(importJob);
 
         Optional<JobDescriptor> result = manager.submitImportJob(paths);
@@ -151,9 +154,12 @@ class JobManagerTest {
         BlockingJob queued = new OtherBlockingJob("queued");
         manager.submit(queued);
 
-        waitUntil(() -> manager.getQueuedJobs().size() == 1);
+        waitUntil(() -> manager.getQueuedJobs()
+                               .size() == 1);
         assertThat(manager.getQueuedJobs()).hasSize(1);
-        assertThat(manager.getQueuedJobs().get(0).getName()).isEqualTo("queued");
+        assertThat(manager.getQueuedJobs()
+                          .get(0)
+                          .getName()).isEqualTo("queued");
 
         running.release();
         queued.release();
@@ -171,12 +177,16 @@ class JobManagerTest {
         BlockingJob job = new BlockingJob("running");
         manager.submit(job);
 
-        waitUntil(() -> manager.currentJob().isPresent());
+        waitUntil(() -> manager.currentJob()
+                               .isPresent());
         assertThat(manager.currentJob()).isPresent();
-        assertThat(manager.currentJob().get().getName()).isEqualTo("running");
+        assertThat(manager.currentJob()
+                          .get()
+                          .getName()).isEqualTo("running");
 
         job.release();
-        waitUntil(() -> manager.currentJob().isEmpty());
+        waitUntil(() -> manager.currentJob()
+                               .isEmpty());
     }
 
     // ---------------------------------------------------------------
@@ -205,8 +215,9 @@ class JobManagerTest {
         manager.submit(running);
         waitUntilCurrentJobPresent();
 
-        OtherBlockingJob queued = new OtherBlockingJob("queued");
-        JobDescriptor queuedDescriptor = manager.submit(queued).orElseThrow();
+        OtherBlockingJob queued           = new OtherBlockingJob("queued");
+        JobDescriptor    queuedDescriptor = manager.submit(queued)
+                                                   .orElseThrow();
 
         manager.cancel(queuedDescriptor.getId());
 
@@ -278,14 +289,15 @@ class JobManagerTest {
     void workerRunsSubmittedJobToCompletion() {
         newManager();
         AtomicInteger executions = new AtomicInteger();
-        BlockingJob job = new BlockingJob("running", executions);
+        BlockingJob   job        = new BlockingJob("running", executions);
         manager.submit(job);
 
         job.release();
 
         waitUntil(() -> executions.get() == 1);
         assertThat(executions.get()).isEqualTo(1);
-        waitUntil(() -> manager.currentJob().isEmpty());
+        waitUntil(() -> manager.currentJob()
+                               .isEmpty());
     }
 
     @Test
@@ -295,15 +307,17 @@ class JobManagerTest {
         manager.submit(running);
         waitUntilCurrentJobPresent();
 
-        AtomicInteger queuedExecutions = new AtomicInteger();
-        OtherBlockingJob queued = new OtherBlockingJob("queued", queuedExecutions);
-        JobDescriptor queuedDescriptor = manager.submit(queued).orElseThrow();
+        AtomicInteger    queuedExecutions = new AtomicInteger();
+        OtherBlockingJob queued           = new OtherBlockingJob("queued", queuedExecutions);
+        JobDescriptor    queuedDescriptor = manager.submit(queued)
+                                                   .orElseThrow();
 
         // cancel it while still queued, before the worker ever picks it up
         manager.cancel(queuedDescriptor.getId());
 
         running.release();
-        waitUntil(() -> manager.currentJob().isEmpty());
+        waitUntil(() -> manager.currentJob()
+                               .isEmpty());
 
         // worker loop should skip the cancelled job entirely (it dequeues and discards jobs
         // that are already interrupt-requested rather than running them); give it a moment to
@@ -329,7 +343,8 @@ class JobManagerTest {
 
         manager.close();
 
-        waitUntil(() -> manager.currentJob().isEmpty());
+        waitUntil(() -> manager.currentJob()
+                               .isEmpty());
         assertThat(job.wasInterruptRequested()).isTrue();
     }
 
@@ -338,8 +353,10 @@ class JobManagerTest {
     // ---------------------------------------------------------------
 
     private JobDescriptor waitUntilCurrentJobPresent() {
-        waitUntil(() -> manager.currentJob().isPresent());
-        return manager.currentJob().orElseThrow();
+        waitUntil(() -> manager.currentJob()
+                               .isPresent());
+        return manager.currentJob()
+                      .orElseThrow();
     }
 
     private static void waitUntil(java.util.function.BooleanSupplier condition) {
@@ -357,7 +374,8 @@ class JobManagerTest {
         try {
             Thread.sleep(ms);
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            Thread.currentThread()
+                  .interrupt();
         }
     }
 
@@ -371,17 +389,17 @@ class JobManagerTest {
      * control when a job is "in flight" vs "finished".
      */
     static class BlockingJob extends ImportJob {
-        private final String          name;
-        private final CountDownLatch  releaseLatch = new CountDownLatch(1);
-        private final AtomicBoolean   interruptSeen = new AtomicBoolean(false);
-        private final AtomicInteger   executions;
+        private final String         name;
+        private final CountDownLatch releaseLatch  = new CountDownLatch(1);
+        private final AtomicBoolean  interruptSeen = new AtomicBoolean(false);
+        private final AtomicInteger  executions;
 
         BlockingJob(String name) {
             this(name, new AtomicInteger());
         }
 
         BlockingJob(String name, AtomicInteger executions) {
-            super(null, null, null, null, null, null, null, null, null);
+            super(null, null, null, null, null, null, null, null);
             this.name = name;
             this.executions = executions;
         }
@@ -411,10 +429,12 @@ class JobManagerTest {
         }
     }
 
-    /** Distinct class from BlockingJob so manager's same-class dedup logic doesn't collide. */
+    /**
+     * Distinct class from BlockingJob so manager's same-class dedup logic doesn't collide.
+     */
     static class OtherBlockingJob extends BlockingJob {
         private final String         name;
-        private final CountDownLatch releaseLatch = new CountDownLatch(1);
+        private final CountDownLatch releaseLatch  = new CountDownLatch(1);
         private final AtomicBoolean  interruptSeen = new AtomicBoolean(false);
         private final AtomicInteger  executions;
 

@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.jooq.Query;
 import org.jooq.impl.DSL;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -45,8 +44,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 @RequiredArgsConstructor
 public class DuplicateDetectionJob extends BackgroundJob {
-    public static final String DUPLICATE_DETECTION = "Duplicate Detection";
-    private static final int DB_FLUSH_BATCH_SIZE = 200;
+    public static final  String DUPLICATE_DETECTION = "Duplicate Detection";
+    private static final int    DB_FLUSH_BATCH_SIZE = 200;
 
     private final DSLContext               dsl;
     private final PhotoRepository          photoRepository;

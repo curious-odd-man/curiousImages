@@ -47,8 +47,8 @@ import java.util.Random;
 import java.util.ResourceBundle;
 
 import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
-import static com.github.curiousoddman.curious_images.util.HumanReadableUtils.size;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController.getImage;
+import static com.github.curiousoddman.curious_images.util.HumanReadableUtils.size;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
 /**

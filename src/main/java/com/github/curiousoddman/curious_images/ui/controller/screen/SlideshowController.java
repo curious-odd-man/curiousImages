@@ -349,7 +349,8 @@ public class SlideshowController implements Initializable {
     private void applyExifRotation(Integer exifOrientation) {
         log.info("EXIF orientation raw value: {}", exifOrientation);
 
-        currentRotation = Objects.requireNonNullElse(exifOrientation, 0.0).intValue();
+        currentRotation = Objects.requireNonNullElse(exifOrientation, 0.0)
+                                 .intValue();
         fullImageView.setRotate(currentRotation);
 
         // For 90/270° rotations the image logical width/height are swapped relative to

@@ -57,7 +57,7 @@ class BackgroundJobTest {
     void runSetsStatusToRunningWhileExecuting() {
         AtomicBoolean jobRunning = new AtomicBoolean(false);
         Runnable[]    inner      = new Runnable[1];
-        RecordingJob  job        = new RecordingJob(() -> {
+        RecordingJob job = new RecordingJob(() -> {
             inner[0].run();
         });
         inner[0] = () -> jobRunning.set(job.isRunning());

@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 
-import java.awt.Desktop;
+import java.awt.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;

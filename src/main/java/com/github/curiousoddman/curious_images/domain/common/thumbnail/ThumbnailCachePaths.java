@@ -8,9 +8,10 @@ import java.nio.file.Path;
 /**
  * Resolves the on-disk location of a photo's cached thumbnail.
  * <p>
- * Thumbnails are sharded by {@code photo_id % 1000} to avoid one huge flat directory at the
- * 25,000-photo target scale. Only the relative part ({@code {shard}/{id}.jpg}) is persisted in
- * {@code THUMBNAIL.cache_path}, so the cache root can be relocated later via config alone.
+ * The cached path mirrors the photo's full absolute source path under the configured cache root
+ * (e.g. {@code /photos/2024/beach.jpg} → {@code <cacheRoot>/photos/2024/beach.jpg}) — not sharded
+ * by {@code photo_id}. {@code THUMBNAIL.cache_path} stores the fully resolved path, so relocating
+ * the cache root requires re-generating thumbnails rather than just updating config.
  */
 @Component
 public class ThumbnailCachePaths {

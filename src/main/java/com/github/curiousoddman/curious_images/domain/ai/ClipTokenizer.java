@@ -94,8 +94,8 @@ public class ClipTokenizer {
 
     private List<Integer> encode(String text) {
         List<Integer> tokens = new ArrayList<>();
-        Matcher       m      = WORD_PATTERN.matcher(text.toLowerCase(Locale.ROOT)
-                                                        .strip());
+        Matcher m = WORD_PATTERN.matcher(text.toLowerCase(Locale.ROOT)
+                                             .strip());
         while (m.find()) {
             String word = m.group();
             if (word.equals(SOT_TEXT.toLowerCase()) || word.equals(EOT_TEXT.toLowerCase())) {
@@ -118,14 +118,18 @@ public class ClipTokenizer {
         return tokens;
     }
 
-    /** Iterative BPE merge. Results are memoised in {@link #bpeCache}. */
+    /**
+     * Iterative BPE merge. Results are memoised in {@link #bpeCache}.
+     */
     private List<String> bpe(String word) {
-        if (bpeCache.containsKey(word)) return bpeCache.get(word);
+        if (bpeCache.containsKey(word)) {
+            return bpeCache.get(word);
+        }
 
         // Start with characters as individual tokens (split into Unicode code points as strings)
         List<String> symbols = new ArrayList<>();
-        int[]        cps     = word.codePoints()
-                                   .toArray();
+        int[] cps = word.codePoints()
+                        .toArray();
         for (int i = 0; i < cps.length; i++) {
             // Detect </w> suffix: last 4 chars
             if (i == cps.length - 4 && word.endsWith("</w>")) {

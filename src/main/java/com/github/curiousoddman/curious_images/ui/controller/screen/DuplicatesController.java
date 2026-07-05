@@ -1,7 +1,5 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
-import com.github.curiousoddman.curious_images.ui.FxmlLoader;
-import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateResolutionService;
@@ -10,6 +8,8 @@ import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import com.github.curiousoddman.curious_images.model.bundle.SlideshowBundle;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
+import com.github.curiousoddman.curious_images.ui.FxmlLoader;
+import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.styles.CssClasses;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -44,8 +44,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 
-import static com.github.curiousoddman.curious_images.util.HumanReadableUtils.size;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController.getImage;
+import static com.github.curiousoddman.curious_images.util.HumanReadableUtils.size;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
 @Lazy

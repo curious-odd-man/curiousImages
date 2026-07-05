@@ -28,7 +28,13 @@ import java.util.Optional;
 @Component
 @RequiredArgsConstructor
 public class ThumbnailGenerator {
-    private static final int LONGEST_EDGE = 512;
+    /**
+     * Default longest-edge size (pixels) for grid/duplicates thumbnails. Public so
+     * {@code ThumbnailGenerationJob} — which decodes on its own reader thread and calls
+     * {@link #writeThumbnail} directly on a writer pool, bypassing {@link #generate} — can reuse
+     * the same value rather than hard-coding it a second time.
+     */
+    public static final int LONGEST_EDGE = 512;
 
     private final ThumbnailCachePaths cachePaths;
     private final SourceImageDecoder  imageDecoder;

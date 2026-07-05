@@ -16,8 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator.rotate;
-
 /**
  * Wraps the RetinaFace MobileNet0.25 ONNX model. Accepts a {@link BufferedImage}, returns
  * detected faces with bounding boxes (normalised [0,1]) and 5-point landmarks (pixel coords).

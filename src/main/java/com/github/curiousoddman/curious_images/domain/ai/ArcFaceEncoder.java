@@ -22,7 +22,7 @@ import static com.github.curiousoddman.curious_images.domain.ai.ClipTextEncoder.
 @Component
 @RequiredArgsConstructor
 public class ArcFaceEncoder {
-    private static final int FACE_SIZE  = 112;
+    private static final int FACE_SIZE = 112;
 
     private final OnnxModelRegistry registry;
     private final ModelPaths        paths;

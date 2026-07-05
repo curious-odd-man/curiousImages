@@ -1,6 +1,7 @@
 # Initial setup
 
 1. download models (see details in [here](src\main\resources\models\ai.md)):
+
 ```shell
 wget https://huggingface.co/TheEeeeLin/HivisionIDPhotos_matting/resolve/main/retinaface-resnet50.onnx mv retinaface-resnet50.onnx src/main/resources/models/retinaface-resnet50.onnx
 wget https://huggingface.co/public-data/insightface/resolve/main/models/buffalo_l/w600k_r50.onnx && mv w600k_r50.onnx src/main/resources/models/arcface_r50.onnx
@@ -9,7 +10,9 @@ wget https://huggingface.co/immich-app/ViT-B-32__openai/resolve/main/textual/mod
 # Tokenizer belongs to clip-tokenizer directory (included into repository)
 # wget https://raw.githubusercontent.com/openai/CLIP/main/clip/bpe_simple_vocab_16e6.txt.gz
 ```
-2. download CUDA drivers: https://developer.nvidia.com/cuda-downloads?target_os=Windows&target_arch=x86_64&target_version=10&target_type=exe_network
+
+2. download CUDA
+   drivers: https://developer.nvidia.com/cuda-downloads?target_os=Windows&target_arch=x86_64&target_version=10&target_type=exe_network
 
 # Core Photo Library
 

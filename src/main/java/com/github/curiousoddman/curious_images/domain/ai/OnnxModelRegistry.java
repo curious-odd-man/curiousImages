@@ -83,6 +83,6 @@ public class OnnxModelRegistry implements DisposableBean {
             }
         });
         sessions.clear();
-            env.close();
+        env.close();
     }
 }
