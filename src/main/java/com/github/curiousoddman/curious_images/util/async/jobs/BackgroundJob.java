@@ -161,7 +161,7 @@ public abstract class BackgroundJob {
         );
     }
 
-    protected void publishFailed(Exception e) {
+    protected void publishFailed(Throwable e) {
         EndedBackgroundProcessPayload payload = endedPayloadBuilder()
                 .progressDetails(" failed: " + e.getMessage())
                 .error(e)

@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 @Primary
 @Component
 @RequiredArgsConstructor
-public class DelegatingApplicationEventPublisher implements ApplicationEventPublisher {     // TODO: group classes in this package - handling and model packages
+public class DelegatingApplicationEventPublisher implements ApplicationEventPublisher {
     private final EventsConfiguration cfg = new EventsConfiguration();
     private final ApplicationContext  context;
 

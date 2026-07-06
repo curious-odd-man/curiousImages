@@ -4,6 +4,7 @@ import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 import com.github.curiousoddman.curious_images.config.AiConfig;
+import com.github.curiousoddman.curious_images.util.async.jobs.IrrecoverableIterationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.DisposableBean;
@@ -33,24 +34,28 @@ public class OnnxModelRegistry implements DisposableBean {
      * Returns the cached session for {@code modelKey}, loading it from {@code modelPath} if this
      * is the first call for that key. Thread-safe via {@link ConcurrentHashMap#computeIfAbsent}.
      */
-    public OrtSession getOrLoad(String modelKey, Path modelPath) {
-        return sessions.computeIfAbsent(modelKey, k -> {
-            try {
-                log.info("Loading ONNX model '{}' from {}", modelKey, modelPath);
-                OrtSession.SessionOptions opts = new OrtSession.SessionOptions();
-                opts.setIntraOpNumThreads(config.getIntraOpThreads());
-                switch (config.getExecutionProvider()) {
-                    case CUDA -> opts.addCUDA(0);
-                    case DIRECTML -> opts.addDirectML(0);
-                    case CPU -> { /* ONNX Runtime default — no extra provider needed */ }
-                }
-                OrtSession session = env.createSession(modelPath.toString(), opts);
-                log.info("ONNX model '{}' loaded successfully", modelKey);
-                return session;
-            } catch (OrtException e) {
-                throw new RuntimeException("Failed to load ONNX model '" + modelKey + "' from " + modelPath, e);
+    public OrtSession getOrLoad(String modelKey, Path modelPath) throws IrrecoverableIterationException {
+        OrtSession ortSession = sessions.get(modelKey);
+        if (ortSession != null) {
+            return ortSession;
+        }
+
+        try {
+            log.info("Loading ONNX model '{}' from {}: {}", modelKey, modelPath, env.getAvailableProviders());
+            OrtSession.SessionOptions opts = new OrtSession.SessionOptions();
+            opts.setIntraOpNumThreads(config.getIntraOpThreads());
+            switch (config.getExecutionProvider()) {
+                case CUDA -> opts.addCUDA(0);
+                case DIRECTML -> opts.addDirectML(0);
+                case CPU -> { /* ONNX Runtime default — no extra provider needed */ }
             }
-        });
+            OrtSession session = env.createSession(modelPath.toString(), opts);
+            log.info("ONNX model '{}' loaded successfully", modelKey);
+            sessions.put(modelKey, session);
+            return session;
+        } catch (OrtException e) {
+            throw new IrrecoverableIterationException("Failed to load ONNX model '" + modelKey + "' from " + modelPath, e);
+        }
     }
 
     /**

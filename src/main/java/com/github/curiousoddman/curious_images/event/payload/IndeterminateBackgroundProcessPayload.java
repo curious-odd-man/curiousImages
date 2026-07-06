@@ -11,7 +11,7 @@ public class IndeterminateBackgroundProcessPayload implements BackgroundProcessP
     private final String    processName;
     private final String    progressDetails;
     private final int       maxProgress = -1;
-    private final Exception error;
+    private final Throwable error;
 
     @Override
     public int getCurrentProgress() {

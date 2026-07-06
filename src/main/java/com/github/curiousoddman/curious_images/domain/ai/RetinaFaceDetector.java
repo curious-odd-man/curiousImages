@@ -4,6 +4,7 @@ import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
+import com.github.curiousoddman.curious_images.util.async.jobs.IrrecoverableIterationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
@@ -48,7 +49,7 @@ public class RetinaFaceDetector {
      * Detects faces in {@code image}. Returns a list of detected faces; empty if none found
      * or if the model is not available.
      */
-    public List<DetectedFace> detect(BufferedImage image) throws OrtException {
+    public List<DetectedFace> detect(BufferedImage image) throws OrtException, IrrecoverableIterationException {
         OrtSession session = registry.getOrLoad("retinaface_r50", paths.retinaFace());
 
         int origW = image.getWidth();

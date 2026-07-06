@@ -4,6 +4,7 @@ import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
+import com.github.curiousoddman.curious_images.util.async.jobs.IrrecoverableIterationException;
 import lombok.RequiredArgsConstructor;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.stereotype.Component;
@@ -41,7 +42,7 @@ public class ClipImageEncoder {
     /**
      * Encodes {@code image} into a 512-dim L2-normalised CLIP embedding.
      */
-    public float[] encode(BufferedImage image) throws OrtException {
+    public float[] encode(BufferedImage image) throws OrtException, IrrecoverableIterationException {
         OrtSession    session = registry.getOrLoad("clip_image", paths.clipImage());
         float[][][][] input   = preprocess(image);
         try (OnnxTensor tensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), input);

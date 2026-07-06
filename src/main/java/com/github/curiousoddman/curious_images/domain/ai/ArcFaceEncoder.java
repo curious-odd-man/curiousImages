@@ -4,6 +4,7 @@ import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
+import com.github.curiousoddman.curious_images.util.async.jobs.IrrecoverableIterationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -33,7 +34,7 @@ public class ArcFaceEncoder {
      * @param alignedFace 112×112 {@link BufferedImage} from {@link FaceAligner#align}
      * @return float[512] L2-normalised embedding
      */
-    public float[] encode(BufferedImage alignedFace) throws OrtException {
+    public float[] encode(BufferedImage alignedFace) throws OrtException, IrrecoverableIterationException {
         OrtSession    session = registry.getOrLoad("arcface", paths.arcFace());
         float[][][][] input   = toTensor(alignedFace);
         try (OnnxTensor tensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), input);

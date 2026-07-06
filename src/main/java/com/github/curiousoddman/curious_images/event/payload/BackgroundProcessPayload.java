@@ -24,7 +24,7 @@ public interface BackgroundProcessPayload {
 
     String getProgressDetails();
 
-    Exception getError();
+    Throwable getError();
 
     default boolean hasError() {
         return getError() != null;

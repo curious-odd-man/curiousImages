@@ -35,7 +35,7 @@ app:
     # Options: CPU | CUDA | DIRECTML
     # CUDA requires NVIDIA drivers with CUDA 12+.
     # DIRECTML works on any DirectX 12 GPU (AMD/Intel/NVIDIA) without CUDA drivers.
-    execution-provider: CPU  # FIXME: Can we try using CUDA???
+    execution-provider: CUDA
 
     # Number of intra-op threads inside each ONNX operator.
     # For GPU execution this mainly affects CPU-side pre/post-processing.

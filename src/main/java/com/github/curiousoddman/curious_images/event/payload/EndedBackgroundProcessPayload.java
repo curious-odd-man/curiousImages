@@ -12,5 +12,5 @@ public class EndedBackgroundProcessPayload implements BackgroundProcessPayload {
     private final String    progressDetails;
     private final int       currentProgress = 1;
     private final int       maxProgress     = 1;
-    private final Exception error;
+    private final Throwable error;
 }

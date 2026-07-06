@@ -4,6 +4,7 @@ import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
+import com.github.curiousoddman.curious_images.util.async.jobs.IrrecoverableIterationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -30,7 +31,7 @@ public class ClipTextEncoder {
      * The text encoder session is loaded lazily on first call and may be evicted via
      * {@link OnnxModelRegistry#evict(String)} between searches.
      */
-    public float[] encode(String text) throws OrtException {
+    public float[] encode(String text) throws OrtException, IrrecoverableIterationException {
         OrtSession session = registry.getOrLoad("clip_text", paths.clipText());
         long[][]   tokens  = tokenizer.tokenize(text);
         try (OnnxTensor tensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), tokens);

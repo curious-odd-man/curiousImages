@@ -15,6 +15,7 @@ import com.github.curiousoddman.curious_images.persistence.Landmarks;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import com.github.curiousoddman.curious_images.util.async.jobs.BackgroundJob;
+import com.github.curiousoddman.curious_images.util.async.jobs.IrrecoverableIterationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
@@ -137,7 +138,12 @@ public class AiPipelineJob extends BackgroundJob {
                             face.confidence(), toLandmarks(face.landmarks()), now, faceThumbnailPath));
                 }
                 buffer.add(photoRepo.markFaceDetectDoneQuery(photoId, now));
-
+            } catch (IrrecoverableIterationException e) {
+                log.warn("Face detection failed for photo {}", photoId, e);
+                buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
+                log.error("Exiting loop - cannot recover from that....");
+                publishFailed(e.getCause());
+                return;
             } catch (Exception e) {
                 log.warn("Face detection failed for photo {}", photoId, e);
                 buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
@@ -187,7 +193,12 @@ public class AiPipelineJob extends BackgroundJob {
                     buffer.add(faceEmbeddingRepo.upsertQuery(face.getId(), embedding, ARCFACE_MODEL_VER));
                 }
                 buffer.add(photoRepo.markFaceEmbedDoneQuery(photoId, now));
-
+            } catch (IrrecoverableIterationException e) {
+                log.warn("Face embedding failed for photo {}", photoId, e);
+                buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
+                log.error("Exiting loop - cannot recover from that....");
+                publishFailed(e.getCause());
+                return;
             } catch (Exception e) {
                 log.warn("Face embedding failed for photo {}", photoId, e);
                 buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
@@ -230,6 +241,12 @@ public class AiPipelineJob extends BackgroundJob {
                 float[]       embedding = clipImageEncoder.encode(img);
                 buffer.add(clipEmbeddingRepo.upsertQuery(photoId, embedding, CLIP_IMAGE_MODEL_VER));
                 buffer.add(photoRepo.markClipEmbedDoneQuery(photoId, now));
+            } catch (IrrecoverableIterationException e) {
+                log.warn("CLIP embedding failed for photo {}", photoId, e);
+                buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
+                log.error("Exiting loop - cannot recover from that....");
+                publishFailed(e.getCause());
+                return;
             } catch (Exception e) {
                 log.warn("CLIP embedding failed for photo {}", photoId, e);
                 buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
@@ -290,7 +307,6 @@ public class AiPipelineJob extends BackgroundJob {
                 }
 
                 statusBuffer.add(photoRepo.markLuceneIndexDoneQuery(photoId, now));
-
             } catch (Exception e) {
                 log.warn("Lucene indexing failed for photo {}", photoId, e);
                 statusBuffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
@@ -311,9 +327,9 @@ public class AiPipelineJob extends BackgroundJob {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    public static BufferedImage loadImageOriented(String absolutePath, Integer orientation) throws IOException {
-        BufferedImage img = ImageIO.read(new File(absolutePath));
-        if (img == null) {
+    public static BufferedImage loadImageOriented(String absolutePath, Integer orientation) throws IOException {    // FIXME: This is very slow. It takes >50% of time during face detection
+        BufferedImage img = ImageIO.read(new File(absolutePath));       // FIXME: This also is called several times per AI pipeline. Probably i need to move single image through all pipeline steps instead of re-reading it each time.
+        if (img == null) {  // FIXME: also probably I need to fix images rotation on disc - or improve rotation algorithm
             throw new IOException("ImageIO could not decode: " + absolutePath);
         }
         return rotate(img, orientation);

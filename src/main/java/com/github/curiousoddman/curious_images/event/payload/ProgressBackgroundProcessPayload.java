@@ -12,7 +12,7 @@ public class ProgressBackgroundProcessPayload implements BackgroundProcessPayloa
     private final String    progressDetails;
     private final int       currentProgress;
     private final int       maxProgress;
-    private final Exception error;
+    private final Throwable error;
     private final String    progressText;
 
     @Override
