@@ -3,7 +3,7 @@ package com.github.curiousoddman.curious_images.domain.imports;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.ExtractedMetadata;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
-import com.github.curiousoddman.curious_images.event.LibraryUpdatedEvent;
+import com.github.curiousoddman.curious_images.event.model.LibraryUpdatedEvent;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoPreviewRepository;

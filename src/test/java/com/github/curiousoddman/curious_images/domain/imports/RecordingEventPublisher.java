@@ -1,6 +1,6 @@
 package com.github.curiousoddman.curious_images.domain.imports;
 
-import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
+import com.github.curiousoddman.curious_images.event.model.BackgroundProcessEvent;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 

@@ -1,4 +1,4 @@
-package com.github.curiousoddman.curious_images.event;
+package com.github.curiousoddman.curious_images.event.handling;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

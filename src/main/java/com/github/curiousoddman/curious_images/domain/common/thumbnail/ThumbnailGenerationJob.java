@@ -1,7 +1,7 @@
 package com.github.curiousoddman.curious_images.domain.common.thumbnail;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.event.ThumbnailsReadyEvent;
+import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
@@ -11,15 +11,10 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.awt.image.BufferedImage;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**

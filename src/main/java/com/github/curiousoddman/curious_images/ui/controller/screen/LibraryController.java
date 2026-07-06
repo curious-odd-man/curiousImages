@@ -9,10 +9,10 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.search.SearchService;
 import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferencesService;
-import com.github.curiousoddman.curious_images.event.AiPipelineCompleteEvent;
-import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
-import com.github.curiousoddman.curious_images.event.LibraryUpdatedEvent;
-import com.github.curiousoddman.curious_images.event.ThumbnailsReadyEvent;
+import com.github.curiousoddman.curious_images.event.model.AiPipelineCompleteEvent;
+import com.github.curiousoddman.curious_images.event.model.BackgroundProcessEvent;
+import com.github.curiousoddman.curious_images.event.model.LibraryUpdatedEvent;
+import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.event.payload.BackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.TimelineData;
@@ -53,7 +53,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
-import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Slider;
 import javafx.scene.control.SplitPane;
@@ -234,7 +233,7 @@ public class LibraryController implements Initializable {
 
         // Paged grid loading (implementation plan §4): append the next page once the user scrolls
         // near the bottom. "Near" is deliberately coarse (90%) rather than exact viewport math.
-        photoScrollPane.vvalueProperty()
+        photoScrollPane.vvalueProperty()        // FIXME: This works very slow with large number of photos in a folder. This must be optimized.
                        .addListener((obs, oldValue, newValue) -> {
                            if (newValue.doubleValue() > 0.9) {
                                appendNextPage();

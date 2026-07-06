@@ -1,4 +1,7 @@
-package com.github.curiousoddman.curious_images.event;
+package com.github.curiousoddman.curious_images.event.handling;
+
+import com.github.curiousoddman.curious_images.event.model.BackgroundProcessEvent;
+import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 
 import java.util.Set;
 

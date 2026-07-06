@@ -1,4 +1,4 @@
-package com.github.curiousoddman.curious_images.event;
+package com.github.curiousoddman.curious_images.event.model;
 
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;

@@ -1,4 +1,4 @@
-package com.github.curiousoddman.curious_images.event;
+package com.github.curiousoddman.curious_images.event.model;
 
 import com.github.curiousoddman.curious_images.event.payload.BackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.event.types.BackgroundProcessEventType;

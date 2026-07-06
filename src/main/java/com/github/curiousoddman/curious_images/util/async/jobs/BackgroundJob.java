@@ -1,6 +1,6 @@
 package com.github.curiousoddman.curious_images.util.async.jobs;
 
-import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
+import com.github.curiousoddman.curious_images.event.model.BackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.payload.EndedBackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.event.payload.IndeterminateBackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.event.payload.ProgressBackgroundProcessPayload;

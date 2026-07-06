@@ -1,6 +1,6 @@
 package com.github.curiousoddman.curious_images.config;
 
-import com.github.curiousoddman.curious_images.event.UserShutdownApplication;
+import com.github.curiousoddman.curious_images.event.model.UserShutdownApplicationEvent;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
@@ -26,7 +26,7 @@ public class StageManager {
 
         primaryStage.setOnCloseRequest(event -> {
             log.info("User requested application shutdown");
-            eventPublisher.publishEvent(new UserShutdownApplication(this));
+            eventPublisher.publishEvent(new UserShutdownApplicationEvent(this));
         });
     }
 

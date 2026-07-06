@@ -1,7 +1,7 @@
 package com.github.curiousoddman.curious_images.domain.ai;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceEmbeddingRecord;
-import com.github.curiousoddman.curious_images.event.PersonsUpdatedEvent;
+import com.github.curiousoddman.curious_images.event.model.PersonsUpdatedEvent;
 import com.github.curiousoddman.curious_images.persistence.FaceEmbeddingRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;

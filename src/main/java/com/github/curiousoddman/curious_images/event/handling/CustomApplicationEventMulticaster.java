@@ -1,4 +1,4 @@
-package com.github.curiousoddman.curious_images.event;
+package com.github.curiousoddman.curious_images.event.handling;
 
 import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
@@ -12,8 +12,6 @@ import org.springframework.stereotype.Component;
 import java.util.Collection;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
-
-import static com.github.curiousoddman.curious_images.event.EventsConfiguration.IGNORE_LOGGING_CLASSES;
 
 @Slf4j
 @Component("applicationEventMulticaster")

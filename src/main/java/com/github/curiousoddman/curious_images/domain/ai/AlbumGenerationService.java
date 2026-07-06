@@ -5,8 +5,8 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.ClipEmbeddin
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.event.AiPipelineCompleteEvent;
-import com.github.curiousoddman.curious_images.event.RegenerateAlbumsEvent;
+import com.github.curiousoddman.curious_images.event.model.AiPipelineCompleteEvent;
+import com.github.curiousoddman.curious_images.event.model.RegenerateAlbumsEvent;
 import com.github.curiousoddman.curious_images.persistence.AlbumPhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.AlbumRepository;
 import com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository;
