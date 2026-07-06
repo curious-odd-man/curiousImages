@@ -58,11 +58,12 @@ public class AiPipelineJob extends BackgroundJob {
     private final PersonClusteringService  personClusteringService;
     private final TimeProvider             timeProvider;
     private final FaceThumbnailsRepository faceThumbnailsRepository;
+    private final boolean                  faceDetectionOnly;
 
     // ── Pipeline orchestration ────────────────────────────────────────────────
 
     @Override
-    public void runImpl() throws Exception {    // TODO: keep only face related steps. comment out others for now
+    public void runImpl() throws Exception {
         publishStarted("Starting AI pipeline...");
         try {
             runFaceDetection();
@@ -77,16 +78,18 @@ public class AiPipelineJob extends BackgroundJob {
                 return;
             }
 
-            runClipEmbedding();
-            if (isInterruptRequested()) {
-                publishInterrupted();
-                return;
-            }
+            if (!faceDetectionOnly) {
+                runClipEmbedding();
+                if (isInterruptRequested()) {
+                    publishInterrupted();
+                    return;
+                }
 
-            runLuceneIndexing();
-            if (isInterruptRequested()) {
-                publishInterrupted();
-                return;
+                runLuceneIndexing();
+                if (isInterruptRequested()) {
+                    publishInterrupted();
+                    return;
+                }
             }
 
             personClusteringService.cluster();

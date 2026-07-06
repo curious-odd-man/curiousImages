@@ -70,6 +70,8 @@ public class JobFactory {
     private final FaceVectorIndex          faceVectorIndex;
     private final PersonClusteringService  personClusteringService;
     private final FaceThumbnailsRepository faceThumbnailsRepository;
+    @Value("${ai.features.face-only:true}")
+    private final boolean                  aiFaceDetectionOnly;
 
     public ImportJob createImportJob(List<String> paths) {
         return new ImportJob(
@@ -128,7 +130,8 @@ public class JobFactory {
                 faceVectorIndex,
                 personClusteringService,
                 timeProvider,
-                faceThumbnailsRepository
+                faceThumbnailsRepository,
+                aiFaceDetectionOnly
         );
     }
 
