@@ -1,20 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.text.*?>
-
-<BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0" prefHeight="1080.0" prefWidth="1920.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.LibraryController">
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.SeparatorMenuItem?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TreeView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+<BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0"
+            prefHeight="1080.0" prefWidth="1920.0" xmlns="http://javafx.com/javafx/17.0.12"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.LibraryController">
     <center>
-        <TabPane fx:id="mainTabPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" tabClosingPolicy="UNAVAILABLE" BorderPane.alignment="CENTER">
+        <TabPane fx:id="mainTabPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                 tabClosingPolicy="UNAVAILABLE" BorderPane.alignment="CENTER">
             <tabs>
                 <Tab text="Library">
                     <content>
-                        <SplitPane fx:id="librarySplitPane" dividerPositions="0.2559" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0">
+                        <SplitPane fx:id="librarySplitPane" dividerPositions="0.2559" maxHeight="1.7976931348623157E308"
+                                   maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0">
                             <items>
                                 <!-- Left: library tree -->
-                                <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0">
+                                <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                                            minHeight="0.0" minWidth="0.0">
                                     <children>
                                         <!--
                                             DnD: files and folders dropped anywhere on the tree view
@@ -32,7 +55,7 @@
                                                   AnchorPane.bottomAnchor="0.0"
                                                   AnchorPane.leftAnchor="0.0"
                                                   AnchorPane.rightAnchor="0.0"
-                                                  AnchorPane.topAnchor="0.0" />
+                                                  AnchorPane.topAnchor="0.0"/>
                                     </children>
                                 </AnchorPane>
 
@@ -44,40 +67,58 @@
                                     Layer 1 (personDetailContainer) — shown when a PERSON node is selected;
                                              content is loaded from person_detail.fxml and injected at runtime.
                                 -->
-                                <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0">
+                                <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+                                            minHeight="0.0" minWidth="0.0">
                                     <children>
-                                        <StackPane fx:id="contentStack" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                                        <StackPane fx:id="contentStack" AnchorPane.bottomAnchor="0.0"
+                                                   AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
+                                                   AnchorPane.topAnchor="0.0">
 
                                             <!-- ── Photo grid (default view) ── -->
-                                            <BorderPane fx:id="photoGridView" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
+                                            <BorderPane fx:id="photoGridView" maxHeight="1.7976931348623157E308"
+                                                        maxWidth="1.7976931348623157E308">
                                                 <top>
                                                     <VBox spacing="0.0" BorderPane.alignment="CENTER">
                                                         <!-- Search bar row -->
                                                         <HBox alignment="CENTER_LEFT" spacing="8.0">
                                                             <padding>
-                                                                <Insets bottom="4.0" left="10.0" right="10.0" top="6.0" />
+                                                                <Insets bottom="4.0" left="10.0" right="10.0"
+                                                                        top="6.0"/>
                                                             </padding>
-                                                            <TextField fx:id="searchField" promptText="Search photos... (semantic / AI)" HBox.hgrow="ALWAYS" />
-                                                            <Button fx:id="searchButton" mnemonicParsing="false" onAction="#onSearchClicked" text="Search" />
-                                                            <Button fx:id="clearSearchButton" mnemonicParsing="false" onAction="#onClearSearchClicked" text="✕" visible="false" />
+                                                            <TextField fx:id="searchField"
+                                                                       promptText="Search photos... (semantic / AI)"
+                                                                       HBox.hgrow="ALWAYS"/>
+                                                            <Button fx:id="searchButton" mnemonicParsing="false"
+                                                                    onAction="#onSearchClicked" text="Search"/>
+                                                            <Button fx:id="clearSearchButton" mnemonicParsing="false"
+                                                                    onAction="#onClearSearchClicked" text="✕"
+                                                                    visible="false"/>
                                                         </HBox>
                                                         <!-- Thumbnail-size row -->
                                                         <HBox alignment="CENTER_LEFT" spacing="8.0">
                                                             <padding>
-                                                                <Insets bottom="6.0" left="10.0" right="10.0" top="4.0" />
+                                                                <Insets bottom="6.0" left="10.0" right="10.0"
+                                                                        top="4.0"/>
                                                             </padding>
-                                                            <Label text="Thumbnail size:" />
-                                                            <Slider fx:id="thumbnailSizeSlider" blockIncrement="16.0" max="320.0" min="64.0" prefWidth="200.0" value="128.0" />
-                                                            <Label fx:id="photoCountLabel" text="" />
+                                                            <Label text="Thumbnail size:"/>
+                                                            <Slider fx:id="thumbnailSizeSlider" blockIncrement="16.0"
+                                                                    max="320.0" min="64.0" prefWidth="200.0"
+                                                                    value="128.0"/>
+                                                            <Label fx:id="photoCountLabel" text=""/>
                                                         </HBox>
                                                     </VBox>
                                                 </top>
                                                 <center>
-                                                    <ScrollPane fitToWidth="true" hbarPolicy="NEVER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" BorderPane.alignment="CENTER">
+                                                    <ScrollPane fx:id="photoScrollPane" fitToWidth="true"
+                                                                hbarPolicy="NEVER" maxHeight="1.7976931348623157E308"
+                                                                maxWidth="1.7976931348623157E308"
+                                                                BorderPane.alignment="CENTER">
                                                         <content>
-                                                            <FlowPane fx:id="photoGridPane" hgap="8.0" maxWidth="1.7976931348623157E308" vgap="8.0">
+                                                            <FlowPane fx:id="photoGridPane" hgap="8.0"
+                                                                      maxWidth="1.7976931348623157E308" vgap="8.0">
                                                                 <padding>
-                                                                    <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                                                                    <Insets bottom="10.0" left="10.0" right="10.0"
+                                                                            top="10.0"/>
                                                                 </padding>
                                                             </FlowPane>
                                                         </content>
@@ -86,7 +127,9 @@
                                             </BorderPane>
 
                                             <!-- ── Person detail panel (injected at runtime) ── -->
-                                            <AnchorPane fx:id="personDetailContainer" managed="false" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" visible="false" />
+                                            <AnchorPane fx:id="personDetailContainer" managed="false"
+                                                        maxHeight="1.7976931348623157E308"
+                                                        maxWidth="1.7976931348623157E308" visible="false"/>
 
                                         </StackPane>
                                     </children>
@@ -96,7 +139,7 @@
                     </content>
                 </Tab>
                 <!-- Duplicates review: content loaded from duplicates.fxml in LibraryController#initialize -->
-                <Tab fx:id="duplicatesTab" text="Duplicates" />
+                <Tab fx:id="duplicatesTab" text="Duplicates"/>
             </tabs>
         </TabPane>
     </center>
@@ -106,53 +149,64 @@
                 <Menu mnemonicParsing="false" text="File">
                     <items>
                         <!-- Existing: single-root rescan via path-entry modal -->
-                        <MenuItem mnemonicParsing="false" onAction="#onRescanMenuClicked" text="Rescan library..." />
+                        <MenuItem mnemonicParsing="false" onAction="#onRescanMenuClicked" text="Rescan library..."/>
 
                         <!-- NEW: multi-root rescan via checkbox picker -->
-                        <MenuItem mnemonicParsing="false" onAction="#onRescanRootsMenuClicked" text="Rescan existing roots..." />
+                        <MenuItem mnemonicParsing="false" onAction="#onRescanRootsMenuClicked"
+                                  text="Rescan existing roots..."/>
 
                         <!-- NEW: add new files / folders via copy or new-root -->
-                        <MenuItem mnemonicParsing="false" onAction="#onAddFilesMenuClicked" text="Add files / folders..." />
+                        <MenuItem mnemonicParsing="false" onAction="#onAddFilesMenuClicked"
+                                  text="Add files / folders..."/>
 
-                        <SeparatorMenuItem />
-                        <MenuItem mnemonicParsing="false" onAction="#onFindDuplicates" text="Find duplicates" />
-                        <MenuItem mnemonicParsing="false" onAction="#onTriggerAiPipeline" text="Trigger AI pipeline" />
-                        <SeparatorMenuItem />
-                        <MenuItem mnemonicParsing="false" text="Close" />
+                        <SeparatorMenuItem/>
+                        <MenuItem mnemonicParsing="false" onAction="#onFindDuplicates" text="Find duplicates"/>
+                        <MenuItem mnemonicParsing="false" onAction="#onTriggerAiPipeline" text="Trigger AI pipeline"/>
+                        <SeparatorMenuItem/>
+                        <MenuItem mnemonicParsing="false" text="Close"/>
                     </items>
                 </Menu>
                 <Menu mnemonicParsing="false" text="Edit">
                     <items>
-                        <MenuItem mnemonicParsing="false" text="Delete" />
+                        <MenuItem mnemonicParsing="false" text="Delete"/>
                     </items>
                 </Menu>
                 <Menu mnemonicParsing="false" text="Help">
                     <items>
-                        <MenuItem mnemonicParsing="false" text="About" />
+                        <MenuItem mnemonicParsing="false" text="About"/>
                     </items>
                 </Menu>
             </menus>
         </MenuBar>
     </top>
     <bottom>
-        <HBox fx:id="backgroundProgressContainer" alignment="CENTER_LEFT" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" spacing="12.0" visible="false" BorderPane.alignment="CENTER">
+        <HBox fx:id="backgroundProgressContainer" alignment="CENTER_LEFT" maxHeight="1.7976931348623157E308"
+              maxWidth="1.7976931348623157E308" spacing="12.0" visible="false" BorderPane.alignment="CENTER">
             <padding>
-                <Insets bottom="6.0" left="10.0" right="10.0" top="6.0" />
+                <Insets bottom="6.0" left="10.0" right="10.0" top="6.0"/>
             </padding>
-         <Label fx:id="backgroundProcessTitleLabel" maxWidth="1.7976931348623157E308" text="Running: xxxxx" />
-            <Button fx:id="backgroundProcessCancelButton" cancelButton="true" mnemonicParsing="false" onAction="#onCancelBackgroundJob" text="❌" textFill="RED">
-                <font><Font size="14.0" /></font>
+            <Label fx:id="backgroundProcessTitleLabel" maxWidth="1.7976931348623157E308" text="Running: xxxxx"/>
+            <Button fx:id="backgroundProcessCancelButton" cancelButton="true" mnemonicParsing="false"
+                    onAction="#onCancelBackgroundJob" text="❌" textFill="RED">
+                <font>
+                    <Font size="14.0"/>
+                </font>
             </Button>
-         <StackPane fx:id="backgroundProgressBarContainer">
-            <children>
-               <ProgressBar fx:id="backgroundProgressBar" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefWidth="400.0" />
-                  <Label fx:id="backgroundProgressLabel" contentDisplay="CENTER" style="-fx-effect: dropshadow(gaussian, black, 2, 0.7, 0, 0);;" text="1 of 10" textAlignment="CENTER" textFill="WHITE">
-                  <font>
-                     <Font name="System Bold" size="20.0" />
-                  </font></Label>
-            </children>
-         </StackPane>
-            <Label fx:id="backgroundProgressDescription" maxWidth="1.7976931348623157E308" text="here goes file name" HBox.hgrow="ALWAYS" />
+            <StackPane fx:id="backgroundProgressBarContainer">
+                <children>
+                    <ProgressBar fx:id="backgroundProgressBar" maxHeight="1.7976931348623157E308"
+                                 maxWidth="1.7976931348623157E308" prefWidth="400.0"/>
+                    <Label fx:id="backgroundProgressLabel" contentDisplay="CENTER"
+                           style="-fx-effect: dropshadow(gaussian, black, 2, 0.7, 0, 0);;" text="1 of 10"
+                           textAlignment="CENTER" textFill="WHITE">
+                        <font>
+                            <Font name="System Bold" size="20.0"/>
+                        </font>
+                    </Label>
+                </children>
+            </StackPane>
+            <Label fx:id="backgroundProgressDescription" maxWidth="1.7976931348623157E308" text="here goes file name"
+                   HBox.hgrow="ALWAYS"/>
         </HBox>
     </bottom>
 </BorderPane>

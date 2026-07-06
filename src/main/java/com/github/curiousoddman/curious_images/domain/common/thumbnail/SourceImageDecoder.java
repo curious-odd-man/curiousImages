@@ -53,6 +53,7 @@ public class SourceImageDecoder {
         try {
             return ImageIO.read(new ByteArrayInputStream(bytes));
         } catch (IOException e) {
+            log.warn("Failed to decode bytes:", e);
             return null;
         }
     }

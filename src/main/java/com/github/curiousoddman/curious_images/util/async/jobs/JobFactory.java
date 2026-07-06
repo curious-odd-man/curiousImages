@@ -6,6 +6,8 @@ import com.github.curiousoddman.curious_images.domain.ai.ClipImageEncoder;
 import com.github.curiousoddman.curious_images.domain.ai.FaceAligner;
 import com.github.curiousoddman.curious_images.domain.ai.PersonClusteringService;
 import com.github.curiousoddman.curious_images.domain.ai.RetinaFaceDetector;
+import com.github.curiousoddman.curious_images.domain.common.thumbnail.SourceImageDecoder;
+import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerationJob;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator;
 import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateDetectionJob;
 import com.github.curiousoddman.curious_images.domain.dedupe.PhotoHashRepository;
@@ -24,6 +26,7 @@ import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceThumbnailsRepository;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
+import com.github.curiousoddman.curious_images.persistence.PhotoPreviewRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
@@ -33,6 +36,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -42,8 +46,10 @@ public class JobFactory {
     private final FolderRepository       folderRepository;
     private final PhotoRepository        photoRepository;
     private final ThumbnailRepository    thumbnailRepository;
+    private final PhotoPreviewRepository photoPreviewRepository;
     private final PhotoMetadataExtractor photoMetadataExtractor;
     private final ThumbnailGenerator     thumbnailGenerator;
+    private final SourceImageDecoder     sourceImageDecoder;
     private final TimeProvider           timeProvider;
 
     private final PhotoHashRepository      photoHashRepository;
@@ -71,11 +77,26 @@ public class JobFactory {
                 importRootRepository,
                 folderRepository,
                 photoRepository,
-                thumbnailRepository,
+                photoPreviewRepository,
                 photoMetadataExtractor,
-                thumbnailGenerator,
                 timeProvider,
                 paths
+        );
+    }
+
+    /**
+     * Supersedable, on-demand real-thumbnail generation for a page/selection of photo IDs — see
+     * implementation plan §5/§6. Submitted by {@code LibraryController} whenever the grid is
+     * about to render a set of photo IDs, never as a bulk sweep.
+     */
+    public ThumbnailGenerationJob createThumbnailGenerationJob(List<Long> photoIds) {
+        return new ThumbnailGenerationJob(
+                photoRepository,
+                thumbnailRepository,
+                sourceImageDecoder,
+                thumbnailGenerator,
+                timeProvider,
+                photoIds
         );
     }
 

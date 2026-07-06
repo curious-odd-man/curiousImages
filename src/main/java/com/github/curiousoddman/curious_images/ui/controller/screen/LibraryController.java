@@ -4,6 +4,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.AlbumRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FolderRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoPreviewRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.search.SearchService;
@@ -11,6 +12,7 @@ import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferences
 import com.github.curiousoddman.curious_images.event.AiPipelineCompleteEvent;
 import com.github.curiousoddman.curious_images.event.BackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.LibraryUpdatedEvent;
+import com.github.curiousoddman.curious_images.event.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.event.payload.BackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.TimelineData;
@@ -21,6 +23,7 @@ import com.github.curiousoddman.curious_images.persistence.AlbumRepository;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
+import com.github.curiousoddman.curious_images.persistence.PhotoPreviewRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
@@ -50,6 +53,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Slider;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.Tab;
@@ -71,6 +76,8 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -81,11 +88,13 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.net.URL;
 import java.time.Month;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -93,6 +102,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController.getImage;
@@ -107,6 +117,7 @@ public class LibraryController implements Initializable {
     public static final Font CONSOLAS = new Font("Consolas", 15);
 
     private static final int SEARCH_TOP_K = 50;
+    private static final int PAGE_SIZE    = 200;
 
     private final FxmlLoader             fxmlLoader;
     private final UserPreferencesService userPreferencesService;
@@ -114,6 +125,7 @@ public class LibraryController implements Initializable {
     private final FolderRepository       folderRepository;
     private final PhotoRepository        photoRepository;
     private final ThumbnailRepository    thumbnailRepository;
+    private final PhotoPreviewRepository photoPreviewRepository;
     private final AlbumRepository        albumRepository;
     private final AlbumPhotoRepository   albumPhotoRepository;
     private final PersonRepository       personRepository;
@@ -128,6 +140,8 @@ public class LibraryController implements Initializable {
     public TreeView<LibraryTreeNode> libraryTreeView;
     @FXML
     public FlowPane                  photoGridPane;
+    @FXML
+    public ScrollPane                photoScrollPane;
     @FXML
     public Slider                    thumbnailSizeSlider;
     @FXML
@@ -170,6 +184,30 @@ public class LibraryController implements Initializable {
     private DuplicatesController duplicatesController;
 
     /**
+     * Guards against a stale background page-load or full-selection-load callback overwriting a
+     * newer selection: every time the user switches selection (folder/timeline/album/search/
+     * undated) this is incremented, and any in-flight callback whose captured value no longer
+     * matches is discarded. Coarser than per-cell tracking — see implementation plan §4 ("only
+     * folder/selection-switch staleness matters, not per-cell reassignment").
+     */
+    private final AtomicLong selectionGeneration = new AtomicLong();
+
+    /**
+     * The full, ordered photo set for the current selection — fetched once per selection change.
+     * Only a prefix of length {@link #loadedCount} has actually been rendered into
+     * {@code photoGridPane}.
+     */
+    private List<PhotoRecord> currentPhotos = List.of();
+    private int               loadedCount   = 0;
+
+    /**
+     * Photo-id → image slot for every currently-rendered cell, so {@link #onThumbnailsReady} can
+     * swap a placeholder/quick-preview for the real thumbnail once it's generated, without
+     * rebuilding the whole grid. Cleared on every selection change.
+     */
+    private final Map<Long, StackPane> imageSlotsByPhotoId = new HashMap<>();
+
+    /**
      * Lazily loaded on first PERSON selection.
      * The FXML + controller are created once and reused for every subsequent person.
      */
@@ -193,6 +231,15 @@ public class LibraryController implements Initializable {
                 onSearchClicked(null);
             }
         });
+
+        // Paged grid loading (implementation plan §4): append the next page once the user scrolls
+        // near the bottom. "Near" is deliberately coarse (90%) rather than exact viewport math.
+        photoScrollPane.vvalueProperty()
+                       .addListener((obs, oldValue, newValue) -> {
+                           if (newValue.doubleValue() > 0.9) {
+                               appendNextPage();
+                           }
+                       });
 
         onLibraryDataUpdated(null);
 
@@ -547,45 +594,37 @@ public class LibraryController implements Initializable {
     // ── Photo loading ─────────────────────────────────────────────────────────
 
     private void loadPhotosForFolder(long folderId) {
+        long myGeneration = selectionGeneration.incrementAndGet();
         Thread t = new Thread(() -> {
             List<PhotoRecord> photos = photoRepository.findByFolderId(folderId);
-            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(
-                    photos.stream()
-                          .map(PhotoRecord::getId)
-                          .toList());
-            runOnFxThread(() -> populatePhotoGrid(photos, thumbs));
+            runOnFxThread(() -> loadSelectionResult(myGeneration, photos));
         });
         t.setDaemon(true);
         t.start();
     }
 
     private void loadPhotosForTimeline(int year, int month, Integer day) {
+        long myGeneration = selectionGeneration.incrementAndGet();
         Thread t = new Thread(() -> {
             List<PhotoRecord> photos = photoRepository.findByCaptureDate(year, month, day);
-            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(
-                    photos.stream()
-                          .map(PhotoRecord::getId)
-                          .toList());
-            runOnFxThread(() -> populatePhotoGrid(photos, thumbs));
+            runOnFxThread(() -> loadSelectionResult(myGeneration, photos));
         });
         t.setDaemon(true);
         t.start();
     }
 
     private void loadPhotosUndated() {
+        long myGeneration = selectionGeneration.incrementAndGet();
         Thread t = new Thread(() -> {
             List<PhotoRecord> photos = photoRepository.findByNullCaptureDate();
-            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(
-                    photos.stream()
-                          .map(PhotoRecord::getId)
-                          .toList());
-            runOnFxThread(() -> populatePhotoGrid(photos, thumbs));
+            runOnFxThread(() -> loadSelectionResult(myGeneration, photos));
         });
         t.setDaemon(true);
         t.start();
     }
 
     private void loadPhotosForAlbum(long albumId) {
+        long myGeneration = selectionGeneration.incrementAndGet();
         Thread t = new Thread(() -> {
             List<Long> photoIds = albumPhotoRepository.findPhotoIdsByAlbumId(albumId);
             List<PhotoRecord> photos = photoIds.stream()
@@ -593,11 +632,20 @@ public class LibraryController implements Initializable {
                                                                          .orElse(null))
                                                .filter(Objects::nonNull)
                                                .toList();
-            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(photoIds);
-            runOnFxThread(() -> populatePhotoGrid(photos, thumbs));
+            runOnFxThread(() -> loadSelectionResult(myGeneration, photos));
         });
         t.setDaemon(true);
         t.start();
+    }
+
+    /**
+     * Applies a freshly-loaded photo set to the grid, unless the user has since switched to a
+     * different selection (see {@link #selectionGeneration}), in which case it's silently dropped.
+     */
+    private void loadSelectionResult(long myGeneration, List<PhotoRecord> photos) {
+        if (myGeneration == selectionGeneration.get()) {
+            populatePhotoGrid(photos);
+        }
     }
 
     // ── Search ────────────────────────────────────────────────────────────────
@@ -612,6 +660,7 @@ public class LibraryController implements Initializable {
         showPhotoGrid();
         libraryTreeView.getSelectionModel()
                        .clearSelection();
+        long myGeneration = selectionGeneration.incrementAndGet();
         Thread t = new Thread(() -> {
             try {
                 List<Long> photoIds = searchService.semanticSearch(query, SEARCH_TOP_K);
@@ -620,14 +669,20 @@ public class LibraryController implements Initializable {
                                                                              .orElse(null))
                                                    .filter(Objects::nonNull)
                                                    .toList();
-                Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(photoIds);
                 runOnFxThread(() -> {
-                    populatePhotoGrid(photos, thumbs);
+                    if (myGeneration != selectionGeneration.get()) {
+                        return;
+                    }
+                    populatePhotoGrid(photos);
                     photoCountLabel.setText("Search: " + photos.size() + " results");
                 });
             } catch (Exception e) {
                 log.error("Semantic search failed for query '{}'", query, e);
-                runOnFxThread(() -> photoCountLabel.setText("Search error: " + e.getMessage()));
+                runOnFxThread(() -> {
+                    if (myGeneration == selectionGeneration.get()) {
+                        photoCountLabel.setText("Search error: " + e.getMessage());
+                    }
+                });
             }
         });
         t.setDaemon(true);
@@ -648,35 +703,108 @@ public class LibraryController implements Initializable {
 
     // ── Photo grid ────────────────────────────────────────────────────────────
 
-    private void populatePhotoGrid(List<PhotoRecord> photos, Map<Long, ThumbnailRecord> thumbnailsByPhotoId) {
+    /**
+     * Applies a freshly-loaded, fully-ordered photo set to the grid: resets paging state and
+     * renders only the first page — see {@link #appendNextPage()}.
+     */
+    private void populatePhotoGrid(List<PhotoRecord> photos) {
         photoGridPane.getChildren()
-                     .setAll(
-                             photos.stream()
-                                   .map(photo -> createPhotoCell(photo, thumbnailsByPhotoId.get(photo.getId())))
-                                   .toList());
+                     .clear();
+        imageSlotsByPhotoId.clear();
+        currentPhotos = photos;
+        loadedCount = 0;
         photoCountLabel.setText(photos.size() + " photo" + (photos.size() == 1 ? "" : "s"));
+        appendNextPage();
     }
 
     private void clearPhotoGrid() {
+        selectionGeneration.incrementAndGet();
         photoGridPane.getChildren()
                      .clear();
+        imageSlotsByPhotoId.clear();
+        currentPhotos = List.of();
+        loadedCount = 0;
         photoCountLabel.setText("");
     }
 
-    private Node createPhotoCell(PhotoRecord photo, ThumbnailRecord thumbnail) {
-        ImageView imageView = new ImageView(getImage(thumbnail, noImageAvailable));
-        imageView.setPreserveRatio(true);
-        imageView.fitWidthProperty()
-                 .bind(thumbnailSizeSlider.valueProperty());
-        imageView.fitHeightProperty()
-                 .bind(thumbnailSizeSlider.valueProperty());
+    /**
+     * Renders the next {@value #PAGE_SIZE}-photo page of {@link #currentPhotos} (a no-op if
+     * everything is already rendered) and fires an on-demand thumbnail-generation request for
+     * exactly that page — implementation plan §3/§4: the trigger point is "the grid is about to
+     * render a set of photo IDs", regardless of which selection type produced that set.
+     * <p>
+     * Thumbnail/preview lookups for the page happen on a background thread; the captured
+     * {@link #selectionGeneration} value is re-checked before touching the scene graph, so a
+     * selection switch that happens while this page is loading simply discards the result.
+     */
+    private void appendNextPage() {
+        if (loadedCount >= currentPhotos.size()) {
+            return;
+        }
+        long              myGeneration = selectionGeneration.get();
+        int               start        = loadedCount;
+        int               end          = Math.min(start + PAGE_SIZE, currentPhotos.size());
+        List<PhotoRecord> page         = currentPhotos.subList(start, end);
+        loadedCount = end; // reserve now so a second scroll event can't double-append this page
+
+        List<Long> pageIds = page.stream()
+                                 .map(PhotoRecord::getId)
+                                 .toList();
+
+        Thread t = new Thread(() -> {
+            Map<Long, ThumbnailRecord>    thumbs   = thumbnailRepository.findByPhotoIds(pageIds);
+            Map<Long, PhotoPreviewRecord> previews = photoPreviewRepository.findByPhotoIds(pageIds);
+            runOnFxThread(() -> {
+                if (myGeneration != selectionGeneration.get()) {
+                    return; // selection changed while this page was loading — discard
+                }
+                for (PhotoRecord photo : page) {
+                    photoGridPane.getChildren()
+                                 .add(createPhotoCell(photo, thumbs.get(photo.getId()), previews.get(photo.getId())));
+                }
+            });
+            List<Long> idsWithoutThumbnail = pageIds.stream()
+                                                    .filter(id -> !thumbs.containsKey(id))
+                                                    .toList();
+            if (!idsWithoutThumbnail.isEmpty()) {
+                jobManager.submitThumbnailGenerationJob(idsWithoutThumbnail);
+            }
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
+    /**
+     * Swaps the placeholder/quick-preview image of any still-visible cell for the real thumbnail,
+     * once {@code ThumbnailGenerationJob} has generated it. Photo IDs no longer present in
+     * {@link #imageSlotsByPhotoId} (selection changed since the request was made) are ignored.
+     */
+    @EventListener
+    public void onThumbnailsReady(ThumbnailsReadyEvent event) {
+        runOnFxThread(() -> {
+            for (Long photoId : event.getPhotoIds()) {
+                StackPane slot = imageSlotsByPhotoId.get(photoId);
+                if (slot == null) {
+                    log.warn("Could not find images slot for photo id {}", photoId);
+                    continue;
+                }
+                thumbnailRepository.findByPhotoId(photoId)
+                                   .ifPresent(thumbnail -> slot.getChildren()
+                                                               .setAll(buildImageView(thumbnail)));
+            }
+        });
+    }
+
+    private Node createPhotoCell(PhotoRecord photo, ThumbnailRecord thumbnail, PhotoPreviewRecord preview) {
+        StackPane imageSlot = buildImageSlot(thumbnail, preview);
+        imageSlotsByPhotoId.put(photo.getId(), imageSlot);
 
         Label nameLabel = new Label(photo.getFilename());
         nameLabel.setWrapText(true);
         nameLabel.setAlignment(Pos.CENTER);
         nameLabel.setMaxWidth(160.0);
 
-        VBox cell = new VBox(4.0, imageView, nameLabel);
+        VBox cell = new VBox(4.0, imageSlot, nameLabel);
         cell.setAlignment(Pos.TOP_CENTER);
         cell.setPadding(new Insets(6.0));
 
@@ -687,19 +815,83 @@ public class LibraryController implements Initializable {
 
         cell.setOnMouseClicked(e -> {
             if (e.getClickCount() == 1) {
-                List<PhotoRecord> currentPhotos = photoGridPane.getChildren()
-                                                               .stream()
-                                                               .map(node -> (PhotoRecord) node.getUserData())
-                                                               .filter(Objects::nonNull)
-                                                               .toList();
-                int idx = currentPhotos.indexOf(photo);
+                List<PhotoRecord> visiblePhotos = currentPhotos.subList(0, loadedCount);
+                int               idx           = visiblePhotos.indexOf(photo);
                 if (idx >= 0) {
-                    openSlideshow(currentPhotos, idx);
+                    openSlideshow(visiblePhotos, idx);
                 }
             }
         });
         cell.setUserData(photo);
         return cell;
+    }
+
+    /**
+     * Builds the image slot for one cell: the real thumbnail if one is cached on disk, else the
+     * instant quick-preview from the embedded EXIF preview if one was stored, else a generic
+     * placeholder (implementation plan §2) — no disk I/O, no per-file special-casing.
+     */
+    private StackPane buildImageSlot(ThumbnailRecord thumbnail, PhotoPreviewRecord preview) {
+        StackPane slot = new StackPane();
+        slot.prefWidthProperty()
+            .bind(thumbnailSizeSlider.valueProperty());
+        slot.prefHeightProperty()
+            .bind(thumbnailSizeSlider.valueProperty());
+
+        if (thumbnail != null && hasCachedFile(thumbnail)) {
+            slot.getChildren()
+                .add(buildImageView(thumbnail));
+        } else if (preview != null && preview.getBytes() != null) {
+            slot.getChildren()
+                .add(buildImageView(preview.getBytes()));
+        } else {
+            slot.getChildren()
+                .add(buildPlaceholder());
+        }
+        return slot;
+    }
+
+    private static boolean hasCachedFile(ThumbnailRecord thumbnail) {
+        return thumbnail.getCachePath() != null && new File(thumbnail.getCachePath()).isFile();
+    }
+
+    private ImageView buildImageView(ThumbnailRecord thumbnail) {
+        return buildImageView(getImage(thumbnail, noImageAvailable));
+    }
+
+    private ImageView buildImageView(byte[] previewBytes) {
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(previewBytes);
+        return buildImageView(new Image(byteArrayInputStream, 0, 0, true, true));
+    }
+
+    private ImageView buildImageView(Image image) {
+        ImageView imageView = new ImageView(image);
+        imageView.setPreserveRatio(true);
+        imageView.fitWidthProperty()
+                 .bind(thumbnailSizeSlider.valueProperty());
+        imageView.fitHeightProperty()
+                 .bind(thumbnailSizeSlider.valueProperty());
+        return imageView;
+    }
+
+    /**
+     * Generic "no thumbnail yet" placeholder: a grey card the size of the current thumbnail slot
+     * plus a spinner, no disk I/O. Shown for files with no embedded EXIF preview at all (PNG,
+     * CR2, corrupt files) until the real thumbnail is generated, and swapped out by
+     * {@link #onThumbnailsReady}.
+     */
+    private Node buildPlaceholder() {
+        Rectangle greyCard = new Rectangle();
+        greyCard.widthProperty()
+                .bind(thumbnailSizeSlider.valueProperty());
+        greyCard.heightProperty()
+                .bind(thumbnailSizeSlider.valueProperty());
+        greyCard.setArcWidth(10.0);
+        greyCard.setArcHeight(10.0);
+        greyCard.setFill(Color.web("#d8d8d8"));
+
+        Label loadingLabel = new Label("Loading...");
+        return new StackPane(greyCard, loadingLabel);
     }
 
     // ── Utilities ─────────────────────────────────────────────────────────────

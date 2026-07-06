@@ -62,7 +62,7 @@ public class AiPipelineJob extends BackgroundJob {
     // ── Pipeline orchestration ────────────────────────────────────────────────
 
     @Override
-    public void runImpl() throws Exception {
+    public void runImpl() throws Exception {    // TODO: keep only face related steps. comment out others for now
         publishStarted("Starting AI pipeline...");
         try {
             runFaceDetection();

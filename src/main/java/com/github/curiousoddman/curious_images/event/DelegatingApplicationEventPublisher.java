@@ -12,10 +12,9 @@ import org.springframework.stereotype.Component;
 @Primary
 @Component
 @RequiredArgsConstructor
-public class DelegatingApplicationEventPublisher implements ApplicationEventPublisher {
-    private final ApplicationContext context;
-
-    private Object previousEvent;
+public class DelegatingApplicationEventPublisher implements ApplicationEventPublisher {     // TODO: group classes in this package - handling and model packages
+    private final EventsConfiguration cfg = new EventsConfiguration();
+    private final ApplicationContext  context;
 
     @Override
     public void publishEvent(ApplicationEvent event) {
@@ -31,10 +30,7 @@ public class DelegatingApplicationEventPublisher implements ApplicationEventPubl
 
     private void logEvent(Object event) {
         Class<?> currentEventClass = event.getClass();
-        if (currentEventClass.equals(BackgroundProcessEvent.class)
-                && previousEvent != null
-                && previousEvent.getClass()
-                                .equals(currentEventClass)) {
+        if (cfg.shouldSkipLog(event)) {
             // Skip logging background process event....
             return;
         }
@@ -45,7 +41,6 @@ public class DelegatingApplicationEventPublisher implements ApplicationEventPubl
                             .getClass()
                             .getSimpleName()
                         : "unknown");
-        previousEvent = event;
     }
 }
 

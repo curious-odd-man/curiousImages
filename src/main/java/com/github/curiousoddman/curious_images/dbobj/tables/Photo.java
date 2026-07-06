@@ -15,6 +15,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroupMember
 import com.github.curiousoddman.curious_images.dbobj.tables.Face.FacePath;
 import com.github.curiousoddman.curious_images.dbobj.tables.Folder.FolderPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash.PhotoHashPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.PhotoPreview.PhotoPreviewPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail.ThumbnailPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 
@@ -336,6 +337,19 @@ public class Photo extends TableImpl<PhotoRecord> {
             _face = new FacePath(this, null, Keys.CONSTRAINT_20C.getInverseKey());
 
         return _face;
+    }
+
+    private transient PhotoPreviewPath _photoPreview;
+
+    /**
+     * Get the implicit to-many join path to the
+     * <code>public.PHOTO_PREVIEW</code> table
+     */
+    public PhotoPreviewPath photoPreview() {
+        if (_photoPreview == null)
+            _photoPreview = new PhotoPreviewPath(this, null, Keys.CONSTRAINT_331.getInverseKey());
+
+        return _photoPreview;
     }
 
     private transient AlbumPath _album;

@@ -1,14 +1,13 @@
 package com.github.curiousoddman.curious_images.domain.imports;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.ExtractedMetadata;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
 import com.github.curiousoddman.curious_images.event.LibraryUpdatedEvent;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
+import com.github.curiousoddman.curious_images.persistence.PhotoPreviewRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
-import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.util.FileCollectingVisitor;
 import com.github.curiousoddman.curious_images.util.FileUtils;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
@@ -44,9 +43,8 @@ public class ImportJob extends BackgroundJob {
     private final ImportRootRepository   importRootRepository;
     private final FolderRepository       folderRepository;
     private final PhotoRepository        photoRepository;
-    private final ThumbnailRepository    thumbnailRepository;
+    private final PhotoPreviewRepository photoPreviewRepository;
     private final PhotoMetadataExtractor metadataExtractor;
-    private final ThumbnailGenerator     thumbnailGenerator;
     private final TimeProvider           timeProvider;
     private final List<String>           rootPaths;
 
@@ -120,7 +118,7 @@ public class ImportJob extends BackgroundJob {
         }
     }
 
-    // ── File-level import (unchanged) ─────────────────────────────────────────
+    // ── File-level import (metadata only — no thumbnail generation) ───────────
 
     private ImportOutcome importOneFile(Path rootPath, long importRootId, Map<Path, Long> folderIdCache,
                                         Path file, List<Query> buffer) throws IOException {
@@ -155,7 +153,7 @@ public class ImportJob extends BackgroundJob {
                     metadata.orientationDegrees(), metadata.cameraMake(),
                     metadata.cameraModel(), metadata.lensModel(),
                     metadata.exifExtraJson(), now));
-            queueThumbnail(photoId, file, extension, metadata.orientationDegrees(), now, buffer);
+            queuePreview(photoId, metadata, buffer);
             buffer.add(photoRepository.resetAiFields());
             return ImportOutcome.UPDATED;
         }
@@ -167,16 +165,22 @@ public class ImportJob extends BackgroundJob {
                 metadata.orientationDegrees(), metadata.cameraMake(),
                 metadata.cameraModel(), metadata.lensModel(),
                 metadata.exifExtraJson(), now);
-        queueThumbnail(photoId, file, extension, metadata.orientationDegrees(), now, buffer);
+        queuePreview(photoId, metadata, buffer);
         return ImportOutcome.IMPORTED;
     }
 
-    private void queueThumbnail(long photoId, Path file, String extension, int rotationDegrees,
-                                LocalDateTime now, List<Query> buffer) {
-        thumbnailGenerator.generate(file, extension, rotationDegrees)
-                          .ifPresent(thumbnail -> buffer.add(thumbnailRepository.upsertQuery(
-                                  photoId, thumbnail.cachePath()
-                                                    .toString(), thumbnail.width(), thumbnail.height(), now)));
+    /**
+     * Phase 1 does <b>no</b> thumbnail generation at all — see implementation plan. The only
+     * per-file write beyond {@code PHOTO} itself is this quick-preview upsert, and only when
+     * {@link PhotoMetadataExtractor} found an embedded EXIF preview (JPEG only) while parsing
+     * metadata above — piggybacked onto the same batched flush, so it costs no extra disk writes.
+     * The real thumbnail is generated later, on demand, by {@code ThumbnailGenerationJob} — only
+     * for photos the UI actually asks to see.
+     */
+    private void queuePreview(long photoId, ExtractedMetadata metadata, List<Query> buffer) {
+        if (metadata.embeddedPreviewBytes() != null) {
+            buffer.add(photoPreviewRepository.upsertQuery(photoId, metadata.embeddedPreviewBytes()));
+        }
     }
 
     private long resolveFolderId(long importRootId, Path rootPath, Path dir, Map<Path, Long> folderIdCache) {

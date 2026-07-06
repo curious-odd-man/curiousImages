@@ -33,7 +33,8 @@ import java.util.Set;
 
 /**
  * Extracts capture date, full-resolution width/height, orientation, camera/lens identity, and
- * (for CR2 only) the embedded JPEG preview from a photo file, using {@code metadata-extractor}.
+ * (for JPEG, and CR2 via the single-arg overload) the embedded EXIF preview from a photo file,
+ * using {@code metadata-extractor}.
  * See implementation plan §9 for the full rationale behind the capture-date priority ordering —
  * this class mirrors it exactly.
  * <p>
@@ -107,17 +108,25 @@ public class PhotoMetadataExtractor {
             // failing the whole import for this one file (per-file isolation, see ImportService).
             log.warn("metadata-extractor could not read {}, falling back to filesystem date only", file, e);
             return new ExtractedMetadata(null, null, fileSystemDate(file), CaptureDateSource.FILESYSTEM,
-                    0, null, null, null, null);
+                    0, null, null, null, null, null);
         }
 
         CaptureDateAndSource captureDateAndSource = extractCaptureDate(metadata, file);
         Dimensions           dimensions           = extractDimensions(metadata, extension, file);
 
+        // Quick-preview shortcut (see implementation plan): only attempted for JPEG. metadata has
+        // already been parsed above for this same file, so this costs effectively nothing extra.
+        // CR2 deliberately skips this — it's rare enough in practice not to be worth the
+        // complexity, and falls straight to the generic placeholder in the UI instead.
+        byte[] embeddedPreviewBytes = JPEG_EXTENSIONS.contains(extension)
+                ? extractEmbeddedPreviewBytes(file, metadata).orElse(null)
+                : null;
+
         return new ExtractedMetadata(dimensions.width(), dimensions.height(),
                 captureDateAndSource.date(), captureDateAndSource.source(),
                 extractOrientationDegrees(metadata),
                 extractCameraMake(metadata), extractCameraModel(metadata), extractLensModel(metadata),
-                buildExifExtraJson(metadata));
+                buildExifExtraJson(metadata), embeddedPreviewBytes);
     }
 
     /**
@@ -133,7 +142,23 @@ public class PhotoMetadataExtractor {
      */
     public Optional<byte[]> extractEmbeddedPreviewBytes(Path file) {
         try {
-            Metadata               metadata           = ImageMetadataReader.readMetadata(file.toFile());
+            Metadata metadata = ImageMetadataReader.readMetadata(file.toFile());
+            return extractEmbeddedPreviewBytes(file, metadata);
+        } catch (ImageProcessingException | IOException e) {
+            log.warn("Failed to extract embedded preview from {}", file, e);
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Same as {@link #extractEmbeddedPreviewBytes(Path)}, but takes an already-parsed
+     * {@link Metadata} instead of re-reading and re-parsing the file. Used by
+     * {@link #extract(Path, String)}, which has already opened and parsed the file's EXIF for
+     * capture date / dimensions / orientation — reusing it here means the JPEG quick-preview
+     * shortcut costs effectively nothing extra during the Phase 1 import scan.
+     */
+    public Optional<byte[]> extractEmbeddedPreviewBytes(Path file, Metadata metadata) {
+        try {
             ExifThumbnailDirectory thumbnailDirectory = metadata.getFirstDirectoryOfType(ExifThumbnailDirectory.class);
             if (thumbnailDirectory == null) {
                 return Optional.empty();
@@ -155,7 +180,7 @@ public class PhotoMetadataExtractor {
             }
 
             return Optional.empty();
-        } catch (ImageProcessingException | IOException e) {
+        } catch (IOException e) {
             log.warn("Failed to extract embedded preview from {}", file, e);
             return Optional.empty();
         }

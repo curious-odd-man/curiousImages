@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -35,17 +36,42 @@ public class JobManager {
         if (shutdown) {
             return Optional.empty();
         }
+        if (job.isSupersedable()) {
+            return submitSupersedable(job);
+        }
+
         var queuedClasses = queue.stream()
                                  .map(ManagedJob::job)
                                  .map(Object::getClass)
                                  .toList();
 
-        if (currentJob != null && sameClass(job, currentJob)
+        if (currentJob != null && sameClass(job, currentJob.job())
                 || queuedClasses.contains(job.getClass())) {
             log.info("Discarded job submission - same class '{}' already in queue '{}'", job.getClass(), queuedClasses);
             return Optional.empty();
         }
 
+        return enqueue(job);
+    }
+
+    /**
+     * Supersedable jobs (e.g. {@code ThumbnailGenerationJob}) always get accepted: any
+     * not-yet-started queued instance of the same class is dropped — a newer request already
+     * supersedes it — and a currently-running instance of the same class is asked to stop via
+     * {@link BackgroundJob#requestInterrupt()}. It can't be aborted mid-file, so there's a small,
+     * bounded, accepted delay while the previous run finishes its current in-flight file before
+     * the worker picks up this newly-enqueued job. See implementation plan §5.
+     */
+    private Optional<JobDescriptor> submitSupersedable(BackgroundJob job) {
+        queue.removeIf(managed -> sameClass(job, managed.job()));
+        if (currentJob != null && sameClass(job, currentJob.job())) {
+            currentJob.job()
+                      .requestInterrupt();
+        }
+        return enqueue(job);
+    }
+
+    private Optional<JobDescriptor> enqueue(BackgroundJob job) {
         JobDescriptor descriptor = new JobDescriptor(UUID.randomUUID(), job.getProcessName(), "");
         ManagedJob    managed    = new ManagedJob(job, descriptor);
 
@@ -175,10 +201,9 @@ public class JobManager {
         }
     }
 
-    private static boolean sameClass(BackgroundJob job, ManagedJob managedJob) {
-        return managedJob.job()
-                         .getClass()
-                         .equals(job.getClass());
+    private static boolean sameClass(BackgroundJob job, BackgroundJob other) {
+        return other.getClass()
+                    .equals(job.getClass());
     }
 
     public Optional<JobDescriptor> submitImportJob(List<String> paths) {
@@ -195,5 +220,15 @@ public class JobManager {
 
     public Optional<JobDescriptor> submitAddFilesJob(AddFilesRequest request) {
         return submit(jobFactory.createAddFilesJob(request, this));
+    }
+
+    /**
+     * Requests on-demand real-thumbnail generation for a page/selection of photo IDs — submitted
+     * by {@code LibraryController} whenever the grid is about to render a set of photo IDs.
+     * Supersedable (see {@code ThumbnailGenerationJob#isSupersedable()}) — a fresh call always
+     * takes priority over one still queued or running for a previous selection.
+     */
+    public Optional<JobDescriptor> submitThumbnailGenerationJob(List<Long> photoIds) {
+        return submit(jobFactory.createThumbnailGenerationJob(photoIds));
     }
 }

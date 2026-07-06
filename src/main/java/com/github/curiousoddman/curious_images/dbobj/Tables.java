@@ -19,6 +19,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.PendingAction;
 import com.github.curiousoddman.curious_images.dbobj.tables.Person;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash;
+import com.github.curiousoddman.curious_images.dbobj.tables.PhotoPreview;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail;
 import com.github.curiousoddman.curious_images.dbobj.tables.UserPreferences;
 
@@ -113,6 +114,11 @@ public class Tables {
      * The table <code>public.PHOTO_HASH</code>.
      */
     public static final PhotoHash PHOTO_HASH = PhotoHash.PHOTO_HASH;
+
+    /**
+     * The table <code>public.PHOTO_PREVIEW</code>.
+     */
+    public static final PhotoPreview PHOTO_PREVIEW = PhotoPreview.PHOTO_PREVIEW;
 
     /**
      * The table <code>public.THUMBNAIL</code>.

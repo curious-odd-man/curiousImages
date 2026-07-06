@@ -33,5 +33,5 @@ public record ExtractedMetadata(Integer width, Integer height,
                                 LocalDateTime captureDate, CaptureDateSource captureDateSource,
                                 int orientationDegrees,
                                 String cameraMake, String cameraModel, String lensModel,
-                                String exifExtraJson) {
+                                String exifExtraJson, byte[] embeddedPreviewBytes) {
 }

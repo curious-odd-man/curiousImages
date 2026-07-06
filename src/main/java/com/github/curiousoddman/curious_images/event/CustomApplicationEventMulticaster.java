@@ -10,17 +10,15 @@ import org.springframework.core.ResolvableType;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
-import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
+
+import static com.github.curiousoddman.curious_images.event.EventsConfiguration.IGNORE_LOGGING_CLASSES;
 
 @Slf4j
 @Component("applicationEventMulticaster")
 public class CustomApplicationEventMulticaster extends SimpleApplicationEventMulticaster {
-    private ApplicationEvent previousEvent;
-
-    private static final Set<Class<?>> EXCLUSIONS = Set.of(
-    );
+    private final EventsConfiguration cfg = new EventsConfiguration();
 
     // Only difference is that we log listeners invocations
     @Override
@@ -29,26 +27,20 @@ public class CustomApplicationEventMulticaster extends SimpleApplicationEventMul
         Executor                           executor             = getTaskExecutor();
         Collection<ApplicationListener<?>> applicationListeners = getApplicationListeners(event, type);
 
-        Class<?> currentEventClass = event.getClass();
-        boolean isProgressEvent = currentEventClass.equals(BackgroundProcessEvent.class)
-                || previousEvent == null
-                || !previousEvent.getClass()
-                                 .equals(currentEventClass);
-
         if (applicationListeners.isEmpty()) {
-            if (EXCLUSIONS.contains(event.getClass())) {
+            if (EventsConfiguration.SKIP_LOG_NO_LISTENERS.contains(event.getClass())) {
                 return;
             }
             log.error("🔕 No listeners defined for the event: {}", event.getClass()
                                                                        .getSimpleName());
         } else {
-            if (!isProgressEvent) {
+            if (!cfg.shouldSkipLog(event)) {
                 log.info("🖖 Handling event: {} ", event.getClass()
                                                        .getSimpleName());
             }
         }
         for (ApplicationListener<?> listener : applicationListeners) {
-            if (!isProgressEvent) { // Skip logging background process event....
+            if (!cfg.shouldSkipLog(event)) { // Skip logging background process event....
                 if (listener instanceof ApplicationListenerMethodAdapter adapter) {
                     log.info("\t- {}", adapter);
                 } else {
@@ -56,7 +48,6 @@ public class CustomApplicationEventMulticaster extends SimpleApplicationEventMul
                                                .getSimpleName());
                 }
             }
-            previousEvent = event;
 
             if (executor != null && listener.supportsAsyncExecution()) {
                 try {

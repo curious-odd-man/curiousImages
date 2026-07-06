@@ -28,6 +28,17 @@ public abstract class BackgroundJob {
 
     public abstract String getProcessName();
 
+    /**
+     * Whether {@code JobManager} should treat this job class as supersedable: a newer submission
+     * of the same class drops any not-yet-started queued instance and requests interruption of a
+     * currently-running one, rather than being discarded as a duplicate. Default {@code false} —
+     * no behavior change for existing job classes. See {@code ThumbnailGenerationJob} for the
+     * motivating case (implementation plan §5).
+     */
+    public boolean isSupersedable() {
+        return false;
+    }
+
     public void run(ApplicationEventPublisher applicationEventPublisher) {
         if (isInterruptRequested()) {
             log.info("Job interrupted before running");

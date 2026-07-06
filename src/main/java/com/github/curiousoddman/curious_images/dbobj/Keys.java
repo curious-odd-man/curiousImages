@@ -19,6 +19,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.PendingAction;
 import com.github.curiousoddman.curious_images.dbobj.tables.Person;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash;
+import com.github.curiousoddman.curious_images.dbobj.tables.PhotoPreview;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail;
 import com.github.curiousoddman.curious_images.dbobj.tables.UserPreferences;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.AlbumPhotoRecord;
@@ -35,6 +36,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRe
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PendingActionRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoHashRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoPreviewRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.UserPreferencesRecord;
@@ -87,6 +89,7 @@ public class Keys {
     public static final UniqueKey<PhotoRecord> CONSTRAINT_4 = Internal.createUniqueKey(Photo.PHOTO, DSL.name("CONSTRAINT_4"), new TableField[] { Photo.PHOTO.ID }, true);
     public static final UniqueKey<PhotoRecord> CONSTRAINT_489 = Internal.createUniqueKey(Photo.PHOTO, DSL.name("CONSTRAINT_489"), new TableField[] { Photo.PHOTO.ABSOLUTE_PATH }, true);
     public static final UniqueKey<PhotoHashRecord> CONSTRAINT_6 = Internal.createUniqueKey(PhotoHash.PHOTO_HASH, DSL.name("CONSTRAINT_6"), new TableField[] { PhotoHash.PHOTO_HASH.PHOTO_ID }, true);
+    public static final UniqueKey<PhotoPreviewRecord> CONSTRAINT_33 = Internal.createUniqueKey(PhotoPreview.PHOTO_PREVIEW, DSL.name("CONSTRAINT_33"), new TableField[] { PhotoPreview.PHOTO_PREVIEW.PHOTO_ID }, true);
     public static final UniqueKey<ThumbnailRecord> CONSTRAINT_F = Internal.createUniqueKey(Thumbnail.THUMBNAIL, DSL.name("CONSTRAINT_F"), new TableField[] { Thumbnail.THUMBNAIL.PHOTO_ID }, true);
     public static final UniqueKey<UserPreferencesRecord> CONSTRAINT_2 = Internal.createUniqueKey(UserPreferences.USER_PREFERENCES, DSL.name("CONSTRAINT_2"), new TableField[] { UserPreferences.USER_PREFERENCES.PREF_KEY }, true);
 
@@ -108,5 +111,6 @@ public class Keys {
     public static final ForeignKey<FolderRecord, FolderRecord> CONSTRAINT_7BF0 = Internal.createForeignKey(Folder.FOLDER, DSL.name("CONSTRAINT_7BF0"), new TableField[] { Folder.FOLDER.PARENT_FOLDER_ID }, Keys.CONSTRAINT_7B, new TableField[] { Folder.FOLDER.ID }, true);
     public static final ForeignKey<PhotoRecord, FolderRecord> CONSTRAINT_48 = Internal.createForeignKey(Photo.PHOTO, DSL.name("CONSTRAINT_48"), new TableField[] { Photo.PHOTO.FOLDER_ID }, Keys.CONSTRAINT_7B, new TableField[] { Folder.FOLDER.ID }, true);
     public static final ForeignKey<PhotoHashRecord, PhotoRecord> CONSTRAINT_66 = Internal.createForeignKey(PhotoHash.PHOTO_HASH, DSL.name("CONSTRAINT_66"), new TableField[] { PhotoHash.PHOTO_HASH.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
+    public static final ForeignKey<PhotoPreviewRecord, PhotoRecord> CONSTRAINT_331 = Internal.createForeignKey(PhotoPreview.PHOTO_PREVIEW, DSL.name("CONSTRAINT_331"), new TableField[] { PhotoPreview.PHOTO_PREVIEW.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
     public static final ForeignKey<ThumbnailRecord, PhotoRecord> CONSTRAINT_F5 = Internal.createForeignKey(Thumbnail.THUMBNAIL, DSL.name("CONSTRAINT_F5"), new TableField[] { Thumbnail.THUMBNAIL.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
 }

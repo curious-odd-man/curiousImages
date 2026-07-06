@@ -13,6 +13,7 @@ import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -210,6 +211,14 @@ public class PhotoRepository {
                 dsl.selectFrom(PHOTO)
                    .where(PHOTO.ID.eq(photoId))
                    .fetchOne());
+    }
+
+    public List<PhotoRecord> findByIdIn(Collection<Long> ids) {
+        return dsl.selectFrom(PHOTO)
+                  .where(PHOTO.ID.in(ids))
+                  .fetch()
+                  .stream()
+                  .toList();
     }
 
     public Query markFaceDetectDoneQuery(long photoId, LocalDateTime now) {
