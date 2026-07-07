@@ -169,7 +169,7 @@ class BackgroundJobTest {
     }
 
     @Test
-    void publishProgressThrottlesRapidCalls() {
+    void publishProgressThrottledThrottlesRapidCalls() {
         RecordingJob job = new RecordingJob(null);
         job.eventPublisher = eventPublisher;
         // lastProgressPublishMs defaults to 0 at construction, but run() resets it; here we call
@@ -182,7 +182,7 @@ class BackgroundJobTest {
     }
 
     @Test
-    void publishProgressAlwaysPublishesWhenIsLastItemTrue() {
+    void publishProgressThrottledAlwaysPublishesWhenIsLastItemTrue() {
         RecordingJob job = new RecordingJob(null);
         job.eventPublisher = eventPublisher;
 
@@ -193,7 +193,7 @@ class BackgroundJobTest {
     }
 
     @Test
-    void publishProgressPublishesAgainAfterThrottleWindowElapses() throws InterruptedException {
+    void publishProgressThrottledPublishesAgainAfterThrottleWindowElapses() throws InterruptedException {
         RecordingJob job = new RecordingJob(null);
         job.eventPublisher = eventPublisher;
 
@@ -296,7 +296,7 @@ class BackgroundJobTest {
         }
 
         void callPublishProgress(String phaseText, int progress, int maxProgress, String currentItem, boolean isLastItem) {
-            publishProgress(phaseText, progress, maxProgress, currentItem, isLastItem);
+            publishProgressThrottled(phaseText, progress, maxProgress, currentItem, isLastItem);
         }
 
         void callPublishInterrupted() {

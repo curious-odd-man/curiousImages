@@ -1,7 +1,7 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
 // FIXME: Not this file, but somewhere is thread running that does not allow JVM to stop. Need to find and fix that.
-// FIXME: After AI pipeline finishes face detection - albums of faces are not immediately shown - require app restart.
+// FIXME: After AI pipeline finishes face detection - albums of faces are not immediately shown - require app restart. - this could be relevant to running album generation
 // FIXME: Person faces are strange - looks like those are not always correct.
 // FIXME: Person albums do not trigger thumbnails generation and, besides, show NO IMAGE, rather than Loading thumbnail...
 
@@ -417,7 +417,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
      */
     @EventListener
     public void onAiPipelineComplete(AiPipelineCompleteEvent event) {
-        // FIXME: Albums - are those needed = person albums - doubt so
+        // FIXME: Albums - need sub-trees for albums
         log.info("AI pipeline complete — refreshing Albums and People tree sections");
         Thread t = new Thread(() -> {
             List<TreeItem<LibraryTreeNode>> albumItems  = buildAlbumItems();

@@ -6,12 +6,12 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.domain.index.ClipVectorIndex;
 import com.github.curiousoddman.curious_images.domain.index.FaceVectorIndex;
-import com.github.curiousoddman.curious_images.event.model.RegenerateAlbumsEvent;
 import com.github.curiousoddman.curious_images.persistence.*;
 import com.github.curiousoddman.curious_images.util.ImageUtils;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import com.github.curiousoddman.curious_images.util.async.jobs.BackgroundJob;
 import com.github.curiousoddman.curious_images.util.async.jobs.IrrecoverableIterationException;
+import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
@@ -51,6 +51,7 @@ public class AiPipelineJob extends BackgroundJob {
     private final PersonClusteringService  personClusteringService;
     private final TimeProvider             timeProvider;
     private final FaceThumbnailsRepository faceThumbnailsRepository;
+    private final JobManager               jobManager;
     private final boolean                  faceDetectionOnly;
 
     @Override
@@ -74,7 +75,7 @@ public class AiPipelineJob extends BackgroundJob {
             personClusteringService.cluster();
 
             publishEnded("AI pipeline complete");
-            eventPublisher.publishEvent(new RegenerateAlbumsEvent(this));
+            jobManager.submitAlbumGenerationJob();
         } catch (Exception e) {
             log.error("AI pipeline failed", e);
             publishFailed(e);
@@ -158,7 +159,7 @@ public class AiPipelineJob extends BackgroundJob {
             if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
                 flush(buffer);
             }
-            publishProgress("Processing photos", i + 1, photoIds.size(),
+            publishProgressThrottled("Processing photos", i + 1, photoIds.size(),
                     lastPhotoPath, i == photoIds.size() - 1);
         }
         flush(buffer);
@@ -220,7 +221,7 @@ public class AiPipelineJob extends BackgroundJob {
                 clipVectorIndex.commit();
                 faceVectorIndex.commit();
             }
-            publishProgress("Indexing vectors", i + 1, photoIds.size(),
+            publishProgressThrottled("Indexing vectors", i + 1, photoIds.size(),
                     "Photo id: " + photoId, i == photoIds.size() - 1);
         }
         flush(statusBuffer);

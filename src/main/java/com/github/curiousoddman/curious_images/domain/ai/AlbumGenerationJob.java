@@ -6,24 +6,26 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.event.model.AiPipelineCompleteEvent;
-import com.github.curiousoddman.curious_images.event.model.RegenerateAlbumsEvent;
 import com.github.curiousoddman.curious_images.persistence.AlbumPhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.AlbumRepository;
 import com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
+import com.github.curiousoddman.curious_images.util.async.jobs.BackgroundJob;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.coobird.thumbnailator.Thumbnails;
 import org.jooq.DSLContext;
 import org.jooq.Query;
 import org.jooq.impl.DSL;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,18 +37,9 @@ import static com.github.curiousoddman.curious_images.dbobj.Tables.PHOTO;
 import static com.github.curiousoddman.curious_images.domain.ai.ClipTextEncoder.l2Normalize;
 import static com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository.getFloats;
 
-/**
- * Rebuilds all automatically generated albums (PERSON, EVENT, LOCATION, SIMILARITY) whenever
- * a {@link RegenerateAlbumsEvent} is received. Each album type is rebuilt from scratch —
- * all existing rows of that type are deleted then re-inserted within a transaction.
- * <p>
- * After all albums are rebuilt, publishes {@link AiPipelineCompleteEvent} so the UI can
- * refresh the album tree.
- */
 @Slf4j
-@Component
 @RequiredArgsConstructor
-public class AlbumGenerationService {
+public class AlbumGenerationJob extends BackgroundJob {
     private final DSLContext                dsl;
     private final AlbumRepository           albumRepo;
     private final AlbumPhotoRepository      albumPhotoRepo;
@@ -55,19 +48,22 @@ public class AlbumGenerationService {
     private final ClipEmbeddingRepository   clipEmbeddingRepo;
     private final AiConfig                  aiConfig;
     private final TimeProvider              timeProvider;
-    private final ApplicationEventPublisher publisher;
 
-    @EventListener      // FIXME: This should be a background job.
-    public void onRegenerateAlbums(RegenerateAlbumsEvent event) {
+
+    @Override
+    public void runImpl() throws Exception {
+        publishStarted(getProcessName());
         log.info("Regenerating albums...");
         try {
             buildPersonAlbums();
             buildEventAlbums();
             buildLocationAlbums();
-            buildSimilarityAlbums();
-            publisher.publishEvent(new AiPipelineCompleteEvent(this));
+            //buildSimilarityAlbums();      // TODO: do I need that?
+            publishEnded(getProcessName());
+            eventPublisher.publishEvent(new AiPipelineCompleteEvent(this));
             log.info("Album generation complete");
         } catch (Exception e) {
+            publishFailed(e);
             log.error("Album generation failed", e);
         }
     }
@@ -79,13 +75,18 @@ public class AlbumGenerationService {
             DSLContext ctx = DSL.using(cfg);
             albumRepo.deleteByType(ctx, "PERSON");
 
-            LocalDateTime now = timeProvider.now();
-            for (PersonRecord person : personRepo.findAll()) {
+            LocalDateTime      now              = timeProvider.now();
+            List<PersonRecord> personRecordList = personRepo.findAll();
+            publishProgressThrottled("Build Person Albums", 0, personRecordList.size(), "", false);
+            for (int j = 0; j < personRecordList.size(); j++) {
+                PersonRecord person = personRecordList.get(j);
                 List<Long> photoIds = faceRepo.findByPersonId(person.getId())
                                               .stream()
                                               .map(FaceRecord::getPhotoId)
                                               .distinct()
                                               .toList();
+
+                publishProgressThrottled("Build Person Albums", j, personRecordList.size(), "", j + 1 == personRecordList.size());
                 if (photoIds.isEmpty()) {
                     continue;
                 }
@@ -122,16 +123,19 @@ public class AlbumGenerationService {
         List<PhotoRecord>       current   = new ArrayList<>();
         current.add(dated.getFirst());
 
+        publishProgressThrottled("Build Event Albums", 0, dated.size(), "", false);
+
         for (int i = 1; i < dated.size(); i++) {
             PhotoRecord prev = dated.get(i - 1);
             PhotoRecord next = dated.get(i);
-            long gap = java.time.Duration.between(prev.getCaptureDate(), next.getCaptureDate())
-                                         .toMillis();
+            long gap = Duration.between(prev.getCaptureDate(), next.getCaptureDate())
+                               .toMillis();
             if (gap > gapMillis) {
                 events.add(current);
                 current = new ArrayList<>();
             }
             current.add(next);
+            publishProgressThrottled("Build Event Albums", i, dated.size() + events.size(), "", false);
         }
         events.add(current);
 
@@ -140,7 +144,10 @@ public class AlbumGenerationService {
             albumRepo.deleteByType(ctx, "EVENT");
             LocalDateTime now = timeProvider.now();
 
-            for (List<PhotoRecord> event : events) {
+            for (int j = 0; j < events.size(); j++) {
+                publishProgressThrottled("Build Event Albums", j + dated.size(), dated.size() + events.size(), "", false);
+
+                List<PhotoRecord> event = events.get(j);
                 if (event.size() < aiConfig.getMinEventSize()) {
                     continue;
                 }
@@ -169,20 +176,21 @@ public class AlbumGenerationService {
      * approximated by a simple pixel-neighbourhood difference on the thumbnail).
      * Falls back to the first photo if sharpness cannot be computed.
      */
+    // FIXME: would it be facter to use OpenCV?
     private long sharpestPhoto(List<PhotoRecord> photos) {
         long bestId = photos.getFirst()
                             .getId();
         double bestScore = -1;
         for (PhotoRecord photo : photos) {
             try {
-                BufferedImage img = javax.imageio.ImageIO.read(new File(photo.getAbsolutePath()));
+                BufferedImage img = ImageIO.read(new File(photo.getAbsolutePath()));
                 if (img == null) {
                     continue;
                 }
                 // Downsample to 64×64 for speed
-                BufferedImage small = net.coobird.thumbnailator.Thumbnails.of(img)
-                                                                          .forceSize(64, 64)
-                                                                          .asBufferedImage();
+                BufferedImage small = Thumbnails.of(img)
+                                                .forceSize(64, 64)
+                                                .asBufferedImage();
                 double score = laplacianVariance(small);
                 if (score > bestScore) {
                     bestScore = score;
@@ -232,6 +240,8 @@ public class AlbumGenerationService {
      * and creates one album per cell with ≥ {@code minLocationSize} photos.
      */
     private void buildLocationAlbums() {
+        publishProgressThrottled("Build Location Albums", 0, 1, "", false);
+
         List<PhotoRecord> withGps = dsl.selectFrom(PHOTO)
                                        .where(PHOTO.GPS_LAT.isNotNull()
                                                            .and(PHOTO.GPS_LON.isNotNull()))
@@ -241,10 +251,13 @@ public class AlbumGenerationService {
         }
 
         Map<String, List<PhotoRecord>> cells = new LinkedHashMap<>();
-        for (PhotoRecord p : withGps) {
-            double lat = Math.round(p.getGpsLat() * 100.0) / 100.0;
-            double lon = Math.round(p.getGpsLon() * 100.0) / 100.0;
-            String key = lat + "," + lon;
+        for (int i = 0; i < withGps.size(); i++) {
+            publishProgressThrottled("Build Event Albums", i, withGps.size() + cells.size(), "", false);
+
+            PhotoRecord p   = withGps.get(i);
+            double      lat = Math.round(p.getGpsLat() * 100.0) / 100.0;
+            double      lon = Math.round(p.getGpsLon() * 100.0) / 100.0;
+            String      key = lat + "," + lon;
             cells.computeIfAbsent(key, k -> new ArrayList<>())
                  .add(p);
         }
@@ -254,7 +267,10 @@ public class AlbumGenerationService {
             albumRepo.deleteByType(ctx, "LOCATION");
             LocalDateTime now = timeProvider.now();
 
+            int i = 0;
             for (Map.Entry<String, List<PhotoRecord>> entry : cells.entrySet()) {
+                i++;
+                publishProgressThrottled("Build Event Albums", withGps.size() + i, withGps.size() + cells.size(), "", false);
                 List<PhotoRecord> group = entry.getValue();
                 if (group.size() < aiConfig.getMinLocationSize()) {
                     continue;
@@ -267,9 +283,9 @@ public class AlbumGenerationService {
                 long albumId = albumRepo.insert(name, "LOCATION", coverId, null, now);
 
                 List<Query> buf = new ArrayList<>(group.size());
-                for (int i = 0; i < group.size(); i++) {
-                    buf.add(albumPhotoRepo.insertQuery(albumId, group.get(i)
-                                                                     .getId(), i, now));
+                for (int j = 0; j < group.size(); j++) {
+                    buf.add(albumPhotoRepo.insertQuery(albumId, group.get(j)
+                                                                     .getId(), j, now));
                 }
                 ctx.batch(buf)
                    .execute();
@@ -280,6 +296,8 @@ public class AlbumGenerationService {
     // ── Similarity albums (CLIP k-means) ─────────────────────────────────────
 
     private void buildSimilarityAlbums() {
+        publishProgressThrottled("Build Similarity Albums", 0, 1, "", false);
+
         List<ClipEmbeddingRecord> all = clipEmbeddingRepo.findAll();
         if (all.isEmpty()) {
             return;
@@ -306,11 +324,6 @@ public class AlbumGenerationService {
             clusters.computeIfAbsent(assignments[i], x -> new ArrayList<>())
                     .add(i);
         }
-
-        // Fixed vocabulary for zero-shot label matching
-        String[] VOCAB = {"sunset", "food", "landscape", "people", "architecture",
-                "animals", "travel", "sports", "nature", "street"};
-        float[][] vocabEmbeds = null; // populated lazily below if any clusters qualify
 
         dsl.transaction(cfg -> {
             DSLContext ctx = DSL.using(cfg);
@@ -410,7 +423,14 @@ public class AlbumGenerationService {
 
     private float dot(float[] a, float[] b) {
         float s = 0;
-        for (int i = 0; i < a.length; i++) s += a[i] * b[i];
+        for (int i = 0; i < a.length; i++) {
+            s += a[i] * b[i];
+        }
         return s;
+    }
+
+    @Override
+    public String getProcessName() {
+        return "Album generation";
     }
 }

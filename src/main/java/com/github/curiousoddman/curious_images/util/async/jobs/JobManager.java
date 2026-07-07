@@ -215,7 +215,7 @@ public class JobManager {
     }
 
     public Optional<JobDescriptor> submitAiPipelineJob() {
-        return submit(jobFactory.createAiPipelineJob());
+        return submit(jobFactory.createAiPipelineJob(this));
     }
 
     public Optional<JobDescriptor> submitAddFilesJob(AddFilesRequest request) {
@@ -230,5 +230,9 @@ public class JobManager {
      */
     public Optional<JobDescriptor> submitThumbnailGenerationJob(List<Long> photoIds) {
         return submit(jobFactory.createThumbnailGenerationJob(photoIds));
+    }
+
+    public Optional<JobDescriptor> submitAlbumGenerationJob() {
+        return submit(jobFactory.createAlbumGenerationJob());
     }
 }

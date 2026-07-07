@@ -1,6 +1,8 @@
 package com.github.curiousoddman.curious_images.util.async.jobs;
 
+import com.github.curiousoddman.curious_images.config.AiConfig;
 import com.github.curiousoddman.curious_images.domain.ai.AiPipelineJob;
+import com.github.curiousoddman.curious_images.domain.ai.AlbumGenerationJob;
 import com.github.curiousoddman.curious_images.domain.ai.ArcFaceEncoder;
 import com.github.curiousoddman.curious_images.domain.ai.ClipImageEncoder;
 import com.github.curiousoddman.curious_images.domain.ai.FaceAligner;
@@ -18,6 +20,8 @@ import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMeta
 import com.github.curiousoddman.curious_images.domain.index.ClipVectorIndex;
 import com.github.curiousoddman.curious_images.domain.index.FaceVectorIndex;
 import com.github.curiousoddman.curious_images.model.AddFilesRequest;
+import com.github.curiousoddman.curious_images.persistence.AlbumPhotoRepository;
+import com.github.curiousoddman.curious_images.persistence.AlbumRepository;
 import com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.DuplicateJobRepository;
@@ -26,6 +30,7 @@ import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceThumbnailsRepository;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
+import com.github.curiousoddman.curious_images.persistence.PersonRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoPreviewRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
@@ -33,10 +38,10 @@ import com.github.curiousoddman.curious_images.util.TimeProvider;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -58,20 +63,24 @@ public class JobFactory {
     private final PixelHasher              pixelHasher;
 
     @Value("${app.duplicate-detection.thread-count:4}")
-    private final int                      duplicateDetectionThreadCount;
-    private final FaceRepository           faceRepository;
-    private final FaceEmbeddingRepository  faceEmbeddingRepository;
-    private final ClipEmbeddingRepository  clipEmbeddingRepository;
-    private final RetinaFaceDetector       retinaFaceDetector;
-    private final ArcFaceEncoder           arcFaceEncoder;
-    private final FaceAligner              faceAligner;
-    private final ClipImageEncoder         clipImageEncoder;
-    private final ClipVectorIndex          clipVectorIndex;
-    private final FaceVectorIndex          faceVectorIndex;
-    private final PersonClusteringService  personClusteringService;
-    private final FaceThumbnailsRepository faceThumbnailsRepository;
+    private final int                       duplicateDetectionThreadCount;
+    private final FaceRepository            faceRepository;
+    private final FaceEmbeddingRepository   faceEmbeddingRepository;
+    private final ClipEmbeddingRepository   clipEmbeddingRepository;
+    private final RetinaFaceDetector        retinaFaceDetector;
+    private final ArcFaceEncoder            arcFaceEncoder;
+    private final FaceAligner               faceAligner;
+    private final ClipImageEncoder          clipImageEncoder;
+    private final ClipVectorIndex           clipVectorIndex;
+    private final FaceVectorIndex           faceVectorIndex;
+    private final PersonClusteringService   personClusteringService;
+    private final FaceThumbnailsRepository  faceThumbnailsRepository;
     @Value("${ai.features.face-only:true}")
-    private final boolean                  aiFaceDetectionOnly;
+    private final boolean                   aiFaceDetectionOnly;
+    private final AlbumRepository           albumRepository;
+    private final AlbumPhotoRepository      albumPhotoRepository;
+    private final PersonRepository          personRepository;
+    private final AiConfig                  aiConfig;
 
     public ImportJob createImportJob(List<String> paths) {
         return new ImportJob(
@@ -115,7 +124,7 @@ public class JobFactory {
         );
     }
 
-    public AiPipelineJob createAiPipelineJob() {
+    public AiPipelineJob createAiPipelineJob(JobManager jobManager) {
         return new AiPipelineJob(
                 dsl,
                 photoRepository,
@@ -131,6 +140,7 @@ public class JobFactory {
                 personClusteringService,
                 timeProvider,
                 faceThumbnailsRepository,
+                jobManager,
                 aiFaceDetectionOnly
         );
     }
@@ -140,6 +150,19 @@ public class JobFactory {
                 createImportJob(List.of()),
                 jobManager,
                 request
+        );
+    }
+
+    public AlbumGenerationJob createAlbumGenerationJob() {
+        return new AlbumGenerationJob(
+                dsl,
+                albumRepository,
+                albumPhotoRepository,
+                faceRepository,
+                personRepository,
+                clipEmbeddingRepository,
+                aiConfig,
+                timeProvider
         );
     }
 }

@@ -170,7 +170,7 @@ public class DuplicateDetectionJob extends BackgroundJob {
                 // same "don't fail the whole job over one bad file" policy as ImportService.
 
                 int done = processed.incrementAndGet();
-                publishProgress("Hashing photos", done, totalPhotos, result.absolutePath(), done == totalPhotos);
+                publishProgressThrottled("Hashing photos", done, totalPhotos, result.absolutePath(), done == totalPhotos);
             }
             flush(buffer);
             return false;

@@ -99,7 +99,7 @@ public abstract class BackgroundJob {
     /**
      * Unthrottled — use for one-off milestones (e.g. "discovered N files", or the initial
      * "0 of N done" after preloading cached results) rather than per-item progress, which should
-     * go through {@link #publishProgress} instead.
+     * go through {@link #publishProgressThrottled} instead.
      */
     protected void publishInProgress(String description, int progress, int maxProgress) {
         ProgressBackgroundProcessPayload payload = progressPayloadBuilder()
@@ -123,8 +123,8 @@ public abstract class BackgroundJob {
      * {@code isLastItem} is {@code true}. Synchronized so it's safe to call from multiple worker
      * threads concurrently (e.g. a parallel hashing pool reporting as each task completes).
      */
-    protected synchronized void publishProgress(String phaseText, int progress, int maxProgress,
-                                                String currentItem, boolean isLastItem) {
+    protected synchronized void publishProgressThrottled(String phaseText, int progress, int maxProgress,
+                                                         String currentItem, boolean isLastItem) {
         long nowMs = System.currentTimeMillis();
         if (!isLastItem && nowMs - lastProgressPublishMs < PROGRESS_PUBLISH_INTERVAL_MS) {
             return;

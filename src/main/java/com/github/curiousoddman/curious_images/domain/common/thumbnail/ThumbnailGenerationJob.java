@@ -75,7 +75,7 @@ public class ThumbnailGenerationJob extends BackgroundJob {
         int           total     = photos.size();
         AtomicInteger completed = new AtomicInteger(0);
 
-        publishProgress("Generating thumbnails", completed.get(), total, "", false);
+        publishProgressThrottled("Generating thumbnails", completed.get(), total, "", false);
         for (PhotoRecord photo : photos) {
             if (isInterruptRequested()) {
                 break; // don't start decoding anything else — an in-flight read can't be aborted
@@ -91,7 +91,7 @@ public class ThumbnailGenerationJob extends BackgroundJob {
             Optional<BufferedImage> decoded = imageDecoder.decode(file, extension).map(ImageUtils::toBufferedImage);
             decoded.ifPresent(image -> writeAndPersist(photoId, image, file, rotation));
             completed.incrementAndGet();
-            publishProgress("Generating thumbnails", completed.get(), total, "", completed.get() == total);
+            publishProgressThrottled("Generating thumbnails", completed.get(), total, "", completed.get() == total);
         }
 
         if (isInterruptRequested()) {

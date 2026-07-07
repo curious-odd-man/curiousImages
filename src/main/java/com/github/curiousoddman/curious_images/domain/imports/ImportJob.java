@@ -102,7 +102,7 @@ public class ImportJob extends BackgroundJob {
                 if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
                     flush(buffer);
                 }
-                publishProgress("Reading files", i + 1, files.size(),
+                publishProgressThrottled("Reading files", i + 1, files.size(),
                         file.toString(), i == files.size() - 1);
             }
             flush(buffer);
