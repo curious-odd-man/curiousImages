@@ -1,5 +1,10 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
+// FIXME: Not this file, but somewhere is thread running that does not allow JVM to stop. Need to find and fix that.
+// FIXME: After AI pipeline finishes face detection - albums of faces are not immediately shown - require app restart.
+// FIXME: Person faces are strange - looks like those are not always correct.
+// FIXME: Person albums do not trigger thumbnails generation and, besides, show NO IMAGE, rather than Loading thumbnail...
+
 import com.github.curiousoddman.curious_images.dbobj.tables.records.AlbumRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FolderRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRecord;

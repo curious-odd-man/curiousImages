@@ -19,14 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Wraps the RetinaFace MobileNet0.25 ONNX model. Accepts a {@link BufferedImage}, returns
- * detected faces with bounding boxes (normalised [0,1]) and 5-point landmarks (pixel coords).
- * <p>
- * Preprocessing: resize to 640×640, BGR channel order, subtract per-channel mean [104,117,123].
- * The model produces three output tensors per anchor: classifications, bounding boxes, landmarks.
- * Anchors are generated for strides [8, 16, 32] with 2 anchors per cell (standard MBN0.25 config).
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
