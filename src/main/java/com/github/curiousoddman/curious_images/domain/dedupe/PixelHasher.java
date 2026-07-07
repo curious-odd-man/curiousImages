@@ -1,17 +1,17 @@
 package com.github.curiousoddman.curious_images.domain.dedupe;
 
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.SourceImageDecoder;
-import com.github.curiousoddman.curious_images.util.ImageUtils;
 import lombok.RequiredArgsConstructor;
+import org.opencv.core.Mat;
 import org.springframework.stereotype.Component;
 
-import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.Optional;
 
 /**
  * Computes a hash of a photo's decoded pixel content.
@@ -34,21 +34,16 @@ public class PixelHasher {
      * thumbnail generation skipping undecodable files during import.
      */
     public PhotoHashResult hash(long photoId, Path file, String extension, long fileSize) {
-        BufferedImage image = imageDecoder.decode(file, extension)
-                                          .map(ImageUtils::toBufferedImage)
-                                          .orElse(null);
-        if (image == null) {
-            return new PhotoHashResult(photoId, extension, fileSize, file.toString(), null);
-        }
-        return new PhotoHashResult(photoId, extension, fileSize, file.toString(), hashPixels(image));
+        Optional<Mat> image = imageDecoder.decode(file, extension);
+        return image
+                .map(mat -> new PhotoHashResult(photoId, extension, fileSize, file.toString(), hashPixels(mat)))
+                .orElseGet(() -> new PhotoHashResult(photoId, extension, fileSize, file.toString(), null));
     }
 
-    private String hashPixels(BufferedImage image) {
-        int width  = image.getWidth();
-        int height = image.getHeight();
-        // Dimensions are folded into the hash so two different-sized images can never collide
-        // purely by coincidence of getRGB() output.
-        int[] pixels = image.getRGB(0, 0, width, height, null, 0, width);
+    private String hashPixels(Mat image) {
+        int width    = image.cols();
+        int height   = image.rows();
+        int channels = image.channels();
 
         MessageDigest digest = sha256();
         ByteBuffer header = ByteBuffer.allocate(8)
@@ -57,11 +52,13 @@ public class PixelHasher {
               .putInt(height);
         digest.update(header.array());
 
-        ByteBuffer pixelBytes = ByteBuffer.allocate(pixels.length * 4)
-                                          .order(ByteOrder.BIG_ENDIAN);
-        pixelBytes.asIntBuffer()
-                  .put(pixels);
-        digest.update(pixelBytes.array());
+        // Mat data is BGR byte order (imread/imdecode) — this hash will NOT match the old
+        // getRGB()-based hash bit-for-bit, since getRGB() packs ARGB ints. If backward
+        // compatibility with previously-stored hashes matters, do NOT ship this as-is —
+        // either re-hash the whole photo library, or keep Option A instead.
+        byte[] pixelBytes = new byte[width * height * channels];
+        image.get(0, 0, pixelBytes);
+        digest.update(pixelBytes);
 
         return HexFormat.of()
                         .formatHex(digest.digest());

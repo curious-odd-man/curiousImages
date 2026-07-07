@@ -57,7 +57,7 @@ public class AlbumGenerationService {
     private final TimeProvider              timeProvider;
     private final ApplicationEventPublisher publisher;
 
-    @EventListener
+    @EventListener      // FIXME: This should be a background job.
     public void onRegenerateAlbums(RegenerateAlbumsEvent event) {
         log.info("Regenerating albums...");
         try {
