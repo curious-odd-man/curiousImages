@@ -40,14 +40,14 @@ import static com.github.curiousoddman.curious_images.persistence.ClipEmbeddingR
 @Slf4j
 @RequiredArgsConstructor
 public class AlbumGenerationJob extends BackgroundJob {
-    private final DSLContext                dsl;
-    private final AlbumRepository           albumRepo;
-    private final AlbumPhotoRepository      albumPhotoRepo;
-    private final FaceRepository            faceRepo;
-    private final PersonRepository          personRepo;
-    private final ClipEmbeddingRepository   clipEmbeddingRepo;
-    private final AiConfig                  aiConfig;
-    private final TimeProvider              timeProvider;
+    private final DSLContext              dsl;
+    private final AlbumRepository         albumRepo;
+    private final AlbumPhotoRepository    albumPhotoRepo;
+    private final FaceRepository          faceRepo;
+    private final PersonRepository        personRepo;
+    private final ClipEmbeddingRepository clipEmbeddingRepo;
+    private final AiConfig                aiConfig;
+    private final TimeProvider            timeProvider;
 
 
     @Override
@@ -176,29 +176,29 @@ public class AlbumGenerationJob extends BackgroundJob {
      * approximated by a simple pixel-neighbourhood difference on the thumbnail).
      * Falls back to the first photo if sharpness cannot be computed.
      */
-    // FIXME: would it be facter to use OpenCV?
     private long sharpestPhoto(List<PhotoRecord> photos) {
         long bestId = photos.getFirst()
                             .getId();
-        double bestScore = -1;
-        for (PhotoRecord photo : photos) {
-            try {
-                BufferedImage img = ImageIO.read(new File(photo.getAbsolutePath()));
-                if (img == null) {
-                    continue;
-                }
-                // Downsample to 64×64 for speed
-                BufferedImage small = Thumbnails.of(img)
-                                                .forceSize(64, 64)
-                                                .asBufferedImage();
-                double score = laplacianVariance(small);
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestId = photo.getId();
-                }
-            } catch (Exception ignored) {
-            }
-        }
+        // TODO: This is commented out because it is very slow, yet hardly very beneficial
+//        double bestScore = -1;
+//        for (PhotoRecord photo : photos) {
+//            try {
+//                BufferedImage img = ImageIO.read(new File(photo.getAbsolutePath()));
+//                if (img == null) {
+//                    continue;
+//                }
+//                // Downsample to 64×64 for speed
+//                BufferedImage small = Thumbnails.of(img)
+//                                                .forceSize(64, 64)
+//                                                .asBufferedImage();
+//                double score = laplacianVariance(small);
+//                if (score > bestScore) {
+//                    bestScore = score;
+//                    bestId = photo.getId();
+//                }
+//            } catch (Exception ignored) {
+//            }
+//        }
         return bestId;
     }
 

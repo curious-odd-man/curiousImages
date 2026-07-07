@@ -417,7 +417,6 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
      */
     @EventListener
     public void onAiPipelineComplete(AiPipelineCompleteEvent event) {
-        // FIXME: Albums - need sub-trees for albums
         log.info("AI pipeline complete — refreshing Albums and People tree sections");
         Thread t = new Thread(() -> {
             List<TreeItem<LibraryTreeNode>> albumItems  = buildAlbumItems();
@@ -540,24 +539,40 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
         return items;
     }
 
+    /**
+     * Album type subfolders shown under the Albums root, always present regardless of
+     * whether any albums of that type currently exist. Order here is the display order.
+     */
+    private static final List<AlbumTypeGroup> ALBUM_TYPE_GROUPS = List.of(
+            new AlbumTypeGroup("EVENT", "Event", NodeType.ALBUM_EVENT_ROOT, NodeType.ALBUM_EVENT),
+            new AlbumTypeGroup("LOCATION", "Location", NodeType.ALBUM_LOCATION_ROOT, NodeType.ALBUM_LOCATION),
+            new AlbumTypeGroup("SIMILARITY", "Similarity", NodeType.ALBUM_SIMILARITY_ROOT, NodeType.ALBUM_SIMILARITY));
+
+    private record AlbumTypeGroup(String albumType, String label, NodeType rootType, NodeType leafType) {}
+
     private List<TreeItem<LibraryTreeNode>> buildAlbumItems() {
-        List<TreeItem<LibraryTreeNode>> items  = new ArrayList<>();
-        Map<String, List<AlbumRecord>>  byType = new LinkedHashMap<>();
+        Map<String, List<AlbumRecord>> byType = new LinkedHashMap<>();
         for (AlbumRecord album : albumRepository.findAll()) {
             byType.computeIfAbsent(album.getType(), k -> new ArrayList<>())
                   .add(album);
         }
-        for (var entry : byType.entrySet()) {
-            NodeType nodeType = switch (entry.getKey()) {
-                case "EVENT" -> NodeType.ALBUM_EVENT;
-                case "LOCATION" -> NodeType.ALBUM_LOCATION;
-                case "SIMILARITY" -> NodeType.ALBUM_SIMILARITY;
-                default -> NodeType.ALBUM_EVENT;
-            };
-            for (AlbumRecord album : entry.getValue()) {
-                items.add(treeItem(new LibraryTreeNode(
-                        album.getName(), new AlbumPayload(album.getId()), nodeType)));
+
+        List<TreeItem<LibraryTreeNode>> items = new ArrayList<>();
+        for (AlbumTypeGroup group : ALBUM_TYPE_GROUPS) {
+            List<AlbumRecord> albums = byType.getOrDefault(group.albumType(), List.of());
+
+            TreeItem<LibraryTreeNode> groupRoot = treeItem(
+                    new LibraryTreeNode(group.label(), null, group.rootType()));
+            List<TreeItem<LibraryTreeNode>> children = new ArrayList<>();
+            for (AlbumRecord album : albums) {
+                children.add(treeItem(new LibraryTreeNode(
+                        album.getName(), new AlbumPayload(album.getId()), group.leafType())));
             }
+            groupRoot.getChildren()
+                     .setAll(children);
+            groupRoot.setExpanded(!children.isEmpty());
+
+            items.add(groupRoot);
         }
         return items;
     }
