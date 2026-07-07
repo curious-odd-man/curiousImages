@@ -3,6 +3,7 @@ package com.github.curiousoddman.curious_images.util;
 import lombok.experimental.UtilityClass;
 
 import java.awt.image.BufferedImage;
+import java.util.stream.IntStream;
 
 @UtilityClass
 public class ImageUtils {
@@ -13,11 +14,13 @@ public class ImageUtils {
 
         BufferedImage dst = new BufferedImage(h, w, src.getType());
 
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                dst.setRGB(h - 1 - y, x, src.getRGB(x, y));
-            }
-        }
+        IntStream.range(0, h)
+                 .parallel()
+                 .forEach(y -> {
+                     for (int x = 0; x < w; x++) {
+                         dst.setRGB(h - 1 - y, x, src.getRGB(x, y));
+                     }
+                 });
 
         return dst;
     }
@@ -28,11 +31,13 @@ public class ImageUtils {
 
         BufferedImage dst = new BufferedImage(w, h, src.getType());
 
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                dst.setRGB(w - 1 - x, h - 1 - y, src.getRGB(x, y));
-            }
-        }
+        IntStream.range(0, h)
+                 .parallel()
+                 .forEach(y -> {
+                     for (int x = 0; x < w; x++) {
+                         dst.setRGB(w - 1 - x, h - 1 - y, src.getRGB(x, y));
+                     }
+                 });
 
         return dst;
     }
@@ -43,11 +48,13 @@ public class ImageUtils {
 
         BufferedImage dst = new BufferedImage(h, w, src.getType());
 
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                dst.setRGB(y, w - 1 - x, src.getRGB(x, y));
-            }
-        }
+        IntStream.range(0, h)
+                 .parallel()
+                 .forEach(y -> {
+                     for (int x = 0; x < w; x++) {
+                         dst.setRGB(y, w - 1 - x, src.getRGB(x, y));
+                     }
+                 });
 
         return dst;
     }

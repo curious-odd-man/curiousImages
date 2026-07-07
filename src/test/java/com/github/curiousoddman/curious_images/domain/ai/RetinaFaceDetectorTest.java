@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.curiousoddman.curious_images.config.AiConfig;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.ExtractedMetadata;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
+import com.github.curiousoddman.curious_images.util.async.jobs.IrrecoverableIterationException;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,7 @@ import static com.github.curiousoddman.curious_images.util.FileUtils.extensionOf
 class RetinaFaceDetectorTest {
 
     @Test
-    void faceDetectionTest() throws IOException, OrtException {
+    void faceDetectionTest() throws IOException, OrtException, IrrecoverableIterationException {
         AiConfig   config = new AiConfig();
         ModelPaths paths  = new ModelPaths(config);
         paths.verifyModelsExist();
