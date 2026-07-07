@@ -11,6 +11,7 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -34,7 +35,7 @@ public class OnnxModelRegistry implements DisposableBean {
      * Returns the cached session for {@code modelKey}, loading it from {@code modelPath} if this
      * is the first call for that key. Thread-safe via {@link ConcurrentHashMap#computeIfAbsent}.
      */
-    public OrtSession getOrLoad(String modelKey, Path modelPath) throws IrrecoverableIterationException {
+    public OrtSession getOrLoad(String modelKey, Path modelPath, List<String> expectedOutputNames) throws IrrecoverableIterationException {
         OrtSession ortSession = sessions.get(modelKey);
         if (ortSession != null) {
             return ortSession;
@@ -52,6 +53,15 @@ public class OnnxModelRegistry implements DisposableBean {
             OrtSession session = env.createSession(modelPath.toString(), opts);
             log.info("ONNX model '{}' loaded successfully", modelKey);
             sessions.put(modelKey, session);
+
+            List<String> sessionNames = session.getOutputNames()
+                                               .stream()
+                                               .toList();
+            // Verify that output order matches indexes that are used to fetch outputs
+            if (!sessionNames.equals(expectedOutputNames)) {
+                throw new IrrecoverableIterationException(new IllegalArgumentException(sessionNames + " vs " + expectedOutputNames));
+            }
+
             return session;
         } catch (OrtException e) {
             throw new IrrecoverableIterationException("Failed to load ONNX model '" + modelKey + "' from " + modelPath, e);

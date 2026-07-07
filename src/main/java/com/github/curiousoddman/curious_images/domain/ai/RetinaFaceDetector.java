@@ -7,12 +7,14 @@ import ai.onnxruntime.OrtSession;
 import com.github.curiousoddman.curious_images.util.async.jobs.IrrecoverableIterationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.stereotype.Component;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
+import java.awt.image.DataBufferInt;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +44,17 @@ public class RetinaFaceDetector {
     private static final float[] MIN_SIZES_S16 = {64f, 128f};
     private static final float[] MIN_SIZES_S32 = {256f, 512f};
 
+    private static final OrtEnvironment ENV = OrtEnvironment.getEnvironment();
+
+    private static final long[] INPUT_SHAPE = {1, 3, INPUT_SIZE, INPUT_SIZE};
+    private static final int    NUM_FLOATS  = 3 * INPUT_SIZE * INPUT_SIZE;
+
+    private final FloatBuffer inputBuffer = ByteBuffer.allocateDirect(NUM_FLOATS * Float.BYTES)
+                                                      .order(ByteOrder.nativeOrder())
+                                                      .asFloatBuffer();
+
+    private final List<float[]> anchors = generateAnchors(INPUT_SIZE, INPUT_SIZE);
+
     private final OnnxModelRegistry registry;
     private final ModelPaths        paths;
 
@@ -50,36 +63,33 @@ public class RetinaFaceDetector {
      * or if the model is not available.
      */
     public List<DetectedFace> detect(BufferedImage image) throws OrtException, IrrecoverableIterationException {
-        OrtSession session = registry.getOrLoad("retinaface_r50", paths.retinaFace());
+        OrtSession session = registry.getOrLoad("retinaface_r50", paths.retinaFace(), List.of("bbox", "confidence", "landmark"));
 
-        int origW = image.getWidth();
-        int origH = image.getHeight();
+        PreprocessedImage preprocessed = resizeAndPad(image, INPUT_SIZE);
 
-        // 1. Resize to INPUT_SIZE × INPUT_SIZE
-        PreprocessedImage preprocessedImage = resizeAndPad(image, INPUT_SIZE);
+        inputBuffer.clear();
+        toTensor(preprocessed.image(), inputBuffer);
+        inputBuffer.position(NUM_FLOATS);
+        inputBuffer.flip();
 
-        // 2. Convert to float[1][3][H][W], BGR, mean-subtract
-        float[][][][] input = toTensor(preprocessedImage.image());
-
-        try (OnnxTensor tensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), input);
+        try (OnnxTensor tensor = OnnxTensor.createTensor(ENV, inputBuffer, INPUT_SHAPE);
              OrtSession.Result result = session.run(Map.of("input", tensor))) {
-            // Outputs: [0] classifications (conf), [1] bounding boxes, [2] landmarks
-            float[][][] clsRaw = (float[][][]) result.get("confidence")
-                                                     .get()
+
+            float[][][] clsRaw = (float[][][]) result.get(1)
                                                      .getValue();
-            float[][][] bboxRaw = (float[][][]) result.get("bbox")
-                                                      .get()
+            float[][][] bboxRaw = (float[][][]) result.get(0)
                                                       .getValue();
-            float[][][] ldmRaw = (float[][][]) result.get("landmark")
-                                                     .get()
+            float[][][] ldmRaw = (float[][][]) result.get(2)
                                                      .getValue();
 
-            List<float[]> anchors = generateAnchors(INPUT_SIZE, INPUT_SIZE);
-
-            if (clsRaw.length != 1 || bboxRaw.length != 1 || ldmRaw.length != 1) {
-                throw new IllegalStateException("Unexpected dimension size" + clsRaw.length + "|" + bboxRaw.length + "|" + ldmRaw.length);
-            }
-            return decodeAndFilter(clsRaw[0], bboxRaw[0], ldmRaw[0], anchors, preprocessedImage, origW, origH);
+            return decodeAndFilter(
+                    clsRaw[0],
+                    bboxRaw[0],
+                    ldmRaw[0],
+                    anchors,
+                    preprocessed,
+                    image.getWidth(),
+                    image.getHeight());
         }
     }
 
@@ -98,70 +108,44 @@ public class RetinaFaceDetector {
         int origW = src.getWidth();
         int origH = src.getHeight();
 
-        float scale = Math.min(
-                (float) targetSize / origW,
-                (float) targetSize / origH
-        );
-
-        int resizedW = Math.round(origW * scale);
-        int resizedH = Math.round(origH * scale);
-
-        BufferedImage resized;
-        try {
-            resized = Thumbnails.of(src)
-                                .size(resizedW, resizedH)
-                                .asBufferedImage();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        float scale    = Math.min((float) targetSize / origW, (float) targetSize / origH);
+        int   resizedW = Math.round(origW * scale);
+        int   resizedH = Math.round(origH * scale);
 
         BufferedImage padded = new BufferedImage(targetSize, targetSize, BufferedImage.TYPE_INT_RGB);
-
-        Graphics2D g = padded.createGraphics();
-
+        Graphics2D    g      = padded.createGraphics();
         try {
             g.setColor(Color.BLACK);
             g.fillRect(0, 0, targetSize, targetSize);
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
             int padX = (targetSize - resizedW) / 2;
             int padY = (targetSize - resizedH) / 2;
+            g.drawImage(src, padX, padY, resizedW, resizedH, null);
 
-            g.drawImage(resized, padX, padY, null);
-
-            return new PreprocessedImage(
-                    padded,
-                    scale,
-                    padX,
-                    padY,
-                    resizedW,
-                    resizedH
-            );
+            return new PreprocessedImage(padded, scale, padX, padY, resizedW, resizedH);
         } finally {
             g.dispose();
         }
     }
 
-    /**
-     * Converts a 640×640 {@link BufferedImage} to a float[1][3][H][W] tensor in BGR order
-     * with per-channel mean subtraction.
-     */
-    private float[][][][] toTensor(BufferedImage img) {
-        int           h      = img.getHeight();
-        int           w      = img.getWidth();
-        float[][][][] tensor = new float[1][3][h][w];
-        int[]         pixels = img.getRGB(0, 0, w, h, null, 0, w);
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                int   rgb = pixels[y * w + x];
-                float r   = ((rgb >> 16) & 0xFF);
-                float g   = ((rgb >> 8) & 0xFF);
-                float b   = (rgb & 0xFF);
-                tensor[0][0][y][x] = b - MEAN[0]; // B channel
-                tensor[0][1][y][x] = g - MEAN[1]; // G channel
-                tensor[0][2][y][x] = r - MEAN[2]; // R channel
-            }
+    private void toTensor(BufferedImage img, FloatBuffer buffer) {
+        int w = img.getWidth();
+        int h = img.getHeight();
+
+        int[] pixels = ((DataBufferInt) img.getRaster()
+                                           .getDataBuffer()).getData();
+
+        int plane = w * h;
+
+        for (int i = 0; i < plane; i++) {
+
+            int rgb = pixels[i];
+
+            buffer.put(i, (rgb & 0xFF) - MEAN[0]);
+            buffer.put(plane + i, ((rgb >>> 8) & 0xFF) - MEAN[1]);
+            buffer.put(2 * plane + i, ((rgb >>> 16) & 0xFF) - MEAN[2]);
         }
-        return tensor;
     }
 
     // ── Anchor generation ─────────────────────────────────────────────────────

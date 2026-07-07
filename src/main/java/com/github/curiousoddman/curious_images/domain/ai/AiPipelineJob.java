@@ -67,13 +67,7 @@ public class AiPipelineJob extends BackgroundJob {
     public void runImpl() throws Exception {
         publishStarted("Starting AI pipeline...");
         try {
-            runFaceDetection();
-            if (isInterruptRequested()) {
-                publishInterrupted();
-                return;
-            }
-
-            runFaceEmbedding();
+            runFaceDetectionAndEmbedding();
             if (isInterruptRequested()) {
                 publishInterrupted();
                 return;
@@ -104,9 +98,7 @@ public class AiPipelineJob extends BackgroundJob {
         }
     }
 
-    // ── Stage 1: Face detection ───────────────────────────────────────────────
-
-    private void runFaceDetection() {
+    private void runFaceDetectionAndEmbedding() {
         List<Long> photoIds = photoRepo.findPendingFaceDetect();
         if (photoIds.isEmpty()) {
             log.info("Face detection: no pending photos");
@@ -133,81 +125,31 @@ public class AiPipelineJob extends BackgroundJob {
 
                 for (DetectedFace face : faces) {
                     Path faceThumbnailPath = faceThumbnailsRepository.createFaceThumbnail(img, face);
-                    buffer.add(faceRepo.insertQuery(
+                    long faceId = faceRepo.insertAndGetId(
                             photoId, face.x(), face.y(), face.w(), face.h(),
-                            face.confidence(), toLandmarks(face.landmarks()), now, faceThumbnailPath));
+                            face.confidence(), toLandmarks(face.landmarks()), now, faceThumbnailPath);
+
+                    BufferedImage aligned   = faceAligner.align(faceId, img, face.landmarks());
+                    float[]       embedding = arcFaceEncoder.encode(aligned);
+                    buffer.add(faceEmbeddingRepo.upsertQuery(faceId, embedding, ARCFACE_MODEL_VER));
                 }
                 buffer.add(photoRepo.markFaceDetectDoneQuery(photoId, now));
-            } catch (IrrecoverableIterationException e) {
-                log.warn("Face detection failed for photo {}", photoId, e);
-                buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
-                log.error("Exiting loop - cannot recover from that....");
-                publishFailed(e.getCause());
-                return;
-            } catch (Exception e) {
-                log.warn("Face detection failed for photo {}", photoId, e);
-                buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
-            }
-
-            if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
-                flush(buffer);
-            }
-            publishProgress("Detecting faces", i + 1, photoIds.size(),
-                    lastPhotoPath, i == photoIds.size() - 1);
-        }
-        flush(buffer);
-    }
-
-    // ── Stage 2: Face embedding (ArcFace) ────────────────────────────────────
-
-    private void runFaceEmbedding() {
-        List<Long> photoIds = photoRepo.findPendingFaceEmbed();
-        if (photoIds.isEmpty()) {
-            log.info("Face embedding: no pending photos");
-            return;
-        }
-        publishInProgress("Generating face embeddings...", 0, photoIds.size());
-
-        List<Query> buffer = new ArrayList<>(DB_FLUSH_BATCH_SIZE);
-        for (int i = 0; i < photoIds.size(); i++) {
-            if (isInterruptRequested()) {
-                flush(buffer);
-                return;
-            }
-
-            long          photoId       = photoIds.get(i);
-            LocalDateTime now           = timeProvider.now();
-            String        lastPhotoPath = "";
-
-            try {
-                PhotoRecord photo = photoRepo.findById(photoId)
-                                             .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
-                lastPhotoPath = photo.getAbsolutePath();
-                BufferedImage    img   = loadImageOriented(photo.getAbsolutePath(), photo.getOrientation());
-                List<FaceRecord> faces = faceRepo.findByPhotoId(photoId);
-
-                for (FaceRecord face : faces) {
-                    float[][]     landmarks = parseLandmarks(face);
-                    BufferedImage aligned   = faceAligner.align(face.getId(), img, landmarks);
-                    float[]       embedding = arcFaceEncoder.encode(aligned);
-                    buffer.add(faceEmbeddingRepo.upsertQuery(face.getId(), embedding, ARCFACE_MODEL_VER));
-                }
                 buffer.add(photoRepo.markFaceEmbedDoneQuery(photoId, now));
             } catch (IrrecoverableIterationException e) {
-                log.warn("Face embedding failed for photo {}", photoId, e);
+                log.warn("Face detection/embedding failed for photo {}", photoId, e);
                 buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
                 log.error("Exiting loop - cannot recover from that....");
                 publishFailed(e.getCause());
                 return;
             } catch (Exception e) {
-                log.warn("Face embedding failed for photo {}", photoId, e);
+                log.error("Face detection/embedding failed for photo {}", photoId, e);
                 buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
             }
 
             if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
                 flush(buffer);
             }
-            publishProgress("Generating face embeddings", i + 1, photoIds.size(),
+            publishProgress("Detecting & embedding faces", i + 1, photoIds.size(),
                     lastPhotoPath, i == photoIds.size() - 1);
         }
         flush(buffer);
@@ -327,8 +269,15 @@ public class AiPipelineJob extends BackgroundJob {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    public static BufferedImage loadImageOriented(String absolutePath, Integer orientation) throws IOException {    // FIXME: This is very slow. It takes >50% of time during face detection
-        BufferedImage img = ImageIO.read(new File(absolutePath));       // FIXME: This also is called several times per AI pipeline. Probably i need to move single image through all pipeline steps instead of re-reading it each time.
+    /**
+     * Note: This is slow! Try to reuse, when possible
+     * @param absolutePath
+     * @param orientation
+     * @return
+     * @throws IOException
+     */
+    public static BufferedImage loadImageOriented(String absolutePath, Integer orientation) throws IOException {    // FIXME: This is very slow. It takes >36% of time during face detection
+        BufferedImage img = ImageIO.read(new File(absolutePath));
         if (img == null) {  // FIXME: also probably I need to fix images rotation on disc - or improve rotation algorithm
             throw new IOException("ImageIO could not decode: " + absolutePath);
         }
@@ -356,42 +305,6 @@ public class AiPipelineJob extends BackgroundJob {
                 landmarks[4][0],
                 landmarks[4][1]
         );
-    }
-
-    /**
-     * Parses the stored normalised landmark JSON and converts back to pixel coordinates
-     * in the original image space.
-     * 0 = left eye
-     * 1 = right eye
-     * 2 = nose
-     * 3 = left mouth corner
-     * 4 = right mouth corner
-     */
-    private float[][] parseLandmarks(FaceRecord landmarks) {
-        float[][] floats = new float[5][2];
-        if (landmarks != null) {
-            floats[0][0] = landmarks.getLandmarkLeftEyeX()
-                                    .floatValue();
-            floats[0][1] = landmarks.getLandmarkLeftEyeY()
-                                    .floatValue();
-            floats[1][0] = landmarks.getLandmarkRightEyeX()
-                                    .floatValue();
-            floats[1][1] = landmarks.getLandmarkRightEyeY()
-                                    .floatValue();
-            floats[2][0] = landmarks.getLandmarkNoseX()
-                                    .floatValue();
-            floats[2][1] = landmarks.getLandmarkNoseY()
-                                    .floatValue();
-            floats[3][0] = landmarks.getLandmarkLeftMouthX()
-                                    .floatValue();
-            floats[3][1] = landmarks.getLandmarkLeftMouthY()
-                                    .floatValue();
-            floats[4][0] = landmarks.getLandmarkRightMouthX()
-                                    .floatValue();
-            floats[4][1] = landmarks.getLandmarkRightMouthY()
-                                    .floatValue();
-        }
-        return floats;
     }
 
     private void flush(List<Query> buffer) {

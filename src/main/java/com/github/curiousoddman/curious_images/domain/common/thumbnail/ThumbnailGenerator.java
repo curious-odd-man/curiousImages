@@ -120,19 +120,11 @@ public class ThumbnailGenerator {
             return source;
         }
 
-        BufferedImage rotated = switch (normalized) {
+        return switch (normalized) {
             case 90 -> ImageUtils.rotate90(source);
             case 180 -> ImageUtils.rotate180(source);
             case 270 -> ImageUtils.rotate270(source);
             default -> source;
         };
-
-        Graphics2D g = rotated.createGraphics();
-        try {
-            g.drawImage(rotated, null, null);
-        } finally {
-            g.dispose();
-        }
-        return rotated;
     }
 }

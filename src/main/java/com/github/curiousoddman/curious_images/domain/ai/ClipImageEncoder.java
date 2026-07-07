@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import static com.github.curiousoddman.curious_images.domain.ai.ClipTextEncoder.l2Normalize;
@@ -43,7 +44,7 @@ public class ClipImageEncoder {
      * Encodes {@code image} into a 512-dim L2-normalised CLIP embedding.
      */
     public float[] encode(BufferedImage image) throws OrtException, IrrecoverableIterationException {
-        OrtSession    session = registry.getOrLoad("clip_image", paths.clipImage());
+        OrtSession    session = registry.getOrLoad("clip_image", paths.clipImage(), List.of("output"));
         float[][][][] input   = preprocess(image);
         try (OnnxTensor tensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), input);
              OrtSession.Result result = session.run(Map.of("image", tensor))

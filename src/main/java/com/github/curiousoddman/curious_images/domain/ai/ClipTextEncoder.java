@@ -8,6 +8,7 @@ import com.github.curiousoddman.curious_images.util.async.jobs.IrrecoverableIter
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,7 +33,7 @@ public class ClipTextEncoder {
      * {@link OnnxModelRegistry#evict(String)} between searches.
      */
     public float[] encode(String text) throws OrtException, IrrecoverableIterationException {
-        OrtSession session = registry.getOrLoad("clip_text", paths.clipText());
+        OrtSession session = registry.getOrLoad("clip_text", paths.clipText(), List.of("output"));
         long[][]   tokens  = tokenizer.tokenize(text);
         try (OnnxTensor tensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), tokens);
              OrtSession.Result result = session.run(Map.of("input", tensor))) {

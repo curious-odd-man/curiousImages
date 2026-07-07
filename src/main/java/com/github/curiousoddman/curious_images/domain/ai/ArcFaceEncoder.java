@@ -9,6 +9,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
+import java.util.List;
 import java.util.Map;
 
 import static com.github.curiousoddman.curious_images.domain.ai.ClipTextEncoder.l2Normalize;
@@ -25,6 +30,16 @@ import static com.github.curiousoddman.curious_images.domain.ai.ClipTextEncoder.
 public class ArcFaceEncoder {
     private static final int FACE_SIZE = 112;
 
+    private static final OrtEnvironment ENV = OrtEnvironment.getEnvironment();
+
+    private static final long[] INPUT_SHAPE = {1, 3, FACE_SIZE, FACE_SIZE};
+    private static final int    NUM_FLOATS  = 3 * FACE_SIZE * FACE_SIZE;
+    public static final  float  SCALE       = 1f / 127.5f;
+
+    private final FloatBuffer inputBuffer = ByteBuffer.allocateDirect(NUM_FLOATS * Float.BYTES)
+                                                      .order(ByteOrder.nativeOrder())
+                                                      .asFloatBuffer();
+
     private final OnnxModelRegistry registry;
     private final ModelPaths        paths;
 
@@ -35,35 +50,38 @@ public class ArcFaceEncoder {
      * @return float[512] L2-normalised embedding
      */
     public float[] encode(BufferedImage alignedFace) throws OrtException, IrrecoverableIterationException {
-        OrtSession    session = registry.getOrLoad("arcface", paths.arcFace());
-        float[][][][] input   = toTensor(alignedFace);
-        try (OnnxTensor tensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), input);
-             OrtSession.Result result = session.run(Map.of("input", tensor))
-        ) {
+        OrtSession session = registry.getOrLoad("arcface", paths.arcFace(), List.of("output"));
+
+        inputBuffer.clear();
+        toTensor(alignedFace, inputBuffer);
+        inputBuffer.position(NUM_FLOATS);
+        inputBuffer.flip();
+
+        try (OnnxTensor tensor = OnnxTensor.createTensor(ENV, inputBuffer, INPUT_SHAPE);
+             OrtSession.Result result = session.run(Map.of("input", tensor))) {
+
             float[][] raw = (float[][]) result.get(0)
                                               .getValue();
+
             if (raw.length != 1) {
                 throw new IllegalStateException("Unexpected dimension!");
             }
+
             return l2Normalize(raw[0]);
         }
     }
 
-    /**
-     * Converts a 112×112 {@link BufferedImage} to float[1][3][112][112].
-     * Channel order: RGB. Normalisation: {@code (pixel / 127.5f) - 1.0f}.
-     */
-    private float[][][][] toTensor(BufferedImage img) {
-        int[]         pixels = img.getRGB(0, 0, FACE_SIZE, FACE_SIZE, null, 0, FACE_SIZE);
-        float[][][][] tensor = new float[1][3][FACE_SIZE][FACE_SIZE];
-        for (int y = 0; y < FACE_SIZE; y++) {
-            for (int x = 0; x < FACE_SIZE; x++) {
-                int rgb = pixels[y * FACE_SIZE + x];
-                tensor[0][0][y][x] = (((rgb >> 16) & 0xFF) / 127.5f) - 1.0f; // R
-                tensor[0][1][y][x] = (((rgb >> 8) & 0xFF) / 127.5f) - 1.0f; // G
-                tensor[0][2][y][x] = ((rgb & 0xFF) / 127.5f) - 1.0f; // B
-            }
+    private void toTensor(BufferedImage img, FloatBuffer buffer) {
+        int[] pixels = ((DataBufferInt) img.getRaster()
+                                           .getDataBuffer()).getData();
+
+        int plane = FACE_SIZE * FACE_SIZE;
+
+        for (int i = 0; i < plane; i++) {
+            int rgb = pixels[i];
+            buffer.put(i, (((rgb >>> 16) & 0xFF) * SCALE) - 1.0f);
+            buffer.put(plane + i, (((rgb >>> 8) & 0xFF) * SCALE) - 1.0f);
+            buffer.put(2 * plane + i, ((rgb & 0xFF) * SCALE) - 1.0f);
         }
-        return tensor;
     }
 }
