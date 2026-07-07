@@ -7,12 +7,8 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.domain.index.ClipVectorIndex;
 import com.github.curiousoddman.curious_images.domain.index.FaceVectorIndex;
 import com.github.curiousoddman.curious_images.event.model.RegenerateAlbumsEvent;
-import com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository;
-import com.github.curiousoddman.curious_images.persistence.FaceEmbeddingRepository;
-import com.github.curiousoddman.curious_images.persistence.FaceRepository;
-import com.github.curiousoddman.curious_images.persistence.FaceThumbnailsRepository;
-import com.github.curiousoddman.curious_images.persistence.Landmarks;
-import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
+import com.github.curiousoddman.curious_images.persistence.*;
+import com.github.curiousoddman.curious_images.util.ImageUtils;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import com.github.curiousoddman.curious_images.util.async.jobs.BackgroundJob;
 import com.github.curiousoddman.curious_images.util.async.jobs.IrrecoverableIterationException;
@@ -21,18 +17,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.jooq.Query;
 import org.jooq.impl.DSL;
+import org.opencv.core.Mat;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-
-import static com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator.rotate;
+import java.util.Set;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -42,8 +36,6 @@ public class AiPipelineJob extends BackgroundJob {
     private static final int    DB_FLUSH_BATCH_SIZE  = 50;
     private static final String ARCFACE_MODEL_VER    = "arcface_r50";
     private static final String CLIP_IMAGE_MODEL_VER = "clip_vit_b32";
-
-    // ── Dependencies ──────────────────────────────────────────────────────────
 
     private final DSLContext               dsl;
     private final PhotoRepository          photoRepo;
@@ -61,25 +53,17 @@ public class AiPipelineJob extends BackgroundJob {
     private final FaceThumbnailsRepository faceThumbnailsRepository;
     private final boolean                  faceDetectionOnly;
 
-    // ── Pipeline orchestration ────────────────────────────────────────────────
-
     @Override
     public void runImpl() throws Exception {
         publishStarted("Starting AI pipeline...");
         try {
-            runFaceDetectionAndEmbedding();
+            runFaceAndClipEmbedding();
             if (isInterruptRequested()) {
                 publishInterrupted();
                 return;
             }
 
             if (!faceDetectionOnly) {
-                runClipEmbedding();
-                if (isInterruptRequested()) {
-                    publishInterrupted();
-                    return;
-                }
-
                 runLuceneIndexing();
                 if (isInterruptRequested()) {
                     publishInterrupted();
@@ -98,13 +82,24 @@ public class AiPipelineJob extends BackgroundJob {
         }
     }
 
-    private void runFaceDetectionAndEmbedding() {
-        List<Long> photoIds = photoRepo.findPendingFaceDetect();
-        if (photoIds.isEmpty()) {
-            log.info("Face detection: no pending photos");
+    private void runFaceAndClipEmbedding() {
+        List<Long> facePending = photoRepo.findPendingFaceDetect();
+        List<Long> clipPending = faceDetectionOnly ? List.of() : photoRepo.findPendingClipEmbed();
+
+        // Union while preserving a stable, deduplicated order.
+        LinkedHashSet<Long> allPending = new LinkedHashSet<>(facePending);
+        allPending.addAll(clipPending);
+
+        if (allPending.isEmpty()) {
+            log.info("Face/CLIP: no pending photos");
             return;
         }
-        publishInProgress("Detecting faces...", 0, photoIds.size());
+
+        Set<Long>  faceSet  = new HashSet<>(facePending);
+        Set<Long>  clipSet  = new HashSet<>(clipPending);
+        List<Long> photoIds = new ArrayList<>(allPending);
+
+        publishInProgress("Processing photos...", 0, photoIds.size());
 
         List<Query> buffer = new ArrayList<>(DB_FLUSH_BATCH_SIZE);
         for (int i = 0; i < photoIds.size(); i++) {
@@ -116,88 +111,54 @@ public class AiPipelineJob extends BackgroundJob {
             long          photoId       = photoIds.get(i);
             LocalDateTime now           = timeProvider.now();
             String        lastPhotoPath = "";
+            Mat           img           = null;
             try {
                 PhotoRecord photo = photoRepo.findById(photoId)
                                              .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
                 lastPhotoPath = photo.getAbsolutePath();
-                BufferedImage      img   = loadImageOriented(photo.getAbsolutePath(), photo.getOrientation());
-                List<DetectedFace> faces = retinaFaceDetector.detect(img);
+                img = ImageUtils.loadImageOriented(photo.getAbsolutePath(), photo.getOrientation());
 
-                for (DetectedFace face : faces) {
-                    Path faceThumbnailPath = faceThumbnailsRepository.createFaceThumbnail(img, face);
-                    long faceId = faceRepo.insertAndGetId(
-                            photoId, face.x(), face.y(), face.w(), face.h(),
-                            face.confidence(), toLandmarks(face.landmarks()), now, faceThumbnailPath);
+                if (faceSet.contains(photoId)) {
+                    List<DetectedFace> faces = retinaFaceDetector.detect(img);
+                    for (DetectedFace face : faces) {
+                        Path faceThumbnailPath = faceThumbnailsRepository.createFaceThumbnail(ImageUtils.toBufferedImage(img), face);
+                        long faceId = faceRepo.insertAndGetId(
+                                photoId, face.x(), face.y(), face.w(), face.h(),
+                                face.confidence(), toLandmarks(face.landmarks()), now, faceThumbnailPath);
 
-                    BufferedImage aligned   = faceAligner.align(faceId, img, face.landmarks());
-                    float[]       embedding = arcFaceEncoder.encode(aligned);
-                    buffer.add(faceEmbeddingRepo.upsertQuery(faceId, embedding, ARCFACE_MODEL_VER));
+                        Mat     aligned   = faceAligner.align(faceId, img, face.landmarks());
+                        float[] embedding = arcFaceEncoder.encode(aligned);
+                        aligned.release();
+                        buffer.add(faceEmbeddingRepo.upsertQuery(faceId, embedding, ARCFACE_MODEL_VER));
+                    }
+                    buffer.add(photoRepo.markFaceDetectDoneQuery(photoId, now));
+                    buffer.add(photoRepo.markFaceEmbedDoneQuery(photoId, now));
                 }
-                buffer.add(photoRepo.markFaceDetectDoneQuery(photoId, now));
-                buffer.add(photoRepo.markFaceEmbedDoneQuery(photoId, now));
+
+                if (clipSet.contains(photoId)) {
+                    float[] clipEmbedding = clipImageEncoder.encode(img);
+                    buffer.add(clipEmbeddingRepo.upsertQuery(photoId, clipEmbedding, CLIP_IMAGE_MODEL_VER));
+                    buffer.add(photoRepo.markClipEmbedDoneQuery(photoId, now));
+                }
             } catch (IrrecoverableIterationException e) {
-                log.warn("Face detection/embedding failed for photo {}", photoId, e);
+                log.warn("Face/CLIP processing failed for photo {}", photoId, e);
                 buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
                 log.error("Exiting loop - cannot recover from that....");
                 publishFailed(e.getCause());
                 return;
             } catch (Exception e) {
-                log.error("Face detection/embedding failed for photo {}", photoId, e);
+                log.error("Face/CLIP processing failed for photo {}", photoId, e);
                 buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
+            } finally {
+                if (img != null) {
+                    img.release(); // native memory — must release explicitly, GC won't do it
+                }
             }
 
             if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
                 flush(buffer);
             }
-            publishProgress("Detecting & embedding faces", i + 1, photoIds.size(),
-                    lastPhotoPath, i == photoIds.size() - 1);
-        }
-        flush(buffer);
-    }
-
-    // ── Stage 3: CLIP image embedding ────────────────────────────────────────
-
-    private void runClipEmbedding() {
-        List<Long> photoIds = photoRepo.findPendingClipEmbed();
-        if (photoIds.isEmpty()) {
-            log.info("CLIP embedding: no pending photos");
-            return;
-        }
-        publishInProgress("Generating CLIP embeddings...", 0, photoIds.size());
-
-        List<Query> buffer = new ArrayList<>(DB_FLUSH_BATCH_SIZE);
-        for (int i = 0; i < photoIds.size(); i++) {
-            if (isInterruptRequested()) {
-                flush(buffer);
-                return;
-            }
-
-            long          photoId       = photoIds.get(i);
-            LocalDateTime now           = timeProvider.now();
-            String        lastPhotoPath = "";
-            try {
-                PhotoRecord photo = photoRepo.findById(photoId)
-                                             .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
-                lastPhotoPath = photo.getAbsolutePath();
-                BufferedImage img       = loadImageOriented(photo.getAbsolutePath(), photo.getOrientation());
-                float[]       embedding = clipImageEncoder.encode(img);
-                buffer.add(clipEmbeddingRepo.upsertQuery(photoId, embedding, CLIP_IMAGE_MODEL_VER));
-                buffer.add(photoRepo.markClipEmbedDoneQuery(photoId, now));
-            } catch (IrrecoverableIterationException e) {
-                log.warn("CLIP embedding failed for photo {}", photoId, e);
-                buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
-                log.error("Exiting loop - cannot recover from that....");
-                publishFailed(e.getCause());
-                return;
-            } catch (Exception e) {
-                log.warn("CLIP embedding failed for photo {}", photoId, e);
-                buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
-            }
-
-            if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
-                flush(buffer);
-            }
-            publishProgress("Generating CLIP embeddings", i + 1, photoIds.size(),
+            publishProgress("Processing photos", i + 1, photoIds.size(),
                     lastPhotoPath, i == photoIds.size() - 1);
         }
         flush(buffer);
@@ -269,41 +230,13 @@ public class AiPipelineJob extends BackgroundJob {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /**
-     * Note: This is slow! Try to reuse, when possible
-     * @param absolutePath
-     * @param orientation
-     * @return
-     * @throws IOException
-     */
-    public static BufferedImage loadImageOriented(String absolutePath, Integer orientation) throws IOException {    // FIXME: This is very slow. It takes >36% of time during face detection
-        BufferedImage img = ImageIO.read(new File(absolutePath));
-        if (img == null) {  // FIXME: also probably I need to fix images rotation on disc - or improve rotation algorithm
-            throw new IOException("ImageIO could not decode: " + absolutePath);
-        }
-        return rotate(img, orientation);
-    }
-
-    /**
-     * Serialises 5×2 landmark pixel coordinates to a compact JSON array.
-     * 0 = left eye
-     * 1 = right eye
-     * 2 = nose
-     * 3 = left mouth corner
-     * 4 = right mouth corner
-     */
     private Landmarks toLandmarks(float[][] landmarks) {
         return new Landmarks(
-                landmarks[0][0],
-                landmarks[0][1],
-                landmarks[1][0],
-                landmarks[1][1],
-                landmarks[2][0],
-                landmarks[2][1],
-                landmarks[3][0],
-                landmarks[3][1],
-                landmarks[4][0],
-                landmarks[4][1]
+                landmarks[0][0], landmarks[0][1],
+                landmarks[1][0], landmarks[1][1],
+                landmarks[2][0], landmarks[2][1],
+                landmarks[3][0], landmarks[3][1],
+                landmarks[4][0], landmarks[4][1]
         );
     }
 

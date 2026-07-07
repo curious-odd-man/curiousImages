@@ -4,6 +4,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
+import com.github.curiousoddman.curious_images.util.ImageUtils;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import com.github.curiousoddman.curious_images.util.async.jobs.BackgroundJob;
 import lombok.RequiredArgsConstructor;
@@ -87,7 +88,7 @@ public class ThumbnailGenerationJob extends BackgroundJob {
             int    rotation  = photo.getOrientation() == null ? 0 : photo.getOrientation();
             long   photoId   = photo.getId();
 
-            Optional<BufferedImage> decoded = imageDecoder.decode(file, extension);
+            Optional<BufferedImage> decoded = imageDecoder.decode(file, extension).map(ImageUtils::toBufferedImage);
             decoded.ifPresent(image -> writeAndPersist(photoId, image, file, rotation));
             completed.incrementAndGet();
             publishProgress("Generating thumbnails", completed.get(), total, "", completed.get() == total);

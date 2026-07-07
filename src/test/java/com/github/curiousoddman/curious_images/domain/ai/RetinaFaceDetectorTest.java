@@ -5,10 +5,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.curiousoddman.curious_images.config.AiConfig;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.ExtractedMetadata;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
+import com.github.curiousoddman.curious_images.util.ImageUtils;
 import com.github.curiousoddman.curious_images.util.async.jobs.IrrecoverableIterationException;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
+import org.opencv.core.Mat;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -25,7 +27,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.github.curiousoddman.curious_images.domain.ai.AiPipelineJob.loadImageOriented;
+import static com.github.curiousoddman.curious_images.util.ImageUtils.loadImageOriented;
 import static com.github.curiousoddman.curious_images.util.FileUtils.extensionOf;
 
 @Slf4j
@@ -46,11 +48,11 @@ class RetinaFaceDetectorTest {
         int fileNameCounter = 0;
         for (File file : files) {
             ExtractedMetadata  metadata      = metadataExtractor.extract(file.toPath(), extensionOf(file.getName()));
-            BufferedImage      img           = loadImageOriented(file.getAbsolutePath(), metadata.orientationDegrees());
+            Mat                img           = loadImageOriented(file.getAbsolutePath(), metadata.orientationDegrees());
             List<DetectedFace> detectedFaces = retinaFaceDetector.detect(img);
 
             Files.createDirectories(Path.of("faces"));
-            fileNameCounter = saveImageWithAllFaces(detectedFaces, fileNameCounter, img);
+            fileNameCounter = saveImageWithAllFaces(detectedFaces, fileNameCounter, ImageUtils.toBufferedImage(img));
             //fileNameCounter = saveImagePerFace(detectedFaces, fileNameCounter, rotatedImage);
         }
     }

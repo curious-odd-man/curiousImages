@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images.domain.dedupe;
 
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.SourceImageDecoder;
+import com.github.curiousoddman.curious_images.util.ImageUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -34,6 +35,7 @@ public class PixelHasher {
      */
     public PhotoHashResult hash(long photoId, Path file, String extension, long fileSize) {
         BufferedImage image = imageDecoder.decode(file, extension)
+                                          .map(ImageUtils::toBufferedImage)
                                           .orElse(null);
         if (image == null) {
             return new PhotoHashResult(photoId, extension, fileSize, file.toString(), null);

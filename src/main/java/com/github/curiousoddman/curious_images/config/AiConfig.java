@@ -1,7 +1,9 @@
 package com.github.curiousoddman.curious_images.config;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.Setter;
+import nu.pattern.OpenCV;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +20,11 @@ import java.nio.file.Path;
 @Component
 @ConfigurationProperties(prefix = "app.ai")
 public class AiConfig {
+
+    @PostConstruct
+    public void initOpenCv() {
+        OpenCV.loadLocally(); // org.openpnp packages this helper; call once at startup
+    }
 
     /**
      * Which ONNX execution provider to use. GPU implies CUDA first, then DirectML fallback.

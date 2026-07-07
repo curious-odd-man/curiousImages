@@ -53,6 +53,7 @@ public class ThumbnailGenerator {
      */
     public Optional<GeneratedThumbnail> generate(Path sourceFile, String extension, int rotationDegrees) {
         BufferedImage source = imageDecoder.decode(sourceFile, extension)
+                                           .map(ImageUtils::toBufferedImage)
                                            .orElse(null);
         if (source == null) {
             return Optional.empty();
