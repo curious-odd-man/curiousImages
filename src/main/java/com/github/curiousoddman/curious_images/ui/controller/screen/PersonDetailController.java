@@ -5,11 +5,13 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
+import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
+import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoCellController;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridRowController;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridCallbacks;
@@ -20,6 +22,8 @@ import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressIndicator;
@@ -32,6 +36,8 @@ import javafx.scene.control.TreeView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -119,33 +125,29 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
     // ── FXML nodes ────────────────────────────────────────────────────────────
 
     @FXML
-    public TitledPane                  profilePane;
+    public TitledPane             profilePane;
     @FXML
-    public ImageView                   faceImageView;
+    public ImageView              faceImageView;
     @FXML
-    public ProgressIndicator           faceLoadIndicator;
+    public ProgressIndicator      faceLoadIndicator;
     @FXML
-    public javafx.scene.control.Button prevFaceButton;
+    public Button                 browseFacesButton;
     @FXML
-    public javafx.scene.control.Button nextFaceButton;
+    public TextField              nameField;
     @FXML
-    public Label                       faceIndexLabel;
+    public TextField              dobField;
     @FXML
-    public TextField                   nameField;
+    public TextArea               notesArea;
     @FXML
-    public TextField                   dobField;
+    public Label                  editHintLabel;
     @FXML
-    public TextArea                    notesArea;
+    public Slider                 thumbnailSizeSlider;
     @FXML
-    public Label                       editHintLabel;
+    public Label                  photoCountLabel;
     @FXML
-    public Slider                      thumbnailSizeSlider;
+    public TreeView<String>       ageAlbumTree;
     @FXML
-    public Label                       photoCountLabel;
-    @FXML
-    public TreeView<String>            ageAlbumTree;
-    @FXML
-    public ListView<PhotoGridRow>      photoGridListView;
+    public ListView<PhotoGridRow> photoGridListView;
 
     // ── State ─────────────────────────────────────────────────────────────────
 
@@ -158,9 +160,10 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
     private List<FaceRecord> allFaces = List.of();
 
     /**
-     * Index into {@link #allFaces} for the face currently shown in the picker.
-     * The face at this index is NOT necessarily the saved cover face until the
-     * user presses "Set as cover".
+     * Index into {@link #allFaces} for the face currently shown as the profile thumbnail.
+     * Always kept in sync with the saved cover face — set on load (see
+     * {@link #pickInitialFaceIndex}) and again whenever the user picks a new cover via the
+     * "Browse faces…" dialog (see {@link #onBrowseFaces}).
      */
     private int currentFaceIndex = 0;
 
@@ -509,9 +512,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
 
     private void refreshFacePicker() {
         int total = allFaces.size();
-        faceIndexLabel.setText((total == 0) ? "—" : (currentFaceIndex + 1) + " / " + total);
-        prevFaceButton.setDisable(total <= 1);
-        nextFaceButton.setDisable(total <= 1);
+        browseFacesButton.setDisable(total == 0);
 
         if (total == 0) {
             faceImageView.setImage(noImageAvailable);
@@ -542,31 +543,55 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
         t.start();
     }
 
+    /**
+     * Opens the modal face-picker grid (see {@code face_picker.fxml} / {@link FacePickerController})
+     * so the user can jump straight to a new cover face instead of clicking through them one at a
+     * time. Blocks (it's application-modal) until the dialog closes; if the user clicked a face
+     * rather than cancelling, applies it as the new cover.
+     */
     @FXML
-    public void onPrevFace() {
-        if (allFaces.isEmpty()) {
-            return;
-        }
-        currentFaceIndex = (currentFaceIndex - 1 + allFaces.size()) % allFaces.size();
-        refreshFacePicker();
-    }
-
-    @FXML
-    public void onNextFace() {
-        if (allFaces.isEmpty()) {
-            return;
-        }
-        currentFaceIndex = (currentFaceIndex + 1) % allFaces.size();
-        refreshFacePicker();
-    }
-
-    @FXML
-    public void onSetCoverFace() {
+    public void onBrowseFaces() {
         if (currentPerson == null || allFaces.isEmpty()) {
             return;
         }
-        long faceId = allFaces.get(currentFaceIndex)
-                              .getId();
+        try {
+            LoadedFxml<FacePickerController> loaded     = fxmlLoader.load(FxmlView.FACE_PICKER, null);
+            FacePickerController             controller = loaded.controller();
+            controller.init(allFaces, currentPerson.getCoverFaceId());
+
+            Stage stage = new Stage();
+            stage.setTitle("Choose Cover Face");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.initOwner(faceImageView.getScene()
+                                         .getWindow());
+            stage.setScene(new Scene(loaded.parent()));
+            controller.setStage(stage);
+            stage.showAndWait();
+
+            FaceRecord chosen = controller.getSelectedFace();
+            if (chosen != null) {
+                applyCoverFace(chosen.getId());
+            }
+        } catch (Exception ex) {
+            log.error("Failed to open face picker", ex);
+        }
+    }
+
+    /**
+     * Persists {@code faceId} as the person's cover face and refreshes the profile thumbnail to
+     * match.
+     */
+    private void applyCoverFace(long faceId) {
+        for (int i = 0; i < allFaces.size(); i++) {
+            if (allFaces.get(i)
+                        .getId()
+                        .equals(faceId)) {
+                currentFaceIndex = i;
+                break;
+            }
+        }
+        refreshFacePicker();
+
         Thread t = new Thread(() -> {
             try {
                 personRepository.updateCoverFaceQuery(

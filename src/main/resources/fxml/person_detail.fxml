@@ -48,16 +48,8 @@
                             <ProgressIndicator fx:id="faceLoadIndicator" visible="false"
                                                maxWidth="48.0" maxHeight="48.0"/>
                         </StackPane>
-                        <HBox spacing="4.0" alignment="CENTER">
-                            <Button fx:id="prevFaceButton" text="◀" onAction="#onPrevFace"
-                                    minWidth="32.0" disable="true"/>
-                            <Label fx:id="faceIndexLabel" text="1 / 1" minWidth="40.0"
-                                   style="-fx-alignment: center;"/>
-                            <Button fx:id="nextFaceButton" text="▶" onAction="#onNextFace"
-                                    minWidth="32.0" disable="true"/>
-                        </HBox>
-                        <Button text="Set as cover" onAction="#onSetCoverFace"
-                                maxWidth="1.7976931348623157E308"/>
+                        <Button fx:id="browseFacesButton" text="Browse faces…" onAction="#onBrowseFaces"
+                                maxWidth="1.7976931348623157E308" disable="true"/>
                     </VBox>
 
                     <!-- ── Editable info fields ── -->

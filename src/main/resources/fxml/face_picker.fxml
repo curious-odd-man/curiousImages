@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<!--
+    ═══════════════════════════════════════════════════════
+    FACE PICKER (modal)
+    Grid of every tagged face for a person. Clicking a face makes it the
+    cover face immediately — see PersonDetailController#onBrowseFaces and
+    FacePickerController.
+    ═══════════════════════════════════════════════════════
+-->
+
+<BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="1080.0" prefWidth="1920.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.FacePickerController">
+
+    <top>
+        <Label fx:id="titleLabel" style="-fx-font-weight: bold; -fx-font-size: 14;" text="Click a face to make it the cover photo">
+            <BorderPane.margin>
+                <Insets bottom="8.0" left="12.0" right="12.0" top="12.0" />
+            </BorderPane.margin>
+        </Label>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" BorderPane.alignment="CENTER">
+            <FlowPane fx:id="faceFlowPane" hgap="8.0" style="-fx-padding: 4 12 12 12;" vgap="8.0" />
+        </ScrollPane>
+    </center>
+
+    <bottom>
+        <HBox alignment="CENTER_RIGHT" spacing="8.0" BorderPane.alignment="CENTER">
+            <padding>
+                <Insets bottom="12.0" left="12.0" right="12.0" top="8.0" />
+            </padding>
+            <Button fx:id="cancelButton" cancelButton="true" onAction="#onCancel" text="Cancel" />
+        </HBox>
+    </bottom>
+
+</BorderPane>
