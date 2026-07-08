@@ -636,7 +636,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
      */
     private void buildAgeAlbumTree(Map<Integer, List<PhotoRecord>> byYear) {
         TreeItem<String> root = new TreeItem<>("root");
-        root.setExpanded(true);
+        root.setExpanded(false);
 
         LocalDate dob = (currentPerson != null) ? currentPerson.getDateOfBirth() : null;
 

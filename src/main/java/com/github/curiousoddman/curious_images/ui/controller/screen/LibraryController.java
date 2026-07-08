@@ -387,19 +387,19 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
                         new LibraryTreeNode("Timeline", null, NodeType.TIMELINE_ROOT));
                 timelineRoot.getChildren()
                             .setAll(timelineItems);
-                timelineRoot.setExpanded(true);
+                timelineRoot.setExpanded(false);
 
                 TreeItem<LibraryTreeNode> albumsRoot = treeItem(
                         new LibraryTreeNode("Albums", null, NodeType.ALBUMS_ROOT));
                 albumsRoot.getChildren()
                           .setAll(albumItems);
-                albumsRoot.setExpanded(!albumItems.isEmpty());
+                albumsRoot.setExpanded(false);
 
                 TreeItem<LibraryTreeNode> personsRoot = treeItem(
                         new LibraryTreeNode("People", null, NodeType.PERSONS_ROOT));
                 personsRoot.getChildren()
                            .setAll(personItems);
-                personsRoot.setExpanded(!personItems.isEmpty());
+                personsRoot.setExpanded(false);
 
                 TreeItem<LibraryTreeNode> invisibleRoot = new TreeItem<>();
                 invisibleRoot.getChildren()
@@ -570,7 +570,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
             }
             groupRoot.getChildren()
                      .setAll(children);
-            groupRoot.setExpanded(!children.isEmpty());
+            groupRoot.setExpanded(false);
 
             items.add(groupRoot);
         }
