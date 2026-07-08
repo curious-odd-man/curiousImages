@@ -159,6 +159,7 @@ public class DuplicatesController implements Initializable {
      * tooltip — the whole point is comparing photos side by side), and a "keep" checkbox.
      */
     private DuplicateCell createDuplicateCell(List<DuplicateCell> cells, PhotoRecord photo, ThumbnailRecord thumbnail) {
+        // FIXME:  This should be FXML file
         ImageView imageView = new ImageView(getImage(thumbnail, noImageAvailable));
         imageView.setPreserveRatio(true);
         imageView.setFitWidth(160.0);
@@ -305,6 +306,7 @@ public class DuplicatesController implements Initializable {
         openSlideshow(photos, startIndex, duplicatesAccordion.getScene(), fxmlLoader, log);
     }
 
+    // FIXME: This should be moved to common code
     static void openSlideshow(List<PhotoRecord> photos, int startIndex, Scene scene2, FxmlLoader fxmlLoader, Logger log) {
         try {
             Stage stage = new Stage();
