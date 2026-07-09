@@ -12,6 +12,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoPreviewRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
+import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.domain.search.SearchService;
 import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferencesService;
 import com.github.curiousoddman.curious_images.event.model.AiPipelineCompleteEvent;
@@ -109,6 +110,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
+import static com.github.curiousoddman.curious_images.ui.controller.screen.PersonDetailController.getRowInfo;
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 import static javafx.scene.control.ProgressIndicator.INDETERMINATE_PROGRESS;
@@ -125,7 +127,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
      * matches {@code thumbnailSizeSlider}'s max (see library.fxml) so JavaFX never decodes more
      * pixels than the grid could ever display, however large the on-disk cached thumbnail is.
      */
-    private static final int MAX_THUMBNAIL_DECODE_SIZE = 320;
+    public static final int MAX_THUMBNAIL_DECODE_SIZE = 320;
 
     // Heuristics used to turn "viewport width" + "thumbnail size" into "columns per row" / "row
     // height" for the virtualized grid — see recomputeGridMetrics(). Approximate on purpose; a
@@ -879,31 +881,21 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
      */
     @Override
     public void onRowShown(PhotoGridRowController row, List<PhotoRecord> photos) {
-        for (PhotoCellController cell : row.getCellControllers()) {
-            PhotoRecord shown = cell.getCurrentPhoto();
-            if (shown != null) {
-                visiblePhotoCells.put(shown.getId(), cell);
-            }
-        }
+        PersonDetailController.RowInfo rowInfo = getRowInfo(row, photos, visiblePhotoCells, selectionGeneration);
 
-        long myGeneration = selectionGeneration.get();
-        long myShowToken  = row.getShowToken();
-        List<Long> ids = photos.stream()
-                               .map(PhotoRecord::getId)
-                               .toList();
 
         runOnDaemonThread("Thumbnails", () -> {
-            Map<Long, ThumbnailRecord>    thumbs   = thumbnailRepository.findByPhotoIds(ids);
-            Map<Long, PhotoPreviewRecord> previews = photoPreviewRepository.findByPhotoIds(ids);
+            Map<Long, ThumbnailRecord>    thumbs   = thumbnailRepository.findByPhotoIds(rowInfo.ids());
+            Map<Long, PhotoPreviewRecord> previews = photoPreviewRepository.findByPhotoIds(rowInfo.ids());
             runOnFxThread(() -> {
-                if (myGeneration != selectionGeneration.get() || myShowToken != row.getShowToken()) {
+                if (rowInfo.myGeneration() != selectionGeneration.get() || rowInfo.myShowToken() != row.getShowToken()) {
                     return; // selection changed, or this row now shows different photos — discard
                 }
                 List<Long> missing = new ArrayList<>();
                 for (PhotoRecord photo : photos) {
                     ThumbnailRecord thumbnail = thumbs.get(photo.getId());
-                    if (thumbnail != null && hasCachedFile(thumbnail)) {
-                        row.applyImage(photo, loadThumbnailImage(thumbnail));
+                    if (thumbnail != null && ThumbnailUtils.hasCachedFile(thumbnail)) {
+                        row.applyImage(photo, ThumbnailUtils.loadThumbnailImage(thumbnail));
                         continue;
                     }
                     PhotoPreviewRecord preview = previews.get(photo.getId());
@@ -954,37 +946,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
      */
     @EventListener
     public void onThumbnailsReady(ThumbnailsReadyEvent event) {
-        List<Long> ids = List.copyOf(event.getPhotoIds());
-        Thread t = new Thread(() -> {
-            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(ids);
-            runOnFxThread(() -> {
-                for (Map.Entry<Long, ThumbnailRecord> entry : thumbs.entrySet()) {
-                    PhotoCellController cell = visiblePhotoCells.get(entry.getKey());
-                    if (cell != null && hasCachedFile(entry.getValue())) {
-                        cell.showImage(cell.getCurrentPhoto(), loadThumbnailImage(entry.getValue()));
-                    }
-                }
-            });
-        });
-        t.setDaemon(true);
-        t.start();
-    }
-
-    private static boolean hasCachedFile(ThumbnailRecord thumbnail) {
-        return thumbnail.getCachePath() != null && new File(thumbnail.getCachePath()).isFile();
-    }
-
-    /**
-     * Loads a cached thumbnail file, capped to {@link #MAX_THUMBNAIL_DECODE_SIZE} rather than its
-     * native on-disk resolution — the grid never displays it any larger than that, so there's no
-     * reason to decode (and hold in memory) more pixels than that regardless of how the thumbnail
-     * cache file itself was generated. Background-loading (last arg) keeps decoding off the FX
-     * thread.
-     */
-    private Image loadThumbnailImage(ThumbnailRecord thumbnail) {
-        File file = new File(thumbnail.getCachePath());
-        return new Image(file.toURI()
-                             .toString(), MAX_THUMBNAIL_DECODE_SIZE, MAX_THUMBNAIL_DECODE_SIZE, true, true, true);
+        ThumbnailUtils.updateThumbnailImage(thumbnailRepository, visiblePhotoCells, event);
     }
 
     private Image loadPreviewImage(byte[] previewBytes) {

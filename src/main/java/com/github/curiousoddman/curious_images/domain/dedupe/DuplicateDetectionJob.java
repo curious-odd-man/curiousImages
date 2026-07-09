@@ -45,6 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RequiredArgsConstructor
 public class DuplicateDetectionJob extends BackgroundJob {
     public static final  String DUPLICATE_DETECTION = "Duplicate Detection";
+    public static final AtomicInteger THREAD_COUNTER = new AtomicInteger();
     private static final int    DB_FLUSH_BATCH_SIZE = 200;
 
     private final DSLContext               dsl;
@@ -120,9 +121,8 @@ public class DuplicateDetectionJob extends BackgroundJob {
      */
     private boolean hashAndPersist(List<PhotoForHashing> needsHashing, int totalPhotos,
                                    AtomicInteger processed, Map<Long, HashEntry> hashByPhoto) {
-        AtomicInteger threadCounter = new AtomicInteger();
         ExecutorService executor = Executors.newFixedThreadPool(threadCount, r -> {
-            Thread t = new Thread(r, "duplicate-hash-" + threadCounter.incrementAndGet());
+            Thread t = new Thread(r, "duplicate-hash-" + THREAD_COUNTER.incrementAndGet());
             t.setDaemon(true);
             return t;
         });

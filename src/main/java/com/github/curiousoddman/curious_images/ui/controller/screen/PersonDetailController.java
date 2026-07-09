@@ -5,6 +5,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.PersonService;
+import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.event.model.PersonRenamedEvent;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
@@ -128,7 +129,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
     private final FxmlLoader                fxmlLoader;
     private final ClusterRepository         clusterRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
-    private final PersonService personService;
+    private final PersonService             personService;
 
     // ── FXML nodes ────────────────────────────────────────────────────────────
 
@@ -260,15 +261,15 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
      */
     public void loadPerson(long personId) {
         long myGeneration = selectionGeneration.incrementAndGet();
-        Thread t = new Thread(() -> {
+        runOnDaemonThread("LoadPerson", () -> {
             Optional<PersonRecord> opt = personRepository.findById(personId);
             if (opt.isEmpty()) {
                 log.warn("Person {} not found", personId);
                 return;
             }
-            PersonRecord person = opt.get();
-            List<FaceRecord> faces = personService.findFacesByPerson(person);
-            int startIndex = pickInitialFaceIndex(person, faces);
+            PersonRecord     person     = opt.get();
+            List<FaceRecord> faces      = personService.findFacesByPerson(person);
+            int              startIndex = pickInitialFaceIndex(person, faces);
 
             // Collect all photos for this person, deduplicated, ordered by capture date
             List<Long> photoIds = new ArrayList<>(
@@ -308,8 +309,6 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
                 }
             });
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     // ── Profile fields ────────────────────────────────────────────────────────
@@ -432,7 +431,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
         }
         String value = nameField.getText()
                                 .trim();
-        Thread t = new Thread(() -> {
+        runOnDaemonThread("Commit Name", () -> {
             try {
                 personRepository.updateNameQuery(currentPerson.getId(), value, LocalDateTime.now())
                                 .execute();
@@ -442,8 +441,6 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
                 log.error("Failed to save name for person {}", currentPerson.getId(), ex);
             }
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     private void commitDob() {
@@ -484,7 +481,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
             return;
         }
         String value = notesArea.getText();
-        Thread t = new Thread(() -> {
+        runOnDaemonThread("CommitNotes", () -> {
             try {
                 personRepository.updateNotes(currentPerson.getId(), value, LocalDateTime.now());
                 currentPerson.setNotes(value);
@@ -492,8 +489,6 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
                 log.error("Failed to save notes for person {}", currentPerson.getId(), ex);
             }
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     // ── Face picker ───────────────────────────────────────────────────────────
@@ -585,7 +580,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
         }
         refreshFacePicker();
 
-        Thread t = new Thread(() -> {
+        runOnDaemonThread("ApplyCoverFace", () -> {
             try {
                 personRepository.updateCoverFaceQuery(
                                         currentPerson.getId(), faceId, LocalDateTime.now())
@@ -596,8 +591,6 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
                 log.error("Failed to set cover face", ex);
             }
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     // ── Age-album tree ────────────────────────────────────────────────────────
@@ -791,23 +784,12 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
      */
     @Override
     public void onRowShown(PhotoGridRowController row, List<PhotoRecord> photos) {
-        for (PhotoCellController cell : row.getCellControllers()) {
-            PhotoRecord shown = cell.getCurrentPhoto();
-            if (shown != null) {
-                visiblePhotoCells.put(shown.getId(), cell);
-            }
-        }
+        RowInfo rowInfo = getRowInfo(row, photos, visiblePhotoCells, selectionGeneration);
 
-        long myGeneration = selectionGeneration.get();
-        long myShowToken  = row.getShowToken();
-        List<Long> ids = photos.stream()
-                               .map(PhotoRecord::getId)
-                               .toList();
-
-        Thread t = new Thread(() -> {
-            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(ids);
+        runOnDaemonThread("Row Shown", () -> {
+            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(rowInfo.ids());
             runOnFxThread(() -> {
-                if (myGeneration != selectionGeneration.get() || myShowToken != row.getShowToken()) {
+                if (rowInfo.myGeneration() != selectionGeneration.get() || rowInfo.myShowToken() != row.getShowToken()) {
                     return; // selection changed, or this row now shows different photos — discard
                 }
                 List<Long> missing = new ArrayList<>();
@@ -824,9 +806,25 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
                 }
             });
         });
-        t.setDaemon(true);
-        t.start();
     }
+
+    public static RowInfo getRowInfo(PhotoGridRowController row, List<PhotoRecord> photos, Map<Long, PhotoCellController> visiblePhotoCells, AtomicLong selectionGeneration) {
+        for (PhotoCellController cell : row.getCellControllers()) {
+            PhotoRecord shown = cell.getCurrentPhoto();
+            if (shown != null) {
+                visiblePhotoCells.put(shown.getId(), cell);
+            }
+        }
+
+        long myGeneration = selectionGeneration.get();
+        long myShowToken  = row.getShowToken();
+        List<Long> ids = photos.stream()
+                               .map(PhotoRecord::getId)
+                               .toList();
+        return new RowInfo(myGeneration, myShowToken, ids);
+    }
+
+    public record RowInfo(long myGeneration, long myShowToken, List<Long> ids) {}
 
     @Override
     public void onRowHidden(PhotoGridRowController row, List<PhotoRecord> previousPhotos) {
@@ -861,20 +859,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
      */
     @EventListener
     public void onThumbnailsReady(ThumbnailsReadyEvent event) {
-        List<Long> ids = List.copyOf(event.getPhotoIds());
-        Thread t = new Thread(() -> {
-            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(ids);
-            runOnFxThread(() -> {
-                for (Map.Entry<Long, ThumbnailRecord> entry : thumbs.entrySet()) {
-                    PhotoCellController cell = visiblePhotoCells.get(entry.getKey());
-                    if (cell != null && hasCachedFile(entry.getValue())) {
-                        cell.showImage(cell.getCurrentPhoto(), loadThumbnailImage(entry.getValue()));
-                    }
-                }
-            });
-        });
-        t.setDaemon(true);
-        t.start();
+        ThumbnailUtils.updateThumbnailImage(thumbnailRepository, visiblePhotoCells, event);
     }
 
     private static boolean hasCachedFile(ThumbnailRecord thumbnail) {
