@@ -5,6 +5,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
+import com.github.curiousoddman.curious_images.event.model.PersonRenamedEvent;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.persistence.ClusterRepository;
@@ -118,13 +119,13 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
 
     // ── Injected services ─────────────────────────────────────────────────────
 
-    private final PersonRepository    personRepository;
-    private final FaceRepository      faceRepository;
-    private final PhotoRepository     photoRepository;
-    private final ThumbnailRepository thumbnailRepository;
-    private final JobManager          jobManager;
-    private final FxmlLoader          fxmlLoader;
-    private final ClusterRepository   clusterRepository;
+    private final PersonRepository          personRepository;
+    private final FaceRepository            faceRepository;
+    private final PhotoRepository           photoRepository;
+    private final ThumbnailRepository       thumbnailRepository;
+    private final JobManager                jobManager;
+    private final FxmlLoader                fxmlLoader;
+    private final ClusterRepository         clusterRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
 
     // ── FXML nodes ────────────────────────────────────────────────────────────
@@ -265,9 +266,9 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
             }
             PersonRecord person = opt.get();
             List<Long> clusterIds = clusterRepository.findByPersonId(personId)
-                                                       .stream()
-                                                       .map(ClusterRecord::getId)
-                    .toList();
+                                                     .stream()
+                                                     .map(ClusterRecord::getId)
+                                                     .toList();
             List<FaceRecord> faces = faceRepository.findByClusterIdIn(clusterIds);
 
             int startIndex = pickInitialFaceIndex(person, faces);
@@ -439,6 +440,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
                 personRepository.updateNameQuery(currentPerson.getId(), value, LocalDateTime.now())
                                 .execute();
                 currentPerson.setName(value);
+                applicationEventPublisher.publishEvent(new PersonRenamedEvent(this, currentPerson.getId(), value));
             } catch (Exception ex) {
                 log.error("Failed to save name for person {}", currentPerson.getId(), ex);
             }

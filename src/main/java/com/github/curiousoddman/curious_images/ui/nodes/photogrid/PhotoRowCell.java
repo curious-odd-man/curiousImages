@@ -9,6 +9,8 @@ import lombok.SneakyThrows;
 
 import java.util.List;
 
+import static com.sun.javafx.util.Utils.runOnFxThread;
+
 /**
  * A {@code ListView<PhotoGridRow>} cell — the core of the virtualized photo grid.
  * <p>
@@ -43,21 +45,23 @@ public class PhotoRowCell extends ListCell<PhotoGridRow> {
 
     @Override
     protected void updateItem(PhotoGridRow item, boolean empty) {
-        super.updateItem(item, empty);
+        runOnFxThread(() -> {
+            super.updateItem(item, empty);
 
-        if (currentPhotos != null) {
-            callbacks.onRowHidden(rowController, currentPhotos);
-            currentPhotos = null;
-        }
+            if (currentPhotos != null) {
+                callbacks.onRowHidden(rowController, currentPhotos);
+                currentPhotos = null;
+            }
 
-        if (empty || item == null) {
-            setGraphic(null);
-            return;
-        }
+            if (empty || item == null) {
+                setGraphic(null);
+                return;
+            }
 
-        currentPhotos = item.photos();
-        rowController.showRow(currentPhotos);
-        setGraphic(rowNode);
-        callbacks.onRowShown(rowController, currentPhotos);
+            currentPhotos = item.photos();
+            rowController.showRow(currentPhotos);
+            setGraphic(rowNode);
+            callbacks.onRowShown(rowController, currentPhotos);
+        });
     }
 }
