@@ -78,7 +78,6 @@ public class PersonCorrectionService {
         }
 
         List<Query> buffer = new ArrayList<>();
-        removeFromOldClusters(faces, now, buffer);
 
         float[]                 referenceVector = EmbeddingMath.average(vectors.values());
         Optional<ClusterRecord> destCluster     = pickBestCluster(targetPersonId, referenceVector);
@@ -98,7 +97,7 @@ public class PersonCorrectionService {
                 buffer.add(faceRepo.lockFaceAssignmentQuery(faceId, destClusterId));
             }
         }
-
+        removeFromOldClusters(faces, now, buffer);
         execute(buffer);
         publisher.publishEvent(new PersonsUpdatedEvent(this));
     }
@@ -171,12 +170,12 @@ public class PersonCorrectionService {
         }
         LocalDateTime now    = timeProvider.now();
         List<Query>   buffer = new ArrayList<>();
+        buffer.add(faceRepo.excludeFaceQuery(faceId));
         if (face.get()
                 .getClusterId() != null) {
             removeFromCluster(face.get()
                                   .getClusterId(), Set.of(faceId), now, buffer);
         }
-        buffer.add(faceRepo.excludeFaceQuery(faceId));
         execute(buffer);
         publisher.publishEvent(new PersonsUpdatedEvent(this));
     }
@@ -250,6 +249,11 @@ public class PersonCorrectionService {
      * centroid from whoever's left, or deletes the cluster outright if nobody's left (an
      * average-of-nothing is meaningless — see {@link ClusterRepository#deleteQuery}).
      */
+    // FIXME: This should be more intelligent.
+    // 1. it should ask if user wants to remove a person once person do not have any more photos after cluster removal
+    // 2. if all cluster photos are moved to another person - it should assign cluster to a person, not just move photos into person
+    // 3. when there are multiple clusters person already has - how should app decide to which moved faces go into?
+    // 4. what does PersonDetailController::onMergeInto supposed to do? is this similar to 3?
     private void removeFromCluster(long clusterId, Set<Long> removingFaceIds, LocalDateTime now, List<Query> buffer) {
         List<FaceRecord> currentMembers = faceRepo.findByClusterId(clusterId);
         List<Long> remainingIds = currentMembers.stream()

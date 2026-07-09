@@ -85,9 +85,23 @@ public class FaceRepository {
     }
 
     /**
-     * All faces currently belonging to a given cluster. Replaces the old {@code findByPersonId} —
-     * a person's full face list is now the union of {@code findByClusterId} over every cluster
-     * that person owns (see {@code ClusterRepository#findByPersonId}).
+     * All faces belonging to a person, across every cluster they own — i.e. the union of
+     * {@link #findByClusterId} over {@code ClusterRepository#findByPersonId(personId)}, done in
+     * one query. Convenience method for UI call sites ({@code PersonDetailController}) that don't
+     * care about cluster boundaries and just want "this person's faces".
+     */
+    public List<FaceRecord> findByPersonId(long personId) {
+        return dsl.selectFrom(FACE)
+                  .where(FACE.CLUSTER_ID.in(
+                          dsl.select(CLUSTER.ID)
+                             .from(CLUSTER)
+                             .where(CLUSTER.PERSON_ID.eq(personId))))
+                  .fetch();
+    }
+
+    /**
+     * All faces currently belonging to a given cluster. Note this is narrower than
+     * {@link #findByPersonId} — a person can own several clusters (FR6).
      */
     public List<FaceRecord> findByClusterId(long clusterId) {
         return dsl.selectFrom(FACE)
@@ -242,11 +256,5 @@ public class FaceRepository {
                   .set(FACE.CREATED_AT, now)
                   .set(FACE.THUMBNAIL_ABSOLUTE_PATH, thumbnailPath.toAbsolutePath()
                                                                   .toString());
-    }
-
-    public List<FaceRecord> findByClusterIdIn(List<Long> clusterIds) {
-        return dsl.selectFrom(FACE)
-                  .where(FACE.CLUSTER_ID.in(clusterIds))
-                  .fetch();
     }
 }

@@ -4,12 +4,12 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
+import com.github.curiousoddman.curious_images.domain.ai.PersonCorrectionService;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.PersonService;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.event.model.PersonRenamedEvent;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
-import com.github.curiousoddman.curious_images.persistence.ClusterRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
@@ -27,7 +27,10 @@ import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressIndicator;
@@ -127,7 +130,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
     private final ThumbnailRepository       thumbnailRepository;
     private final JobManager                jobManager;
     private final FxmlLoader                fxmlLoader;
-    private final ClusterRepository         clusterRepository;
+    private final PersonCorrectionService   personCorrectionService;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final PersonService             personService;
 
@@ -141,6 +144,8 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
     public ProgressIndicator      faceLoadIndicator;
     @FXML
     public Button                 browseFacesButton;
+    @FXML
+    public Button                 mergeIntoButton;
     @FXML
     public TextField              nameField;
     @FXML
@@ -268,7 +273,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
                 return;
             }
             PersonRecord     person     = opt.get();
-            List<FaceRecord> faces      = personService.findFacesByPerson(person);
+            List<FaceRecord> faces      = faceRepository.findByPersonId(personId);
             int              startIndex = pickInitialFaceIndex(person, faces);
 
             // Collect all photos for this person, deduplicated, ordered by capture date
@@ -545,10 +550,10 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
         try {
             LoadedFxml<FacePickerController> loaded     = fxmlLoader.load(FxmlView.FACE_PICKER, null);
             FacePickerController             controller = loaded.controller();
-            controller.init(allFaces, currentPerson.getCoverFaceId());
+            controller.init(allFaces, currentPerson.getCoverFaceId(), currentPerson.getId());
 
             Stage stage = new Stage();
-            stage.setTitle("Choose Cover Face");
+            stage.setTitle("Browse Faces");
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.initOwner(faceImageView.getScene()
                                          .getWindow());
@@ -560,40 +565,77 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
             if (chosen != null) {
                 applyCoverFace(chosen.getId());
             }
+            if (controller.didCorrectionsHappen()) {
+                // Faces may have been reassigned/excluded out from under this person — reload
+                // everything (face list, photo grid, age albums) rather than patching in place.
+                loadPerson(currentPerson.getId());
+            }
         } catch (Exception ex) {
             log.error("Failed to open face picker", ex);
         }
     }
 
     /**
-     * Persists {@code faceId} as the person's cover face and refreshes the profile thumbnail to
-     * match.
+     * FR4: merges the person currently being viewed into another person the user picks. The
+     * source person's row survives as a redirect (see {@code PersonCorrectionService#mergePerson})
+     * so old references still resolve; this view navigates to the target afterward since "this
+     * person" is no longer a thing you'd keep browsing.
      */
-    private void applyCoverFace(long faceId) {
-        for (int i = 0; i < allFaces.size(); i++) {
-            if (allFaces.get(i)
-                        .getId()
-                        .equals(faceId)) {
-                currentFaceIndex = i;
-                break;
-            }
+    @FXML
+    public void onMergeInto() {
+        if (currentPerson == null) {
+            return;
         }
-        refreshFacePicker();
+        List<PersonRecord> candidates = personRepository.findAll()
+                                                        .stream()
+                                                        .filter(p -> !p.getId()
+                                                                       .equals(currentPerson.getId()))
+                                                        .filter(p -> p.getMergedIntoId() == null)
+                                                        .toList();
+        if (candidates.isEmpty()) {
+            log.info("No other person available to merge {} into", currentPerson.getId());
+            return;
+        }
 
+        Map<String, Long> idByLabel = new LinkedHashMap<>();
+        for (PersonRecord p : candidates) {
+            String name = (p.getName() == null || p.getName()
+                                                   .isBlank()) ? ("Person #" + p.getId()) : p.getName();
+            idByLabel.put(name, p.getId());
+        }
+
+        ChoiceDialog<String> pick = new ChoiceDialog<>(null, idByLabel.keySet());
+        pick.setHeaderText("Merge \"" + nameField.getText() + "\" into…");
+        pick.setContentText("Target person:");
+        Optional<String> chosenLabel = pick.showAndWait();
+        if (chosenLabel.isEmpty()) {
+            return;
+        }
+        long targetPersonId = idByLabel.get(chosenLabel.get());
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+                "Merge \"" + nameField.getText() + "\" into \"" + chosenLabel.get() + "\"? "
+                        + "All of this person's face groups will become part of the target. "
+                        + "This can't be undone from the UI.",
+                ButtonType.OK, ButtonType.CANCEL);
+        confirm.setHeaderText("Merge people");
+        Optional<ButtonType> result = confirm.showAndWait();
+        if (result.isEmpty() || result.get() != ButtonType.OK) {
+            return;
+        }
+
+        long sourcePersonId = currentPerson.getId();
         runOnDaemonThread("ApplyCoverFace", () -> {
             try {
-                personRepository.updateCoverFaceQuery(
-                                        currentPerson.getId(), faceId, LocalDateTime.now())
-                                .execute();
-                currentPerson.setCoverFaceId(faceId);
-                log.info("Cover face for person {} set to face {}", currentPerson.getId(), faceId);
+                personCorrectionService.mergePerson(sourcePersonId, targetPersonId);
+                runOnFxThread(() -> loadPerson(targetPersonId));
             } catch (Exception ex) {
-                log.error("Failed to set cover face", ex);
+                log.error("Failed to merge person {} into {}", sourcePersonId, targetPersonId, ex);
             }
         });
     }
 
-    // ── Age-album tree ────────────────────────────────────────────────────────
+// ── Age-album tree ────────────────────────────────────────────────────────
 
     /**
      * Groups photos by calendar year of capture_date.
@@ -693,7 +735,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
         populatePhotoGrid(toShow);
     }
 
-    // ── Photo grid (virtualized) ────────────────────────────────────────────────
+// ── Photo grid (virtualized) ────────────────────────────────────────────────
 
     /**
      * Applies a freshly-selected, fully-ordered photo set to the grid — mirrors
@@ -755,7 +797,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
                          .setAll(rows);
     }
 
-    // ── PhotoGridCallbacks — the narrow surface PhotoRowCell/PhotoGridRowController use ────────
+// ── PhotoGridCallbacks — the narrow surface PhotoRowCell/PhotoGridRowController use ────────
 
     @Override
     public ObservableValue<Number> thumbnailSizeProperty() {
@@ -850,6 +892,30 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
         });
     }
 
+    private void applyCoverFace(long faceId) {
+        for (int i = 0; i < allFaces.size(); i++) {
+            if (allFaces.get(i)
+                        .getId()
+                        .equals(faceId)) {
+                currentFaceIndex = i;
+                break;
+            }
+        }
+        refreshFacePicker();
+
+        runOnDaemonThread("ApplyCoverFace", () -> {
+            try {
+                personRepository.updateCoverFaceQuery(
+                                        currentPerson.getId(), faceId, LocalDateTime.now())
+                                .execute();
+                currentPerson.setCoverFaceId(faceId);
+                log.info("Cover face for person {} set to face {}", currentPerson.getId(), faceId);
+            } catch (Exception ex) {
+                log.error("Failed to set cover face", ex);
+            }
+        });
+    }
+
     /**
      * Swaps the placeholder image of any still-*visible* cell for the real thumbnail, once
      * {@code ThumbnailGenerationJob} has generated it. Photo IDs not currently in
@@ -884,7 +950,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
         return getPhotoDetailsText(photo, size(photo.getFileSize()));
     }
 
-    // ── Utilities ─────────────────────────────────────────────────────────────
+// ── Utilities ─────────────────────────────────────────────────────────────
 
     private static int compareByDate(PhotoRecord a, PhotoRecord b) {
         if (a.getCaptureDate() == null && b.getCaptureDate() == null) {

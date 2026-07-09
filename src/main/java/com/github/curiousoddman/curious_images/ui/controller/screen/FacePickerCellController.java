@@ -7,6 +7,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
@@ -17,26 +19,38 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
 /**
- * Controller for one cell of {@code face_picker.fxml}'s grid — a single face thumbnail. Clicking
- * it reports the underlying {@link FaceRecord} back to {@link com.github.curiousoddman.curious_images.ui.controller.screen.FacePickerController}
- * via the callback passed to {@link #bind}. Thumbnail loading mirrors
- * {@code PersonDetailController#loadFaceThumbnail}.
+ * Controller for one cell of {@code face_picker.fxml}'s grid — a single face thumbnail.
  * <p>
+ * Three interactions, all wired via {@link #bind}:
+ * <ul>
+ *   <li><b>Plain click</b> — reports the face as the chosen cover and closes the dialog
+ *       (original behavior, unchanged — see {@link FacePickerController#onFaceChosen}).</li>
+ *   <li><b>Ctrl/Shift-click</b> — toggles this cell into/out of the dialog's multi-selection
+ *       (FR3) without closing the dialog or touching the cover face.</li>
+ *   <li><b>Right-click</b> — requests a context menu (FR1/FR2/FR5: "Not this person…",
+ *       "Confirm", "Exclude") positioned at the click, again without closing the dialog.</li>
+ * </ul>
  * <b>Scope:</b> {@code prototype}, not the app's usual singleton {@code @Component} — a single
  * dialog invocation instantiates one of these per face (via {@code FxmlLoader}, whose
  * controller factory resolves through the Spring context), so each cell needs its own instance
- * rather than all of them sharing one bean and clobbering each other's {@link #face}/{@link #onSelect}.
+ * rather than all of them sharing one bean and clobbering each other's {@link #face}/callbacks.
  */
 @Slf4j
 @Component
 @Scope("prototype")
 public class FacePickerCellController implements Initializable {
+
+    private static final String STYLE_NORMAL   =
+            "-fx-border-color: #aaaaaa; -fx-border-width: 1; -fx-border-radius: 4; -fx-cursor: hand;";
+    private static final String STYLE_SELECTED =
+            "-fx-border-color: #2f7dd1; -fx-border-width: 3; -fx-border-radius: 4; -fx-cursor: hand;";
 
     @FXML
     public StackPane         cellRoot;
@@ -49,8 +63,11 @@ public class FacePickerCellController implements Initializable {
 
     private static Image noImageAvailable;
 
-    private FaceRecord           face;
-    private Consumer<FaceRecord> onSelect;
+    private FaceRecord                         face;
+    private boolean                            selected;
+    private Consumer<FaceRecord>               onPrimaryClick;
+    private Consumer<FaceRecord>               onToggleSelect;
+    private BiConsumer<FaceRecord, MouseEvent> onContextMenuRequested;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -58,22 +75,64 @@ public class FacePickerCellController implements Initializable {
             noImageAvailable = new Image(
                     Objects.requireNonNull(getClass().getResourceAsStream("/img/noimage.png")));
         }
-        cellRoot.setOnMouseClicked(event -> {
-            if (onSelect != null && face != null) {
-                onSelect.accept(face);
+        cellRoot.setOnMouseClicked(this::handleClick);
+    }
+
+    private void handleClick(MouseEvent event) {
+        if (face == null) {
+            return;
+        }
+        if (event.getButton() == MouseButton.SECONDARY) {
+            if (onContextMenuRequested != null) {
+                onContextMenuRequested.accept(face, event);
             }
-        });
+            return;
+        }
+        if (event.getButton() != MouseButton.PRIMARY) {
+            return;
+        }
+        if (event.isControlDown() || event.isShiftDown()) {
+            if (onToggleSelect != null) {
+                onToggleSelect.accept(face);
+            }
+            return;
+        }
+        if (onPrimaryClick != null) {
+            onPrimaryClick.accept(face);
+        }
     }
 
     /**
      * Wires this cell up to display {@code face}, badging it as the current cover if
-     * {@code isCover} is set, and reporting clicks to {@code onSelect}.
+     * {@code isCover} is set. {@code onPrimaryClick} fires on a plain click (cover selection),
+     * {@code onToggleSelect} on ctrl/shift-click (FR3 multi-select), and
+     * {@code onContextMenuRequested} on right-click (FR1/FR2/FR5 single- or multi-face actions).
      */
-    public void bind(FaceRecord face, boolean isCover, Consumer<FaceRecord> onSelect) {
+    public void bind(FaceRecord face, boolean isCover,
+                     Consumer<FaceRecord> onPrimaryClick,
+                     Consumer<FaceRecord> onToggleSelect,
+                     BiConsumer<FaceRecord, MouseEvent> onContextMenuRequested) {
         this.face = face;
-        this.onSelect = onSelect;
+        this.onPrimaryClick = onPrimaryClick;
+        this.onToggleSelect = onToggleSelect;
+        this.onContextMenuRequested = onContextMenuRequested;
         coverBadge.setVisible(isCover);
+        setSelected(false);
         loadThumbnail(face);
+    }
+
+    /**
+     * Updates this cell's selection highlight. Called by {@link FacePickerController} whenever
+     * the dialog's multi-selection set changes (including deselecting everyone else on a plain
+     * ctrl/shift toggle-off).
+     */
+    public void setSelected(boolean selected) {
+        this.selected = selected;
+        cellRoot.setStyle(selected ? STYLE_SELECTED : STYLE_NORMAL);
+    }
+
+    public boolean isSelected() {
+        return selected;
     }
 
     private void loadThumbnail(FaceRecord face) {
@@ -96,3 +155,4 @@ public class FacePickerCellController implements Initializable {
         });
     }
 }
+

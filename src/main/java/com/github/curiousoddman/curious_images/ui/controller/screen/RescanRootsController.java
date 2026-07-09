@@ -112,7 +112,7 @@ public class RescanRootsController implements Initializable {
     }
 
     private void showError(String title, String message) {
-        Alert alert = new Alert(AlertType.ERROR);
+        Alert alert = new Alert(AlertType.ERROR);       // FIXME: centralize Alert creation
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);

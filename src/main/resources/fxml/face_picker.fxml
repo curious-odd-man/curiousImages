@@ -16,7 +16,7 @@
 <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="1080.0" prefWidth="1920.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.FacePickerController">
 
     <top>
-        <Label fx:id="titleLabel" style="-fx-font-weight: bold; -fx-font-size: 14;" text="Click a face to make it the cover photo">
+        <Label fx:id="titleLabel" style="-fx-font-weight: bold; -fx-font-size: 14;" text="Click a face to set as cover · Ctrl/Shift-click to select multiple · Right-click for actions">
             <BorderPane.margin>
                 <Insets bottom="8.0" left="12.0" right="12.0" top="12.0" />
             </BorderPane.margin>
@@ -34,6 +34,8 @@
             <padding>
                 <Insets bottom="12.0" left="12.0" right="12.0" top="8.0" />
             </padding>
+            <Label fx:id="selectionCountLabel" style="-fx-text-fill: #666666;" HBox.hgrow="ALWAYS" />
+            <MenuButton fx:id="moveSelectedMenuButton" mnemonicParsing="false" text="Move Selected to…" />
             <Button fx:id="cancelButton" cancelButton="true" onAction="#onCancel" text="Cancel" />
         </HBox>
     </bottom>

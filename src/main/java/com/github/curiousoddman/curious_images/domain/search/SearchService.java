@@ -64,11 +64,7 @@ public class SearchService {
      */
     // TODO: Unused method
     public List<Long> combinedSearch(long personId, String semanticQuery, int topK) throws Exception {
-        List<Long> clusterIds = clusterRepository.findByPersonId(personId)
-                                                 .stream()
-                                                 .map(ClusterRecord::getId)
-                                                 .toList();
-        Set<Long> personPhotos = faceRepo.findByClusterIdIn(clusterIds)
+        Set<Long> personPhotos = faceRepo.findByPersonId(personId)
                                          .stream()
                                          .map(FaceRecord::getPhotoId)
                                          .collect(Collectors.toSet());
