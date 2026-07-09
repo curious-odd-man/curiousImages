@@ -1,10 +1,10 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.ClusterRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
+import com.github.curiousoddman.curious_images.domain.common.thumbnail.PersonService;
 import com.github.curiousoddman.curious_images.event.model.PersonRenamedEvent;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
@@ -50,7 +50,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.net.URL;
-import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
@@ -70,7 +69,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
+import static com.github.curiousoddman.curious_images.ui.controller.screen.FacePickerCellController.loadImage;
 import static com.github.curiousoddman.curious_images.util.HumanReadableUtils.size;
+import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
 /**
@@ -127,6 +128,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
     private final FxmlLoader                fxmlLoader;
     private final ClusterRepository         clusterRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final PersonService personService;
 
     // ── FXML nodes ────────────────────────────────────────────────────────────
 
@@ -265,12 +267,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
                 return;
             }
             PersonRecord person = opt.get();
-            List<Long> clusterIds = clusterRepository.findByPersonId(personId)
-                                                     .stream()
-                                                     .map(ClusterRecord::getId)
-                                                     .toList();
-            List<FaceRecord> faces = faceRepository.findByClusterIdIn(clusterIds);
-
+            List<FaceRecord> faces = personService.findFacesByPerson(person);
             int startIndex = pickInitialFaceIndex(person, faces);
 
             // Collect all photos for this person, deduplicated, ordered by capture date
@@ -469,7 +466,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
             }
         }
         final LocalDate dob = parsed;
-        Thread t = new Thread(() -> {
+        runOnDaemonThread("Update DoB", () -> {
             try {
                 personRepository.updateDob(currentPerson.getId(), dob, LocalDateTime.now());
                 currentPerson.setDateOfBirth(dob);
@@ -480,8 +477,6 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
                 log.error("Failed to save DoB for person {}", currentPerson.getId(), ex);
             }
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     private void commitNotes() {
@@ -538,20 +533,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
         faceLoadIndicator.setVisible(true);
         faceImageView.setImage(null);
 
-        Thread t = new Thread(() -> {
-            Image img = Optional.ofNullable(face.getThumbnailAbsolutePath())
-                                .map(Path::of)
-                                .map(Path::toUri)
-                                .map(uri -> new Image(uri.toString(), 0, 0, true, true, true))
-                                .orElse(noImageAvailable);
-
-            runOnFxThread(() -> {
-                faceImageView.setImage(img);
-                faceLoadIndicator.setVisible(false);
-            });
-        });
-        t.setDaemon(true);
-        t.start();
+        runOnDaemonThread("", () -> loadImage(faceImageView, faceLoadIndicator, face));
     }
 
     /**

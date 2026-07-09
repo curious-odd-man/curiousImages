@@ -109,6 +109,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
+import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 import static javafx.scene.control.ProgressIndicator.INDETERMINATE_PROGRESS;
 
@@ -368,7 +369,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
     @EventListener
     public void onLibraryDataUpdated(LibraryUpdatedEvent event) {
         log.info("Rebuilding library tree");
-        Thread t = new Thread(() -> {
+        runOnDaemonThread("UpdateLibraryData", () -> {
             List<TreeItem<LibraryTreeNode>> folderItems   = buildImportRootItems();
             List<TreeItem<LibraryTreeNode>> timelineItems = buildTimelineItems();
             List<TreeItem<LibraryTreeNode>> albumItems    = buildAlbumItems();
@@ -405,8 +406,6 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
                 libraryTreeView.setRoot(invisibleRoot);
             });
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     /**
@@ -416,7 +415,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
     @EventListener
     public void onAiPipelineComplete(AiPipelineCompleteEvent event) {
         log.info("AI pipeline complete — refreshing Albums and People tree sections");
-        Thread t = new Thread(() -> {
+        runOnDaemonThread("Refresh Albums", () -> {
             List<TreeItem<LibraryTreeNode>> albumItems  = buildAlbumItems();
             List<TreeItem<LibraryTreeNode>> personItems = buildPersonItems();
             runOnFxThread(() -> {
@@ -436,8 +435,6 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
                         .setAll(personItems);
             });
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     @EventListener
@@ -680,47 +677,39 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
 
     private void loadPhotosForFolder(long folderId) {
         long myGeneration = selectionGeneration.incrementAndGet();
-        Thread t = new Thread(() -> {
+        runOnDaemonThread("LoadFolder", () -> {
             List<PhotoRecord> photos = photoRepository.findByFolderId(folderId);
-            runOnFxThread(() -> loadSelectionResult(myGeneration, photos));
+            loadSelectionResult(myGeneration, photos);
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     private void loadPhotosForTimeline(int year, int month, Integer day) {
         long myGeneration = selectionGeneration.incrementAndGet();
-        Thread t = new Thread(() -> {
+        runOnDaemonThread("LoadTimeline", () -> {
             List<PhotoRecord> photos = photoRepository.findByCaptureDate(year, month, day);
-            runOnFxThread(() -> loadSelectionResult(myGeneration, photos));
+            loadSelectionResult(myGeneration, photos);
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     private void loadPhotosUndated() {
         long myGeneration = selectionGeneration.incrementAndGet();
-        Thread t = new Thread(() -> {
+        runOnDaemonThread("LoadUndated", () -> {
             List<PhotoRecord> photos = photoRepository.findByNullCaptureDate();
-            runOnFxThread(() -> loadSelectionResult(myGeneration, photos));
+            loadSelectionResult(myGeneration, photos);
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     private void loadPhotosForAlbum(long albumId) {
         long myGeneration = selectionGeneration.incrementAndGet();
-        Thread t = new Thread(() -> {
+        runOnDaemonThread("LoadAlbum", () -> {
             List<Long> photoIds = albumPhotoRepository.findPhotoIdsByAlbumId(albumId);
             List<PhotoRecord> photos = photoIds.stream()
                                                .map(id -> photoRepository.findById(id)
                                                                          .orElse(null))
                                                .filter(Objects::nonNull)
                                                .toList();
-            runOnFxThread(() -> loadSelectionResult(myGeneration, photos));
+            loadSelectionResult(myGeneration, photos);
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     /**
@@ -728,9 +717,11 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
      * different selection (see {@link #selectionGeneration}), in which case it's silently dropped.
      */
     private void loadSelectionResult(long myGeneration, List<PhotoRecord> photos) {
-        if (myGeneration == selectionGeneration.get()) {
-            populatePhotoGrid(photos);
-        }
+        runOnFxThread(() -> {
+            if (myGeneration == selectionGeneration.get()) {
+                populatePhotoGrid(photos);
+            }
+        });
     }
 
     // ── Search ────────────────────────────────────────────────────────────────
@@ -746,7 +737,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
         libraryTreeView.getSelectionModel()
                        .clearSelection();
         long myGeneration = selectionGeneration.incrementAndGet();
-        Thread t = new Thread(() -> {
+        runOnDaemonThread("Search", () -> {
             try {
                 List<Long> photoIds = searchService.semanticSearch(query, SEARCH_TOP_K);
                 List<PhotoRecord> photos = photoIds.stream()
@@ -770,8 +761,6 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
                 });
             }
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     @FXML
@@ -903,7 +892,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
                                .map(PhotoRecord::getId)
                                .toList();
 
-        Thread t = new Thread(() -> {
+        runOnDaemonThread("Thumbnails", () -> {
             Map<Long, ThumbnailRecord>    thumbs   = thumbnailRepository.findByPhotoIds(ids);
             Map<Long, PhotoPreviewRecord> previews = photoPreviewRepository.findByPhotoIds(ids);
             runOnFxThread(() -> {
@@ -928,8 +917,6 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
                 }
             });
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     @Override

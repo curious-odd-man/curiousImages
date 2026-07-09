@@ -19,6 +19,7 @@ import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
+import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
 /**
@@ -79,19 +80,19 @@ public class FacePickerCellController implements Initializable {
         loadIndicator.setVisible(true);
         thumbImageView.setImage(null);
 
-        Thread t = new Thread(() -> {
-            Image img = Optional.ofNullable(face.getThumbnailAbsolutePath())
-                                .map(Path::of)
-                                .map(Path::toUri)
-                                .map(uri -> new Image(uri.toString(), 0, 0, true, true, true))
-                                .orElse(noImageAvailable);
+        runOnDaemonThread("", () -> loadImage(thumbImageView, loadIndicator, face));
+    }
 
-            runOnFxThread(() -> {
-                thumbImageView.setImage(img);
-                loadIndicator.setVisible(false);
-            });
+    public static void loadImage(ImageView thumbImageView, ProgressIndicator loadIndicator, FaceRecord face) {
+        Image img = Optional.ofNullable(face.getThumbnailAbsolutePath())
+                            .map(Path::of)
+                            .map(Path::toUri)
+                            .map(uri -> new Image(uri.toString(), 0, 0, true, true, true))
+                            .orElse(noImageAvailable);
+
+        runOnFxThread(() -> {
+            thumbImageView.setImage(img);
+            loadIndicator.setVisible(false);
         });
-        t.setDaemon(true);
-        t.start();
     }
 }

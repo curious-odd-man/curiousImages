@@ -312,4 +312,18 @@ public class PhotoRepository {
                 .set(PHOTO.AI_FACE_EMBED_DONE, false)
                 .set(PHOTO.AI_LUCENE_INDEX_DONE, false);
     }
+
+    public List<PhotoRecord> findOrderedByCaptureDate() {
+        return dsl.selectFrom(PHOTO)
+                  .where(PHOTO.CAPTURE_DATE.isNotNull())
+                  .orderBy(PHOTO.CAPTURE_DATE)
+                  .fetch();
+    }
+
+    public List<PhotoRecord> findAllWithGps() {
+        return dsl.selectFrom(PHOTO)
+                  .where(PHOTO.GPS_LAT.isNotNull()
+                                      .and(PHOTO.GPS_LON.isNotNull()))
+                  .fetch();
+    }
 }

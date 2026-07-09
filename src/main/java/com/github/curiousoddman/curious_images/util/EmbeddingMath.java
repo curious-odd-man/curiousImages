@@ -4,6 +4,7 @@ import com.github.curiousoddman.curious_images.domain.ai.PersonClusteringService
 import com.github.curiousoddman.curious_images.domain.ai.PersonCorrectionService;
 import lombok.experimental.UtilityClass;
 
+import java.util.Arrays;
 import java.util.Collection;
 
 /**
@@ -81,5 +82,56 @@ public final class EmbeddingMath {
             centroid[k] = (centroid[k] * oldSize + v[k]) * scale;
         }
         l2Normalize(centroid);
+    }
+
+    /**
+     * Pure-Java k-means. Returns assignment array (cluster index per point).
+     */
+    public static int[] kMeans(float[][] data, int k, int maxIter) {
+        int n = data.length, dims = data[0].length;
+        // Initialise centroids from first k points (simple, deterministic)
+        float[][] centroids = new float[k][dims];
+        for (int c = 0; c < k && c < n; c++) {
+            centroids[c] = Arrays.copyOf(data[c], dims);
+        }
+
+        int[] assignments = new int[n];
+        for (int iter = 0; iter < maxIter; iter++) {
+            // Assignment step
+            boolean changed = false;
+            for (int i = 0; i < n; i++) {
+                int   best    = 0;
+                float bestSim = Float.NEGATIVE_INFINITY;
+                for (int c = 0; c < k; c++) {
+                    float sim = dot(data[i], centroids[c]);
+                    if (sim > bestSim) {
+                        bestSim = sim;
+                        best = c;
+                    }
+                }
+                if (assignments[i] != best) {
+                    assignments[i] = best;
+                    changed = true;
+                }
+            }
+            if (!changed) {
+                break;
+            }
+
+            // Update step
+            float[][] sums   = new float[k][dims];
+            int[]     counts = new int[k];
+            for (int i = 0; i < n; i++) {
+                int c = assignments[i];
+                for (int d = 0; d < dims; d++) sums[c][d] += data[i][d];
+                counts[c]++;
+            }
+            for (int c = 0; c < k; c++) {
+                if (counts[c] > 0) {
+                    centroids[c] = l2Normalize(sums[c]);
+                }
+            }
+        }
+        return assignments;
     }
 }

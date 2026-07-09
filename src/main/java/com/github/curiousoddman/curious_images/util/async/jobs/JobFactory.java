@@ -8,6 +8,7 @@ import com.github.curiousoddman.curious_images.domain.ai.ClipImageEncoder;
 import com.github.curiousoddman.curious_images.domain.ai.FaceAligner;
 import com.github.curiousoddman.curious_images.domain.ai.PersonClusteringService;
 import com.github.curiousoddman.curious_images.domain.ai.RetinaFaceDetector;
+import com.github.curiousoddman.curious_images.domain.common.thumbnail.PersonService;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.SourceImageDecoder;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerationJob;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator;
@@ -63,25 +64,25 @@ public class JobFactory {
     private final PixelHasher              pixelHasher;
 
     @Value("${app.duplicate-detection.thread-count:4}")
-    private final int                       duplicateDetectionThreadCount;
-    private final FaceRepository            faceRepository;
-    private final FaceEmbeddingRepository   faceEmbeddingRepository;
-    private final ClipEmbeddingRepository   clipEmbeddingRepository;
-    private final RetinaFaceDetector        retinaFaceDetector;
-    private final ArcFaceEncoder            arcFaceEncoder;
-    private final FaceAligner               faceAligner;
-    private final ClipImageEncoder          clipImageEncoder;
-    private final ClipVectorIndex           clipVectorIndex;
-    private final FaceVectorIndex           faceVectorIndex;
-    private final PersonClusteringService   personClusteringService;
-    private final FaceThumbnailsRepository  faceThumbnailsRepository;
+    private final int                      duplicateDetectionThreadCount;
+    private final FaceRepository           faceRepository;
+    private final FaceEmbeddingRepository  faceEmbeddingRepository;
+    private final ClipEmbeddingRepository  clipEmbeddingRepository;
+    private final RetinaFaceDetector       retinaFaceDetector;
+    private final ArcFaceEncoder           arcFaceEncoder;
+    private final FaceAligner              faceAligner;
+    private final ClipImageEncoder         clipImageEncoder;
+    private final ClipVectorIndex          clipVectorIndex;
+    private final FaceVectorIndex          faceVectorIndex;
+    private final PersonClusteringService  personClusteringService;
+    private final FaceThumbnailsRepository faceThumbnailsRepository;
     @Value("${ai.features.face-only:true}")
-    private final boolean                   aiFaceDetectionOnly;
-    private final AlbumRepository           albumRepository;
-    private final AlbumPhotoRepository      albumPhotoRepository;
-    private final PersonRepository          personRepository;
-    private final AiConfig                  aiConfig;
-    private final ClusterRepository clusterRepository;
+    private final boolean                  aiFaceDetectionOnly;
+    private final AlbumRepository          albumRepository;
+    private final AlbumPhotoRepository     albumPhotoRepository;
+    private final AiConfig                 aiConfig;
+    private final ClusterRepository        clusterRepository;
+    private final PersonService            personService;
 
     public ImportJob createImportJob(List<String> paths) {
         return new ImportJob(
@@ -160,12 +161,11 @@ public class JobFactory {
                 dsl,
                 albumRepository,
                 albumPhotoRepository,
-                faceRepository,
-                personRepository,
                 clipEmbeddingRepository,
                 aiConfig,
                 timeProvider,
-                clusterRepository
+                personService,
+                photoRepository
         );
     }
 }

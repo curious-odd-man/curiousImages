@@ -46,6 +46,7 @@ import java.util.ResourceBundle;
 
 import static com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController.getImage;
 import static com.github.curiousoddman.curious_images.util.HumanReadableUtils.size;
+import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
 @Lazy
@@ -97,12 +98,10 @@ public class DuplicatesController implements Initializable {
      * after a keep/delete action completes so the view reflects what's left.
      */
     private void loadDuplicatesTab() {
-        Thread t = new Thread(() -> {
+        runOnDaemonThread("LoadDuplicatesTab", () -> {
             List<DuplicateGroupView> groups = duplicateGroupRepository.findAllGroupsWithMembers();
             runOnFxThread(() -> populateDuplicatesAccordion(groups));
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     private void populateDuplicatesAccordion(List<DuplicateGroupView> groups) {
@@ -268,18 +267,14 @@ public class DuplicatesController implements Initializable {
 
         keepSelectedButton.setDisable(true);
         deleteSelectedButton.setDisable(true);
-        Thread t = new Thread(() -> {
+        runOnDaemonThread("", () -> {
             DuplicateResolutionService.Result result = duplicateResolutionService.resolve(active.groupId(), toDrop);
-            runOnFxThread(() -> {
-                if (!result.failures()
-                           .isEmpty()) {
-                    showResolutionFailures(result.failures());
-                }
-                loadDuplicatesTab();
-            });
+            if (!result.failures()
+                       .isEmpty()) {
+                showResolutionFailures(result.failures());
+            }
+            loadDuplicatesTab();
         });
-        t.setDaemon(true);
-        t.start();
     }
 
     private void showResolutionFailures(List<DuplicateResolutionService.Failure> failures) {
@@ -292,10 +287,12 @@ public class DuplicatesController implements Initializable {
               .append(failure.reason())
               .append('\n');
         }
-        Alert alert = new Alert(Alert.AlertType.WARNING, sb.toString()
-                                                           .strip(), ButtonType.OK);
-        alert.setHeaderText("Some photos couldn't be moved to the recycle bin and were left in place");
-        alert.showAndWait();
+        runOnFxThread(() -> {
+            Alert alert = new Alert(Alert.AlertType.WARNING, sb.toString()
+                                                               .strip(), ButtonType.OK);
+            alert.setHeaderText("Some photos couldn't be moved to the recycle bin and were left in place");
+            alert.showAndWait();
+        });
     }
 
     // ----------------------------------------------------------------------------------------
