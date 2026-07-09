@@ -31,8 +31,9 @@ import java.util.List;
 import java.util.Map;
 
 import static com.github.curiousoddman.curious_images.dbobj.Tables.PHOTO;
-import static com.github.curiousoddman.curious_images.domain.ai.ClipTextEncoder.l2Normalize;
 import static com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository.getFloats;
+import static com.github.curiousoddman.curious_images.util.EmbeddingMath.dot;
+import static com.github.curiousoddman.curious_images.util.EmbeddingMath.l2Normalize;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -422,14 +423,6 @@ public class AlbumGenerationJob extends BackgroundJob {
         float[] sum  = new float[dims];
         for (int idx : indices) for (int d = 0; d < dims; d++) sum[d] += data[idx][d];
         return l2Normalize(sum);
-    }
-
-    private float dot(float[] a, float[] b) {
-        float s = 0;
-        for (int i = 0; i < a.length; i++) {
-            s += a[i] * b[i];
-        }
-        return s;
     }
 
     @Override

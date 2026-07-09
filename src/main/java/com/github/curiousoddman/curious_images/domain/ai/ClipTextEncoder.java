@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Map;
 
+import static com.github.curiousoddman.curious_images.util.EmbeddingMath.l2Normalize;
+
 /**
  * Wraps the CLIP ViT-B/32 text encoder ONNX model. Only called at query time (not during
  * batch import), so its session is loaded lazily and may be evicted between searches to
@@ -45,21 +47,5 @@ public class ClipTextEncoder {
             // It will be reloaded from disk in <1 s on SSD.
             registry.evict("clip_text");
         }
-    }
-
-    static float[] l2Normalize(float[] v) {
-        double norm = 0;
-        for (float x : v) {
-            norm += (double) x * x;
-        }
-        norm = Math.sqrt(norm);
-        if (norm < 1e-10) {
-            return v;
-        }
-        float[] out = new float[v.length];
-        for (int i = 0; i < v.length; i++) {
-            out[i] = (float) (v[i] / norm);
-        }
-        return out;
     }
 }

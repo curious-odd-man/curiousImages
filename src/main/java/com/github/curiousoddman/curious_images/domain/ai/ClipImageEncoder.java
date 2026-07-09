@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.curiousoddman.curious_images.domain.ai.ClipTextEncoder.l2Normalize;
+import static com.github.curiousoddman.curious_images.util.EmbeddingMath.l2Normalize;
 import static com.github.curiousoddman.curious_images.util.ImageUtils.blobToFloatArray;
 
 /**

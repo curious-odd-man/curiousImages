@@ -14,10 +14,6 @@ import java.util.Collection;
  */
 @UtilityClass
 public final class EmbeddingMath {
-    /**
-     * Dot product of two vectors — equals cosine similarity when both are L2-normalised.
-     */
-    // TODO: Check if can re-use
     public static float dot(float[] a, float[] b) {
         float sum = 0;
         for (int i = 0; i < a.length; i++) {
@@ -26,21 +22,19 @@ public final class EmbeddingMath {
         return sum;
     }
 
-    /**
-     * In-place L2 normalisation. No-op if the vector is the zero vector.
-     */ // TODO: Check if can re-use
-    public static void l2Normalize(float[] v) {
-        float norm = 0;
-        for (float x : v) {
+    public static float[] l2Normalize(float[] v) {
+        double norm = 0;
+        for (double x : v) {
             norm += x * x;
         }
-        if (norm == 0) {
-            return;
+        norm = Math.sqrt(norm);
+        if (norm < 1e-10) {
+            return v;
         }
-        norm = (float) Math.sqrt(norm);
         for (int i = 0; i < v.length; i++) {
-            v[i] /= norm;
+            v[i] = (float) (v[i] / norm);
         }
+        return v;
     }
 
     /**
@@ -50,15 +44,16 @@ public final class EmbeddingMath {
      * without re-reading every other member.
      *
      * @throws IllegalArgumentException if {@code vectors} is empty — callers must delete the
-     *                                   cluster row instead of computing an average-of-nothing
-     *                                   (see {@code ClusterRepository#deleteQuery}).
+     *                                  cluster row instead of computing an average-of-nothing
+     *                                  (see {@code ClusterRepository#deleteQuery}).
      */
     public static float[] average(Collection<float[]> vectors) {
         if (vectors.isEmpty()) {
             throw new IllegalArgumentException(
                     "Cannot compute a centroid for an empty member set — delete the cluster instead");
         }
-        int     dim      = vectors.iterator().next().length;
+        int dim = vectors.iterator()
+                         .next().length;
         float[] centroid = new float[dim];
         for (float[] v : vectors) {
             for (int k = 0; k < dim; k++) {
