@@ -9,6 +9,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+// FIXME: Person albums - how to address wrong faces for person assignments.
+
 @Slf4j
 @Component
 @RequiredArgsConstructor

@@ -117,8 +117,6 @@ import static javafx.scene.control.ProgressIndicator.INDETERMINATE_PROGRESS;
 @Component
 @RequiredArgsConstructor
 public class LibraryController implements Initializable, PhotoGridCallbacks {
-    public static final Font CONSOLAS = new Font("Consolas", 15);
-
     private static final int SEARCH_TOP_K = 50;
 
     /**
@@ -1121,7 +1119,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
                 }
                 if (type == NodeType.FOLDER) {
                     // Walk up the tree to find the enclosing IMPORT_ROOT
-                    TreeItem<?> item = libraryTreeView.getRoot();
+                    TreeItem<?> item = libraryTreeView.getRoot();   // TODO: UNused?
                     return findImportRootPath(libraryTreeView.getRoot(), node.displayName());
                 }
             }

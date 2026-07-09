@@ -1,11 +1,13 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
+import com.github.curiousoddman.curious_images.dbobj.tables.records.ClusterRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
+import com.github.curiousoddman.curious_images.persistence.ClusterRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
@@ -40,6 +42,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -121,6 +124,8 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
     private final ThumbnailRepository thumbnailRepository;
     private final JobManager          jobManager;
     private final FxmlLoader          fxmlLoader;
+    private final ClusterRepository   clusterRepository;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     // ── FXML nodes ────────────────────────────────────────────────────────────
 
@@ -259,9 +264,13 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
                 return;
             }
             PersonRecord person = opt.get();
+            List<Long> clusterIds = clusterRepository.findByPersonId(personId)
+                                                       .stream()
+                                                       .map(ClusterRecord::getId)
+                    .toList();
+            List<FaceRecord> faces = faceRepository.findByClusterIdIn(clusterIds);
 
-            List<FaceRecord> faces      = faceRepository.findByPersonId(personId);
-            int              startIndex = pickInitialFaceIndex(person, faces);
+            int startIndex = pickInitialFaceIndex(person, faces);
 
             // Collect all photos for this person, deduplicated, ordered by capture date
             List<Long> photoIds = new ArrayList<>(

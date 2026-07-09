@@ -129,6 +129,20 @@ public class PersonRecord extends UpdatableRecordImpl<PersonRecord> {
         return (LocalDateTime) get(6);
     }
 
+    /**
+     * Setter for <code>public.PERSON.MERGED_INTO_ID</code>.
+     */
+    public void setMergedIntoId(Long value) {
+        set(7, value);
+    }
+
+    /**
+     * Getter for <code>public.PERSON.MERGED_INTO_ID</code>.
+     */
+    public Long getMergedIntoId() {
+        return (Long) get(7);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -152,7 +166,7 @@ public class PersonRecord extends UpdatableRecordImpl<PersonRecord> {
     /**
      * Create a detached, initialised PersonRecord
      */
-    public PersonRecord(Long id, String name, Long coverFaceId, LocalDate dateOfBirth, String notes, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public PersonRecord(Long id, String name, Long coverFaceId, LocalDate dateOfBirth, String notes, LocalDateTime createdAt, LocalDateTime updatedAt, Long mergedIntoId) {
         super(Person.PERSON);
 
         setId(id);
@@ -162,6 +176,7 @@ public class PersonRecord extends UpdatableRecordImpl<PersonRecord> {
         setNotes(notes);
         setCreatedAt(createdAt);
         setUpdatedAt(updatedAt);
+        setMergedIntoId(mergedIntoId);
         resetChangedOnNotNull();
     }
 }

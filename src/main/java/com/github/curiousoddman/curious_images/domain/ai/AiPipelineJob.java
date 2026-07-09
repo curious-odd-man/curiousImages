@@ -40,6 +40,7 @@ public class AiPipelineJob extends BackgroundJob {
     private final DSLContext               dsl;
     private final PhotoRepository          photoRepo;
     private final FaceRepository           faceRepo;
+    private final ClusterRepository        clusterRepo;
     private final FaceEmbeddingRepository  faceEmbeddingRepo;
     private final ClipEmbeddingRepository  clipEmbeddingRepo;
     private final RetinaFaceDetector       retinaFaceDetector;
@@ -72,7 +73,7 @@ public class AiPipelineJob extends BackgroundJob {
                 }
             }
 
-            personClusteringService.cluster();
+            personClusteringService.clusterIncremental();
 
             publishEnded("AI pipeline complete");
             jobManager.submitAlbumGenerationJob();
@@ -206,7 +207,18 @@ public class AiPipelineJob extends BackgroundJob {
                     FaceEmbeddingRecord emb = faceEmbeds.get(face.getId());
                     if (emb != null) {
                         float[] faceEmbed = ClipEmbeddingRepository.getFloats(emb.getEmbedding());
-                        faceVectorIndex.upsert(face.getId(), face.getPersonId(), faceEmbed);
+                        // face no longer stores its person directly (see FaceRepository); resolve
+                        // via cluster_id -> cluster.person_id instead.
+                        // TODO: this index is only refreshed here, at Lucene-indexing time — it is
+                        //  NOT updated when a manual correction (reassign/merge/exclude, FR1-FR5)
+                        //  changes a face's owner later. Revisit if face-similarity search starts
+                        //  relying on this index reflecting corrections promptly.
+                        Long personId = (face.getClusterId() != null)
+                                ? clusterRepo.findById(face.getClusterId())
+                                             .map(c -> c.getPersonId())
+                                             .orElse(null)
+                                : null;
+                        faceVectorIndex.upsert(face.getId(), personId, faceEmbed);
                     }
                 }
 

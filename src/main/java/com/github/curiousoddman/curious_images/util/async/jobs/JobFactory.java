@@ -23,6 +23,7 @@ import com.github.curiousoddman.curious_images.model.AddFilesRequest;
 import com.github.curiousoddman.curious_images.persistence.AlbumPhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.AlbumRepository;
 import com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository;
+import com.github.curiousoddman.curious_images.persistence.ClusterRepository;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.DuplicateJobRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceEmbeddingRepository;
@@ -38,7 +39,6 @@ import com.github.curiousoddman.curious_images.util.TimeProvider;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -81,6 +81,7 @@ public class JobFactory {
     private final AlbumPhotoRepository      albumPhotoRepository;
     private final PersonRepository          personRepository;
     private final AiConfig                  aiConfig;
+    private final ClusterRepository clusterRepository;
 
     public ImportJob createImportJob(List<String> paths) {
         return new ImportJob(
@@ -129,6 +130,7 @@ public class JobFactory {
                 dsl,
                 photoRepository,
                 faceRepository,
+                clusterRepository,
                 faceEmbeddingRepository,
                 clipEmbeddingRepository,
                 retinaFaceDetector,
@@ -162,7 +164,8 @@ public class JobFactory {
                 personRepository,
                 clipEmbeddingRepository,
                 aiConfig,
-                timeProvider
+                timeProvider,
+                clusterRepository
         );
     }
 }

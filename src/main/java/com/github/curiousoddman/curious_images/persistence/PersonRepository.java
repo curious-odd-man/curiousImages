@@ -10,9 +10,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static com.github.curiousoddman.curious_images.dbobj.Tables.PERSON;
 
@@ -20,20 +22,23 @@ import static com.github.curiousoddman.curious_images.dbobj.Tables.PERSON;
  * Hand-written jOOQ repository for {@code person}.
  * <p>
  * {@link #insert} executes immediately and returns the new ID — same reasoning as
- * {@code PhotoRepository.insert}: the ID is needed immediately to assign it to face rows.
+ * {@code PhotoRepository.insert}: the ID is needed immediately to own newly-created cluster rows.
  * All other writes return unexecuted {@link Query} objects for caller-controlled batching.
+ * <p>
+ * There is no longer a shared "Unknown" person row. An unclustered face ({@code cluster_id IS
+ * NULL}, see {@code FaceRepository#findUnclustered}) is "Unknown" purely by virtue of having no
+ * cluster — nothing to create, find, or clean up here for that case any more.
  */
 @Repository
 @RequiredArgsConstructor
 public class PersonRepository {
 
-    private static final String UNKNOWN_PERSON_NAME = "__unknown__";
-
     private final DSLContext dsl;
 
     /**
      * Inserts a new person row and returns the generated ID. Executes immediately (not batched)
-     * because the clustering loop needs the ID back before it can assign faces.
+     * because callers (clustering, or a manual "new person" correction) need the ID back before
+     * they can create/own a cluster row.
      */
     public long insert(String name, Long coverFaceId, LocalDateTime now) {
         return dsl.insertInto(PERSON)
@@ -95,16 +100,38 @@ public class PersonRepository {
     }
 
     /**
-     * Returns the ID of the shared "unknown" person row, creating it if it does not
-     * exist yet.  All singleton faces (those that did not cluster with anyone) are
-     * assigned here so they remain queryable.
+     * FR4: marks {@code sourcePersonId} as merged into {@code targetPersonId}. This is a
+     * lightweight redirect for anything still holding a stale id from before the merge (a cached
+     * UI selection, a deep link) — it is deliberately NOT consulted to resolve a face's current
+     * owner, since {@code cluster.person_id} is rewritten directly at merge time (see
+     * {@code ClusterRepository#reassignAllOwnedByQuery}) and is always current.
      */
-    public long findOrCreateUnknown(LocalDateTime now) {
-        return dsl.select(PERSON.ID)
-                  .from(PERSON)
-                  .where(PERSON.NAME.eq(UNKNOWN_PERSON_NAME))
-                  .fetchOptional(PERSON.ID)
-                  .orElseGet(() -> insert(UNKNOWN_PERSON_NAME, null, now));
+    public Query markMergedIntoQuery(long sourcePersonId, long targetPersonId, LocalDateTime now) {
+        return dsl.update(PERSON)
+                  .set(PERSON.MERGED_INTO_ID, targetPersonId)
+                  .set(PERSON.UPDATED_AT, now)
+                  .where(PERSON.ID.eq(sourcePersonId));
+    }
+
+    /**
+     * Resolves a possibly-stale person id through any merge redirect chain to the current owner.
+     * Chains should normally be at most one hop (a person merged again after being a merge target
+     * would instead have new faces/clusters land directly on the further target), but this walks
+     * the whole chain defensively and bails out on a cycle rather than looping forever.
+     */
+    public long resolveCurrentPersonId(long personId) {
+        long      current = personId;
+        Set<Long> seen    = new HashSet<>();
+        while (seen.add(current)) {
+            Optional<PersonRecord> record = findById(current);
+            if (record.isEmpty() || record.get()
+                                          .getMergedIntoId() == null) {
+                return current;
+            }
+            current = record.get()
+                            .getMergedIntoId();
+        }
+        return current; // cycle guard — shouldn't happen, but never hang
     }
 
     /**
@@ -115,20 +142,10 @@ public class PersonRepository {
      * <p>Returns {@link Optional#empty()} when none of the faces were assigned to any
      * person before the wipe (e.g. on the very first run).
      *
-     * <p>Note: this query runs against the FACE table <em>after</em> PERSON_ID has been
-     * cleared by {@code clearAllPersonAssignments()}, so we cannot rely on the current
-     * PERSON_ID value.  Instead, callers should pass the face IDs that were in each
-     * cluster during the <em>previous</em> run.
-     *
-     * <p><b>Implementation note</b>: because the wipe sets person_id = NULL before this
-     * is called, you will need to keep a snapshot of the old assignments in memory
-     * (a {@code Map<Long, Long> faceIdToOldPersonId}) captured <em>before</em> the wipe
-     * in {@code PersonClusteringService.cluster()}, then pass that map here or resolve it
-     * in the service layer.  The method signature below accepts faceIds and an old-mapping
-     * for that reason.
-     * <p>
-     * TODO: if you add a PREVIOUS_PERSON_ID audit column to FACE (or a separate
-     *       face_person_history table) this query can be done purely in SQL.
+     * <p>Callers should pass a pre-wipe snapshot such as
+     * {@code FaceRepository#loadFacePersonSnapshot}, captured before a full rebuild clears
+     * unlocked faces' cluster assignments — by the time this method runs, the faces named here
+     * may no longer resolve to the same person via their (now cleared) current assignment.
      */
     public Optional<Long> findPersonIdOwningMostFaces(Collection<Long> faceIds, Map<Long, Long> oldFaceIdToPersonId) {
         if (faceIds.isEmpty() || oldFaceIdToPersonId.isEmpty()) {

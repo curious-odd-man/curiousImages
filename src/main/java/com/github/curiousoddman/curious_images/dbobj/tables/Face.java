@@ -7,8 +7,8 @@ package com.github.curiousoddman.curious_images.dbobj.tables;
 import com.github.curiousoddman.curious_images.dbobj.Indexes;
 import com.github.curiousoddman.curious_images.dbobj.Keys;
 import com.github.curiousoddman.curious_images.dbobj.Public;
+import com.github.curiousoddman.curious_images.dbobj.tables.Cluster.ClusterPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.FaceEmbedding.FaceEmbeddingPath;
-import com.github.curiousoddman.curious_images.dbobj.tables.Person.PersonPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo.PhotoPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 
@@ -81,11 +81,6 @@ public class Face extends TableImpl<FaceRecord> {
      * The column <code>public.FACE.PHOTO_ID</code>.
      */
     public final TableField<FaceRecord, Long> PHOTO_ID = createField(DSL.name("PHOTO_ID"), SQLDataType.BIGINT.nullable(false), this, "");
-
-    /**
-     * The column <code>public.FACE.PERSON_ID</code>.
-     */
-    public final TableField<FaceRecord, Long> PERSON_ID = createField(DSL.name("PERSON_ID"), SQLDataType.BIGINT, this, "");
 
     /**
      * The column <code>public.FACE.BBOX_X</code>.
@@ -172,6 +167,21 @@ public class Face extends TableImpl<FaceRecord> {
      */
     public final TableField<FaceRecord, String> THUMBNAIL_ABSOLUTE_PATH = createField(DSL.name("THUMBNAIL_ABSOLUTE_PATH"), SQLDataType.VARCHAR(2048), this, "");
 
+    /**
+     * The column <code>public.FACE.ASSIGNMENT_LOCKED</code>.
+     */
+    public final TableField<FaceRecord, Boolean> ASSIGNMENT_LOCKED = createField(DSL.name("ASSIGNMENT_LOCKED"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field(DSL.raw("FALSE"), SQLDataType.BOOLEAN)), this, "");
+
+    /**
+     * The column <code>public.FACE.EXCLUDED</code>.
+     */
+    public final TableField<FaceRecord, Boolean> EXCLUDED = createField(DSL.name("EXCLUDED"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field(DSL.raw("FALSE"), SQLDataType.BOOLEAN)), this, "");
+
+    /**
+     * The column <code>public.FACE.CLUSTER_ID</code>.
+     */
+    public final TableField<FaceRecord, Long> CLUSTER_ID = createField(DSL.name("CLUSTER_ID"), SQLDataType.BIGINT, this, "");
+
     private Face(Name alias, Table<FaceRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }
@@ -249,7 +259,7 @@ public class Face extends TableImpl<FaceRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IDX_FACE_PERSON, Indexes.IDX_FACE_PHOTO);
+        return Arrays.asList(Indexes.IDX_FACE_CLUSTER_ID, Indexes.IDX_FACE_PHOTO);
     }
 
     @Override
@@ -264,7 +274,7 @@ public class Face extends TableImpl<FaceRecord> {
 
     @Override
     public List<ForeignKey<FaceRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.CONSTRAINT_20C, Keys.FK_FACE_PERSON);
+        return Arrays.asList(Keys.CONSTRAINT_20C, Keys.CONSTRAINT_20CE);
     }
 
     private transient PhotoPath _photo;
@@ -279,16 +289,16 @@ public class Face extends TableImpl<FaceRecord> {
         return _photo;
     }
 
-    private transient PersonPath _person;
+    private transient ClusterPath _cluster;
 
     /**
-     * Get the implicit join path to the <code>public.PERSON</code> table.
+     * Get the implicit join path to the <code>public.CLUSTER</code> table.
      */
-    public PersonPath person() {
-        if (_person == null)
-            _person = new PersonPath(this, Keys.FK_FACE_PERSON, null);
+    public ClusterPath cluster() {
+        if (_cluster == null)
+            _cluster = new ClusterPath(this, Keys.CONSTRAINT_20CE, null);
 
-        return _person;
+        return _cluster;
     }
 
     private transient FaceEmbeddingPath _faceEmbedding;

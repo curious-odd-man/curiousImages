@@ -6,12 +6,15 @@ package com.github.curiousoddman.curious_images.dbobj.tables;
 
 import com.github.curiousoddman.curious_images.dbobj.Keys;
 import com.github.curiousoddman.curious_images.dbobj.Public;
-import com.github.curiousoddman.curious_images.dbobj.tables.Face.FacePath;
+import com.github.curiousoddman.curious_images.dbobj.tables.Cluster.ClusterPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.Person.PersonPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 import javax.annotation.processing.Generated;
 
@@ -102,6 +105,11 @@ public class Person extends TableImpl<PersonRecord> {
      */
     public final TableField<PersonRecord, LocalDateTime> UPDATED_AT = createField(DSL.name("UPDATED_AT"), SQLDataType.LOCALDATETIME(6), this, "");
 
+    /**
+     * The column <code>public.PERSON.MERGED_INTO_ID</code>.
+     */
+    public final TableField<PersonRecord, Long> MERGED_INTO_ID = createField(DSL.name("MERGED_INTO_ID"), SQLDataType.BIGINT, this, "");
+
     private Person(Name alias, Table<PersonRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }
@@ -187,16 +195,34 @@ public class Person extends TableImpl<PersonRecord> {
         return Keys.CONSTRAINT_8;
     }
 
-    private transient FacePath _face;
+    @Override
+    public List<ForeignKey<PersonRecord, ?>> getReferences() {
+        return Arrays.asList(Keys.CONSTRAINT_8C);
+    }
+
+    private transient PersonPath _person;
 
     /**
-     * Get the implicit to-many join path to the <code>public.FACE</code> table
+     * Get the implicit join path to the <code>public.PERSON</code> table.
      */
-    public FacePath face() {
-        if (_face == null)
-            _face = new FacePath(this, null, Keys.FK_FACE_PERSON.getInverseKey());
+    public PersonPath person() {
+        if (_person == null)
+            _person = new PersonPath(this, Keys.CONSTRAINT_8C, null);
 
-        return _face;
+        return _person;
+    }
+
+    private transient ClusterPath _cluster;
+
+    /**
+     * Get the implicit to-many join path to the <code>public.CLUSTER</code>
+     * table
+     */
+    public ClusterPath cluster() {
+        if (_cluster == null)
+            _cluster = new ClusterPath(this, null, Keys.CONSTRAINT_5E.getInverseKey());
+
+        return _cluster;
     }
 
     @Override

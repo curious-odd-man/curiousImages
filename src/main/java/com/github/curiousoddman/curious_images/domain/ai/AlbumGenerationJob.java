@@ -2,6 +2,7 @@ package com.github.curiousoddman.curious_images.domain.ai;
 
 import com.github.curiousoddman.curious_images.config.AiConfig;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ClipEmbeddingRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.ClusterRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
@@ -9,22 +10,18 @@ import com.github.curiousoddman.curious_images.event.model.AiPipelineCompleteEve
 import com.github.curiousoddman.curious_images.persistence.AlbumPhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.AlbumRepository;
 import com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository;
+import com.github.curiousoddman.curious_images.persistence.ClusterRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import com.github.curiousoddman.curious_images.util.async.jobs.BackgroundJob;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import net.coobird.thumbnailator.Thumbnails;
 import org.jooq.DSLContext;
 import org.jooq.Query;
 import org.jooq.impl.DSL;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Component;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -48,6 +45,7 @@ public class AlbumGenerationJob extends BackgroundJob {
     private final ClipEmbeddingRepository clipEmbeddingRepo;
     private final AiConfig                aiConfig;
     private final TimeProvider            timeProvider;
+    private final ClusterRepository       clusterRepository;
 
 
     @Override
@@ -80,7 +78,12 @@ public class AlbumGenerationJob extends BackgroundJob {
             publishProgressThrottled("Build Person Albums", 0, personRecordList.size(), "", false);
             for (int j = 0; j < personRecordList.size(); j++) {
                 PersonRecord person = personRecordList.get(j);
-                List<Long> photoIds = faceRepo.findByPersonId(person.getId())
+                //TODO: this probably could be moved under Facade repository - this is used in multiple places.
+                List<Long> clusterIds = clusterRepository.findByPersonId(person.getId())
+                                                         .stream()
+                                                         .map(ClusterRecord::getId)
+                                                         .toList();
+                List<Long> photoIds = faceRepo.findByClusterIdIn(clusterIds)
                                               .stream()
                                               .map(FaceRecord::getPhotoId)
                                               .distinct()

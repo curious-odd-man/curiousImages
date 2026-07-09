@@ -1,10 +1,12 @@
 package com.github.curiousoddman.curious_images.domain.search;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ClipEmbeddingRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.ClusterRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.domain.ai.ClipTextEncoder;
 import com.github.curiousoddman.curious_images.domain.index.ClipVectorIndex;
 import com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository;
+import com.github.curiousoddman.curious_images.persistence.ClusterRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +29,7 @@ public class SearchService {
     private final ClipVectorIndex         clipVectorIndex;
     private final ClipEmbeddingRepository clipEmbeddingRepo;
     private final FaceRepository          faceRepo;
+    private final ClusterRepository clusterRepository;
 
     /**
      * Encodes {@code query} with the CLIP text encoder and returns up to {@code topK} photo
@@ -59,8 +62,13 @@ public class SearchService {
      * Combined person + semantic search: returns photos of {@code personId} that also match
      * {@code semanticQuery}, ranked by semantic similarity.
      */
+    // TODO: Unused method
     public List<Long> combinedSearch(long personId, String semanticQuery, int topK) throws Exception {
-        Set<Long> personPhotos = faceRepo.findByPersonId(personId)
+        List<Long> clusterIds = clusterRepository.findByPersonId(personId)
+                                                 .stream()
+                                                 .map(ClusterRecord::getId)
+                                                 .toList();
+        Set<Long> personPhotos = faceRepo.findByClusterIdIn(clusterIds)
                                          .stream()
                                          .map(FaceRecord::getPhotoId)
                                          .collect(Collectors.toSet());

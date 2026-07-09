@@ -7,6 +7,7 @@ package com.github.curiousoddman.curious_images.dbobj;
 import com.github.curiousoddman.curious_images.dbobj.tables.Album;
 import com.github.curiousoddman.curious_images.dbobj.tables.AlbumPhoto;
 import com.github.curiousoddman.curious_images.dbobj.tables.ClipEmbedding;
+import com.github.curiousoddman.curious_images.dbobj.tables.Cluster;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroup;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroupMember;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateJob;
@@ -68,6 +69,11 @@ public class Public extends SchemaImpl {
      * The table <code>public.CLIP_EMBEDDING</code>.
      */
     public final ClipEmbedding CLIP_EMBEDDING = ClipEmbedding.CLIP_EMBEDDING;
+
+    /**
+     * The table <code>public.CLUSTER</code>.
+     */
+    public final Cluster CLUSTER = Cluster.CLUSTER;
 
     /**
      * The table <code>public.DUPLICATE_GROUP</code>.
@@ -163,6 +169,7 @@ public class Public extends SchemaImpl {
             Album.ALBUM,
             AlbumPhoto.ALBUM_PHOTO,
             ClipEmbedding.CLIP_EMBEDDING,
+            Cluster.CLUSTER,
             DuplicateGroup.DUPLICATE_GROUP,
             DuplicateGroupMember.DUPLICATE_GROUP_MEMBER,
             DuplicateJob.DUPLICATE_JOB,
