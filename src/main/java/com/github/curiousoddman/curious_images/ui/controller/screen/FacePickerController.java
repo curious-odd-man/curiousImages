@@ -6,23 +6,33 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord
 import com.github.curiousoddman.curious_images.domain.ai.PersonCorrectionService;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.persistence.ClusterRepository;
+import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
-import javafx.scene.control.Menu;
-import javafx.scene.control.MenuButton;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.TitledPane;
+import javafx.scene.control.Dialog;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +40,9 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.net.URL;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -39,7 +52,10 @@ import java.util.ResourceBundle;
 import java.util.Set;
 
 /**
- * Controller for {@code face_picker.fxml} — a modal grid of every face tagged for a person.
+ * Controller for {@code face_picker.fxml} — a modal view of every face tagged for a person,
+ * grouped into one collapsible section per prototype (cluster) the person owns, plus an
+ * "Unclustered" section for anything not currently assigned to one — so it's visually obvious
+ * which faces the app currently considers "the same appearance group" for this person.
  * Originally just a cover-photo chooser (plain click → pick cover → close, still unchanged —
  * see {@link #onFaceChosen}), this dialog is also the FR1/FR2/FR3/FR5 correction entry point
  * from {@code face-person-correction-requirements.md}:
@@ -48,19 +64,24 @@ import java.util.Set;
  *       dialog or touching the cover face.</li>
  *   <li>Right-click a face for "Not this person…" (FR1), "Confirm" (FR2), or "Exclude" (FR5).
  *       If the clicked face is part of an active multi-selection, the action applies to the
- *       whole selection; otherwise it applies to just that one face. "Not this person…" for a
- *       destination person who already owns multiple prototypes opens a submenu so the human
- *       picks which prototype the faces join (or starts a new one) — see
- *       {@link PersonCorrectionService#suggestDestinationCluster} for the suggestion shown
- *       there.</li>
- *   <li>"Move Selected to…" in the toolbar does the same "Not this person…" prompt, explicitly
- *       scoped to the current multi-selection (FR3's "Move selected to…" toolbar action).</li>
+ *       whole selection; otherwise it applies to just that one face. "Not this person…" opens
+ *       {@link #promptDestinationDialog} — a thumbnail-based picker (see below), not a menu.</li>
+ *   <li>"Move Selected to…" in the toolbar opens the same dialog, explicitly scoped to the
+ *       current multi-selection (FR3's "Move selected to…" toolbar action).</li>
  * </ul>
+ * <b>Destination picker.</b> Choosing a destination is a visual-recognition task ("which of
+ * this person's prototypes does this face actually belong to?"), so it's a {@link Dialog} with a
+ * thumbnail next to every option rather than a text-only menu: one row per existing prototype of
+ * each eligible person (showing a representative face from that prototype and its member count,
+ * with {@link PersonCorrectionService#suggestDestinationCluster}'s pick marked — never
+ * auto-applied), a "New prototype for …" row per person, and a "New person…" row.
+ * <p>
  * Reassigning or excluding a face removes it from this grid immediately — since this dialog only
- * ever shows one person's faces, a face that just left that person no longer belongs here. If a
- * move/exclude leaves some other person owning zero prototypes, this controller also prompts to
- * delete that now-empty person (see {@link #handleOrphanedPersons}) — the correction service
- * itself never deletes a person on its own initiative.
+ * ever shows one person's faces, a face that just left that person no longer belongs here; if
+ * that empties a whole prototype's section, the section itself is removed. If a move/exclude
+ * leaves some other person owning zero prototypes, this controller also prompts to delete that
+ * now-empty person (see {@link #handleOrphanedPersons}) — the correction service itself never
+ * deletes a person on its own initiative.
  * <p>
  * Usage (cover-pick path unchanged):
  * <pre>
@@ -87,33 +108,37 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class FacePickerController implements Initializable {
 
+    private static final long UNCLUSTERED_KEY = -1L;
+
     private final FxmlLoader              fxmlLoader;
     private final PersonRepository        personRepo;
     private final ClusterRepository       clusterRepo;
+    private final FaceRepository          faceRepo;
     private final PersonCorrectionService personCorrectionService;
 
     @FXML
-    public FlowPane   faceFlowPane;
+    public VBox   faceSectionsBox;
     @FXML
-    public MenuButton moveSelectedMenuButton;
+    public Button moveSelectedMenuButton;
     @FXML
-    public Label      selectionCountLabel;
+    public Label  selectionCountLabel;
 
     private Stage      stage;
     private FaceRecord selectedFace;
     private long       currentPersonId;
     private boolean    correctionsHappened;
 
-    private final Map<Long, FaceRecord>               facesById   = new LinkedHashMap<>();
-    private final Map<Long, FacePickerCellController> cellsById   = new LinkedHashMap<>();
-    private final Set<Long>                           selectedIds = new LinkedHashSet<>();
+    private final Map<Long, FaceRecord>               facesById          = new LinkedHashMap<>();
+    private final Map<Long, FacePickerCellController> cellsById          = new LinkedHashMap<>();
+    private final Map<Long, Long>                     clusterKeyByFaceId = new LinkedHashMap<>();
+    private final Map<Long, TitledPane>               sectionsByKey      = new LinkedHashMap<>();
+    private final Set<Long>                           selectedIds        = new LinkedHashSet<>();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // Grid contents depend on which person is being edited, so they're populated in init()
         // rather than here.
         if (moveSelectedMenuButton != null) {
-            moveSelectedMenuButton.setOnShowing(e -> populateMenu(moveSelectedMenuButton.getItems(), selectedIds));
             moveSelectedMenuButton.setDisable(true);
         }
         updateSelectionLabel();
@@ -145,41 +170,92 @@ public class FacePickerController implements Initializable {
     }
 
     /**
-     * Populates the grid with one cell per face, badging whichever face's id matches
-     * {@code currentCoverFaceId} as the current cover. {@code currentPersonId} is needed to
-     * exclude "this person" from the "Not this person…" destination list.
+     * Populates the view with one collapsible section per prototype (cluster) this person owns
+     * — plus a trailing "Unclustered" section for any face not currently assigned to one — each
+     * containing its faces as cells. Badges whichever face's id matches {@code currentCoverFaceId}
+     * as the current cover. {@code currentPersonId} is needed to exclude "this person" from the
+     * "Not this person…" destination list.
      */
     public void init(List<FaceRecord> faces, Long currentCoverFaceId, long currentPersonId) {
         this.currentPersonId = currentPersonId;
         this.correctionsHappened = false;
         facesById.clear();
         cellsById.clear();
+        clusterKeyByFaceId.clear();
+        sectionsByKey.clear();
         selectedIds.clear();
-        faceFlowPane.getChildren()
-                    .clear();
+        faceSectionsBox.getChildren()
+                       .clear();
+
+        Map<Long, List<FaceRecord>> byCluster = new LinkedHashMap<>();
         for (FaceRecord face : faces) {
-            addCell(face, currentCoverFaceId != null && currentCoverFaceId.equals(face.getId()));
+            long key = face.getClusterId() == null ? UNCLUSTERED_KEY : face.getClusterId();
+            byCluster.computeIfAbsent(key, k -> new ArrayList<>())
+                     .add(face);
+        }
+
+        List<Long> orderedKeys = byCluster.keySet()
+                                          .stream()
+                                          .sorted(Comparator.comparingLong(k -> k == UNCLUSTERED_KEY ? Long.MAX_VALUE : k))
+                                          .toList();
+
+        for (Long key : orderedKeys) {
+            List<FaceRecord> sectionFaces = byCluster.get(key);
+            String title = key == UNCLUSTERED_KEY
+                    ? "Unclustered (" + sectionFaces.size() + ")"
+                    : "Prototype #" + key + " (" + sectionFaces.size() + " face" + (sectionFaces.size() == 1 ? "" : "s") + ")";
+
+            FlowPane   sectionFlow = new FlowPane(8, 8);
+            TitledPane section     = new TitledPane(title, sectionFlow);
+            section.setAnimated(false);
+            section.setMaxWidth(Double.MAX_VALUE);
+            faceSectionsBox.getChildren()
+                           .add(section);
+            sectionsByKey.put(key, section);
+
+            for (FaceRecord face : sectionFaces) {
+                addCell(face, currentCoverFaceId != null && currentCoverFaceId.equals(face.getId()), sectionFlow, key);
+            }
         }
         updateSelectionLabel();
     }
 
-    private void addCell(FaceRecord face, boolean isCover) {
+    private void addCell(FaceRecord face, boolean isCover, FlowPane targetFlow, long clusterKey) {
         LoadedFxml<FacePickerCellController> loaded = fxmlLoader.load(FxmlView.FACE_PICKER_CELL, null);
         FacePickerCellController             cell   = loaded.controller();
         cell.bind(face, isCover, this::onFaceChosen, this::onToggleSelect, this::onContextMenuRequested);
         facesById.put(face.getId(), face);
         cellsById.put(face.getId(), cell);
-        faceFlowPane.getChildren()
-                    .add(loaded.parent());
+        clusterKeyByFaceId.put(face.getId(), clusterKey);
+        targetFlow.getChildren()
+                  .add(loaded.parent());
     }
 
+    /**
+     * Removes one face's cell from whichever section it's in. If that empties the section
+     * entirely, the section (its header and now-empty {@link FlowPane}) is removed too, so a
+     * fully-moved-away prototype doesn't linger as an empty collapsed group.
+     */
     private void removeCell(long faceId) {
         FacePickerCellController cell = cellsById.remove(faceId);
         facesById.remove(faceId);
         selectedIds.remove(faceId);
-        if (cell != null) {
-            faceFlowPane.getChildren()
-                        .remove(cell.cellRoot);
+        Long clusterKey = clusterKeyByFaceId.remove(faceId);
+        if (cell == null) {
+            return;
+        }
+        Parent parent = cell.cellRoot.getParent();
+        if (parent instanceof Pane pane) {
+            pane.getChildren()
+                .remove(cell.cellRoot);
+            if (pane.getChildren()
+                    .isEmpty() && clusterKey != null) {
+                TitledPane section = sectionsByKey.remove(clusterKey);
+                if (section != null) {
+                    faceSectionsBox.getChildren()
+                                   .remove(section);
+                }
+            }
         }
     }
 
@@ -240,10 +316,10 @@ public class FacePickerController implements Initializable {
         menu.getItems()
             .add(confirmItem);
 
-        Menu notThisPersonMenu = new Menu("Not this person…");
-        populateMenu(notThisPersonMenu.getItems(), targetIds);
+        MenuItem notThisPersonItem = new MenuItem("Not this person…");
+        notThisPersonItem.setOnAction(e -> promptDestinationDialog(targetIds));
         menu.getItems()
-            .add(notThisPersonMenu);
+            .add(notThisPersonItem);
 
         MenuItem excludeItem = new MenuItem("Exclude (\"not a person\")");
         excludeItem.setOnAction(e -> confirmAndExclude(targetIds));
@@ -276,73 +352,185 @@ public class FacePickerController implements Initializable {
     }
 
     // ── FR3 — "Move Selected to…" toolbar action ─────────────────────────────────────────────
-    // Wired via moveSelectedMenuButton.setOnShowing(...) in initialize(), which lazily rebuilds
-    // the menu from the current selection each time the button is opened.
+
+    @FXML
+    public void onMoveSelected() {
+        promptDestinationDialog(Set.copyOf(selectedIds));
+    }
 
     /**
-     * Fills {@code items} with one entry per eligible destination person (everyone except the
-     * person currently being viewed, and anyone already merged away), followed by a "New
-     * person…" entry — this is the FR1/FR3 "Not this person…" picker, reused for both the
-     * per-face context menu and the toolbar "Move Selected to…" button.
-     * <p>
-     * A destination person who already owns one or more prototypes gets a submenu instead of a
-     * plain item: the human explicitly picks which prototype the moved faces join (or starts a
-     * new one for that person). {@link PersonCorrectionService#suggestDestinationCluster} is used
-     * only to label the most likely candidate — it is never auto-applied.
+     * One row in {@link #promptDestinationDialog}: a label, an optional representative
+     * thumbnail, whether it's the similarity-based suggestion, and what to do if chosen.
      */
-    private void populateMenu(List<MenuItem> items, Set<Long> targetIds) {
-        items.clear();
+    private record DestinationOption(String label, Path thumbnailPath, boolean suggested, Runnable onChoose) {
+    }
+
+    /**
+     * The FR1/FR3 "Not this person…" destination picker — a {@link Dialog} rather than a menu,
+     * because picking a destination is a visual-recognition task: the human needs to actually
+     * see a face from a prototype to know it's the right one, which a text-only menu can't show
+     * well. One row per existing prototype of each eligible person (a representative thumbnail,
+     * member count, and — never auto-applied, just a label —
+     * {@link PersonCorrectionService#suggestDestinationCluster}'s pick marked "suggested"), a
+     * "New prototype for …" row per person, and a "New person…" row.
+     */
+    private void promptDestinationDialog(Set<Long> targetIds) {
+        if (targetIds.isEmpty()) {
+            return;
+        }
+        List<DestinationOption> options = buildDestinationOptions(targetIds);
+
+        Dialog<DestinationOption> dialog = new Dialog<>();
+        dialog.setTitle("Move to…");
+        dialog.setHeaderText("Choose where to move " + targetIds.size() + " face" + (targetIds.size() > 1 ? "s" : ""));
+
+        ButtonType chooseButtonType = new ButtonType("Choose", ButtonType.OK.getButtonData());
+        dialog.getDialogPane()
+              .getButtonTypes()
+              .addAll(chooseButtonType, ButtonType.CANCEL);
+
+        ListView<DestinationOption> listView = new ListView<>();
+        listView.getItems()
+                .addAll(options);
+        listView.setCellFactory(lv -> new DestinationOptionCell());
+        listView.setPrefSize(440, 480);
+        listView.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2 && listView.getSelectionModel()
+                                                  .getSelectedItem() != null) {
+                dialog.setResult(listView.getSelectionModel()
+                                         .getSelectedItem());
+            }
+        });
+        dialog.getDialogPane()
+              .setContent(listView);
+
+        Node chooseButton = dialog.getDialogPane()
+                                  .lookupButton(chooseButtonType);
+        chooseButton.setDisable(true);
+        listView.getSelectionModel()
+                .selectedItemProperty()
+                .addListener((obs, old, selected) -> chooseButton.setDisable(selected == null));
+
+        dialog.setResultConverter(bt -> bt == chooseButtonType ? listView.getSelectionModel()
+                                                                         .getSelectedItem() : null);
+
+        dialog.showAndWait()
+              .ifPresent(chosen -> chosen.onChoose()
+                                         .run());
+    }
+
+    /**
+     * Builds one {@link DestinationOption} per existing prototype of every eligible destination
+     * person (everyone except the person currently being viewed, and anyone already merged
+     * away), a "New prototype for …" option per person, and a trailing "New person…" option.
+     */
+    private List<DestinationOption> buildDestinationOptions(Set<Long> targetIds) {
+        List<DestinationOption> options = new ArrayList<>();
+
         List<PersonRecord> candidates = personRepo.findAll()
                                                   .stream()
                                                   .filter(p -> p.getId() != currentPersonId)
                                                   .filter(p -> p.getMergedIntoId() == null)
                                                   .toList();
+
         for (PersonRecord person : candidates) {
-            items.add(buildPersonMenuItem(person, targetIds));
+            List<ClusterRecord> clusters = clusterRepo.findByPersonId(person.getId());
+
+            if (clusters.isEmpty()) {
+                options.add(new DestinationOption(
+                        displayName(person), coverThumbnail(person), false,
+                        () -> moveTo(targetIds, person.getId(), null)));
+                continue;
+            }
+
+            Long suggestedClusterId = personCorrectionService.suggestDestinationCluster(person.getId(), targetIds)
+                                                             .map(ClusterRecord::getId)
+                                                             .orElse(null);
+            for (ClusterRecord cluster : clusters) {
+                boolean suggested = cluster.getId()
+                                           .equals(suggestedClusterId);
+                options.add(new DestinationOption(
+                        displayName(person) + " — Prototype #" + cluster.getId()
+                                + " (" + cluster.getMemberCount() + " faces)",
+                        representativeThumbnail(cluster.getId()), suggested,
+                        () -> moveTo(targetIds, person.getId(), cluster.getId())));
+            }
+            options.add(new DestinationOption(
+                    displayName(person) + " — New prototype", coverThumbnail(person), false,
+                    () -> moveTo(targetIds, person.getId(), null)));
         }
-        if (!candidates.isEmpty()) {
-            items.add(new SeparatorMenuItem());
-        }
-        MenuItem newPersonItem = new MenuItem("New person…");
-        newPersonItem.setOnAction(e -> promptNewPersonAndMove(targetIds));
-        items.add(newPersonItem);
+
+        options.add(new DestinationOption("New person…", null, false, () -> promptNewPersonAndMove(targetIds)));
+        return options;
     }
 
     /**
-     * One menu entry for a single destination person. If they don't own any prototype yet, a
-     * plain item that seeds their first one directly. Otherwise a submenu: one item per existing
-     * prototype (the suggested one labeled as such), a separator, then "New prototype for …".
+     * A thumbnail of any one face currently in {@code clusterId}, or {@code null} if it has none.
      */
-    private MenuItem buildPersonMenuItem(PersonRecord person, Set<Long> targetIds) {
-        List<ClusterRecord> clusters = clusterRepo.findByPersonId(person.getId());
-        if (clusters.isEmpty()) {
-            MenuItem item = new MenuItem(displayName(person));
-            item.setOnAction(e -> moveTo(targetIds, person.getId(), null));
-            return item;
+    private Path representativeThumbnail(long clusterId) {
+        return faceRepo.findByClusterId(clusterId)
+                       .stream()
+                       .findFirst()
+                       .map(FaceRecord::getThumbnailAbsolutePath)
+                       .map(Path::of)
+                       .orElse(null);
+    }
+
+    /**
+     * {@code person}'s cover face thumbnail, or {@code null} if they don't have one set.
+     */
+    private Path coverThumbnail(PersonRecord person) {
+        Long coverFaceId = person.getCoverFaceId();
+        if (coverFaceId == null) {
+            return null;
+        }
+        return faceRepo.findById(coverFaceId)
+                       .map(FaceRecord::getThumbnailAbsolutePath)
+                       .map(Path::of)
+                       .orElse(null);
+    }
+
+    /**
+     * Renders one {@link DestinationOption} row: thumbnail (if any) + label, "suggested" starred.
+     */
+    private static final class DestinationOptionCell extends ListCell<DestinationOption> {
+        private final ImageView imageView = new ImageView();
+        private final Label     label     = new Label();
+        private final HBox      root      = new HBox(10, imageView, label);
+
+        DestinationOptionCell() {
+            imageView.setFitWidth(56);
+            imageView.setFitHeight(56);
+            imageView.setPreserveRatio(true);
+            root.setAlignment(Pos.CENTER_LEFT);
         }
 
-        Long suggestedClusterId = personCorrectionService.suggestDestinationCluster(person.getId(), targetIds)
-                                                          .map(ClusterRecord::getId)
-                                                          .orElse(null);
-
-        Menu personMenu = new Menu(displayName(person));
-        for (ClusterRecord cluster : clusters) {
-            boolean isSuggested = cluster.getId()
-                                         .equals(suggestedClusterId);
-            MenuItem clusterItem = new MenuItem(
-                    "Prototype #" + cluster.getId() + " (" + cluster.getMemberCount() + " faces)"
-                            + (isSuggested ? "  — suggested" : ""));
-            clusterItem.setOnAction(e -> moveTo(targetIds, person.getId(), cluster.getId()));
-            personMenu.getItems()
-                      .add(clusterItem);
+        @Override
+        protected void updateItem(DestinationOption item, boolean empty) {
+            super.updateItem(item, empty);
+            if (empty || item == null) {
+                setGraphic(null);
+                return;
+            }
+            label.setText(item.label() + (item.suggested() ? "  ★ suggested" : ""));
+            imageView.setImage(loadThumbnailQuiet(item.thumbnailPath()));
+            setGraphic(root);
         }
-        personMenu.getItems()
-                  .add(new SeparatorMenuItem());
-        MenuItem newPrototypeItem = new MenuItem("New prototype for " + displayName(person));
-        newPrototypeItem.setOnAction(e -> moveTo(targetIds, person.getId(), null));
-        personMenu.getItems()
-                  .add(newPrototypeItem);
-        return personMenu;
+    }
+
+    /**
+     * Best-effort thumbnail load for the destination dialog — {@code null} in, {@code null} out.
+     */
+    private static Image loadThumbnailQuiet(Path path) {
+        if (path == null) {
+            return null;
+        }
+        try {
+            return new Image(path.toUri()
+                                 .toString(), 56, 56, true, true, true);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /**
@@ -370,7 +558,7 @@ public class FacePickerController implements Initializable {
             return;
         }
         Set<Long> orphaned = personCorrectionService.reassignFacesToNewPerson(targetIds, name.get()
-                                                                                              .trim());
+                                                                                             .trim());
         correctionsHappened = true;
         targetIds.forEach(this::removeCell);
         updateSelectionLabel();
