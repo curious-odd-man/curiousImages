@@ -168,6 +168,31 @@ public class PersonRepository {
     }
 
     /**
+     * IDs of persons currently redirecting into {@code personId} via {@code merged_into_id} —
+     * i.e. anyone who would break if {@code personId} were deleted outright. Used as a guard
+     * before {@link #deleteQuery}: never delete a person who is still a live merge target, or
+     * {@link #resolveCurrentPersonId} would dead-end for those sources.
+     */
+    public List<Long> findMergeSourceIds(long personId) {
+        return dsl.select(PERSON.ID)
+                  .from(PERSON)
+                  .where(PERSON.MERGED_INTO_ID.eq(personId))
+                  .fetch(PERSON.ID);
+    }
+
+    /**
+     * Deletes a person row outright. This is the Q1 "orphaned person" cleanup path: call only
+     * after a correction (reassign/split/exclude) has left a person owning zero clusters AND the
+     * user has explicitly confirmed they want that empty person record removed — see
+     * {@code PersonCorrectionService#deleteOrphanedPerson}, which is the only intended caller and
+     * additionally checks {@link #findMergeSourceIds} before deleting.
+     */
+    public Query deleteQuery(long personId) {
+        return dsl.deleteFrom(PERSON)
+                  .where(PERSON.ID.eq(personId));
+    }
+
+    /**
      * Updates the cover face and {@code UPDATED_AT} timestamp for an existing person.
      */
     public void updateCoverFace(long personId, long coverFaceId, LocalDateTime now) {

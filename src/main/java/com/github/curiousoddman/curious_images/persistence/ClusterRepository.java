@@ -110,6 +110,21 @@ public class ClusterRepository {
     }
 
     /**
+     * FR1/FR3 whole-cluster relocation: reassigns a single cluster's ownership to a different
+     * person, leaving its centroid and member_count untouched. Use this — instead of dissolving
+     * the cluster and recreating/blending it under the new owner — whenever every face currently
+     * in {@code clusterId} is moving to {@code newPersonId} at once: the cluster is already a
+     * complete, human-verified prototype, and per FR6 it should carry over intact as one of the
+     * new owner's prototypes rather than being blended into (or rebuilt to look like) anything
+     * else. See {@code PersonCorrectionService} for the whole-vs-partial-move distinction.
+     */
+    public Query reassignOwnerQuery(long clusterId, long newPersonId) {
+        return dsl.update(CLUSTER)
+                  .set(CLUSTER.PERSON_ID, newPersonId)
+                  .where(CLUSTER.ID.eq(clusterId));
+    }
+
+    /**
      * Deletes a cluster row outright. Call this — never {@link #updateCentroidQuery} with a zero
      * count — whenever a correction (exclude / reassign / split) removes a cluster's last member,
      * so it stops being loaded by {@link #findAll} as a stale match candidate for future faces.

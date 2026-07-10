@@ -1,9 +1,11 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
+import com.github.curiousoddman.curious_images.dbobj.tables.records.ClusterRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 import com.github.curiousoddman.curious_images.domain.ai.PersonCorrectionService;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
+import com.github.curiousoddman.curious_images.persistence.ClusterRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
@@ -46,12 +48,19 @@ import java.util.Set;
  *       dialog or touching the cover face.</li>
  *   <li>Right-click a face for "Not this person…" (FR1), "Confirm" (FR2), or "Exclude" (FR5).
  *       If the clicked face is part of an active multi-selection, the action applies to the
- *       whole selection; otherwise it applies to just that one face.</li>
+ *       whole selection; otherwise it applies to just that one face. "Not this person…" for a
+ *       destination person who already owns multiple prototypes opens a submenu so the human
+ *       picks which prototype the faces join (or starts a new one) — see
+ *       {@link PersonCorrectionService#suggestDestinationCluster} for the suggestion shown
+ *       there.</li>
  *   <li>"Move Selected to…" in the toolbar does the same "Not this person…" prompt, explicitly
  *       scoped to the current multi-selection (FR3's "Move selected to…" toolbar action).</li>
  * </ul>
  * Reassigning or excluding a face removes it from this grid immediately — since this dialog only
- * ever shows one person's faces, a face that just left that person no longer belongs here.
+ * ever shows one person's faces, a face that just left that person no longer belongs here. If a
+ * move/exclude leaves some other person owning zero prototypes, this controller also prompts to
+ * delete that now-empty person (see {@link #handleOrphanedPersons}) — the correction service
+ * itself never deletes a person on its own initiative.
  * <p>
  * Usage (cover-pick path unchanged):
  * <pre>
@@ -80,6 +89,7 @@ public class FacePickerController implements Initializable {
 
     private final FxmlLoader              fxmlLoader;
     private final PersonRepository        personRepo;
+    private final ClusterRepository       clusterRepo;
     private final PersonCorrectionService personCorrectionService;
 
     @FXML
@@ -254,10 +264,15 @@ public class FacePickerController implements Initializable {
         if (result.isEmpty() || result.get() != ButtonType.OK) {
             return;
         }
-        targetIds.forEach(personCorrectionService::excludeFace);
+        Set<Long> orphaned = new LinkedHashSet<>();
+        for (Long id : targetIds) {
+            personCorrectionService.excludeFace(id)
+                                   .ifPresent(orphaned::add);
+        }
         correctionsHappened = true;
         targetIds.forEach(this::removeCell);
         updateSelectionLabel();
+        handleOrphanedPersons(orphaned);
     }
 
     // ── FR3 — "Move Selected to…" toolbar action ─────────────────────────────────────────────
@@ -269,6 +284,11 @@ public class FacePickerController implements Initializable {
      * person currently being viewed, and anyone already merged away), followed by a "New
      * person…" entry — this is the FR1/FR3 "Not this person…" picker, reused for both the
      * per-face context menu and the toolbar "Move Selected to…" button.
+     * <p>
+     * A destination person who already owns one or more prototypes gets a submenu instead of a
+     * plain item: the human explicitly picks which prototype the moved faces join (or starts a
+     * new one for that person). {@link PersonCorrectionService#suggestDestinationCluster} is used
+     * only to label the most likely candidate — it is never auto-applied.
      */
     private void populateMenu(List<MenuItem> items, Set<Long> targetIds) {
         items.clear();
@@ -278,14 +298,7 @@ public class FacePickerController implements Initializable {
                                                   .filter(p -> p.getMergedIntoId() == null)
                                                   .toList();
         for (PersonRecord person : candidates) {
-            MenuItem item = new MenuItem(displayName(person));
-            item.setOnAction(e -> {
-                personCorrectionService.reassignFacesToExistingPerson(targetIds, person.getId());
-                correctionsHappened = true;
-                targetIds.forEach(this::removeCell);
-                updateSelectionLabel();
-            });
-            items.add(item);
+            items.add(buildPersonMenuItem(person, targetIds));
         }
         if (!candidates.isEmpty()) {
             items.add(new SeparatorMenuItem());
@@ -293,6 +306,58 @@ public class FacePickerController implements Initializable {
         MenuItem newPersonItem = new MenuItem("New person…");
         newPersonItem.setOnAction(e -> promptNewPersonAndMove(targetIds));
         items.add(newPersonItem);
+    }
+
+    /**
+     * One menu entry for a single destination person. If they don't own any prototype yet, a
+     * plain item that seeds their first one directly. Otherwise a submenu: one item per existing
+     * prototype (the suggested one labeled as such), a separator, then "New prototype for …".
+     */
+    private MenuItem buildPersonMenuItem(PersonRecord person, Set<Long> targetIds) {
+        List<ClusterRecord> clusters = clusterRepo.findByPersonId(person.getId());
+        if (clusters.isEmpty()) {
+            MenuItem item = new MenuItem(displayName(person));
+            item.setOnAction(e -> moveTo(targetIds, person.getId(), null));
+            return item;
+        }
+
+        Long suggestedClusterId = personCorrectionService.suggestDestinationCluster(person.getId(), targetIds)
+                                                          .map(ClusterRecord::getId)
+                                                          .orElse(null);
+
+        Menu personMenu = new Menu(displayName(person));
+        for (ClusterRecord cluster : clusters) {
+            boolean isSuggested = cluster.getId()
+                                         .equals(suggestedClusterId);
+            MenuItem clusterItem = new MenuItem(
+                    "Prototype #" + cluster.getId() + " (" + cluster.getMemberCount() + " faces)"
+                            + (isSuggested ? "  — suggested" : ""));
+            clusterItem.setOnAction(e -> moveTo(targetIds, person.getId(), cluster.getId()));
+            personMenu.getItems()
+                      .add(clusterItem);
+        }
+        personMenu.getItems()
+                  .add(new SeparatorMenuItem());
+        MenuItem newPrototypeItem = new MenuItem("New prototype for " + displayName(person));
+        newPrototypeItem.setOnAction(e -> moveTo(targetIds, person.getId(), null));
+        personMenu.getItems()
+                  .add(newPrototypeItem);
+        return personMenu;
+    }
+
+    /**
+     * Applies the FR1/FR3 move once the human has picked a destination (person, and — if that
+     * person owns more than one prototype — which prototype, or {@code null} for a new one), then
+     * surfaces the Q1 "should this now-empty person be deleted?" prompt for anyone orphaned by
+     * the move.
+     */
+    private void moveTo(Set<Long> targetIds, long targetPersonId, Long destinationClusterId) {
+        Set<Long> orphaned = personCorrectionService.reassignFacesToExistingPerson(
+                targetIds, targetPersonId, destinationClusterId);
+        correctionsHappened = true;
+        targetIds.forEach(this::removeCell);
+        updateSelectionLabel();
+        handleOrphanedPersons(orphaned);
     }
 
     private void promptNewPersonAndMove(Set<Long> targetIds) {
@@ -304,11 +369,37 @@ public class FacePickerController implements Initializable {
                                   .isBlank()) {
             return;
         }
-        personCorrectionService.reassignFacesToNewPerson(targetIds, name.get()
-                                                                        .trim());
+        Set<Long> orphaned = personCorrectionService.reassignFacesToNewPerson(targetIds, name.get()
+                                                                                              .trim());
         correctionsHappened = true;
         targetIds.forEach(this::removeCell);
         updateSelectionLabel();
+        handleOrphanedPersons(orphaned);
+    }
+
+    // ── Q1 — orphaned-person cleanup prompt ───────────────────────────────────────────────────
+
+    /**
+     * For each person a move/exclude left owning zero prototypes, asks the user whether to
+     * delete that now-empty person and, if confirmed, calls
+     * {@link PersonCorrectionService#deleteOrphanedPerson}. This is the only place that decides
+     * to delete an orphaned person — the service itself never does.
+     */
+    private void handleOrphanedPersons(Set<Long> orphanedPersonIds) {
+        for (Long personId : orphanedPersonIds) {
+            String label = personRepo.findById(personId)
+                                     .map(this::displayName)
+                                     .orElse("Person #" + personId);
+            // FIXME: deleting a person should remove tree item immediately
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION,
+                    "\"" + label + "\" has no photos left after this move. Delete this person?",
+                    ButtonType.OK, ButtonType.CANCEL);
+            alert.setHeaderText("Remove empty person");
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                personCorrectionService.deleteOrphanedPerson(personId);
+            }
+        }
     }
 
     private String displayName(PersonRecord person) {

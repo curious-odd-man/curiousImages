@@ -302,6 +302,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
                 currentFaceIndex = startIndex;
                 photosByYear = byYear;
 
+                mergeIntoButton.setDisable(false);
                 populateProfileFields(person);
                 refreshFacePicker();
                 buildAgeAlbumTree(byYear);

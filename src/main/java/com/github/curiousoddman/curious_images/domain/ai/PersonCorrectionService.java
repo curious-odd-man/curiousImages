@@ -39,6 +39,22 @@ import static com.github.curiousoddman.curious_images.persistence.ClipEmbeddingR
  * it either sets {@code assignment_locked = true} (FR1/FR2/FR3) so {@link PersonClusteringService}
  * never reassigns the face again, or removes the face from clustering consideration entirely
  * (FR5), or rewrites cluster ownership directly rather than touching individual faces (FR4).
+ * <p>
+ * <b>Whole vs. partial moves (FR6).</b> When a correction moves faces out of a cluster, this
+ * service distinguishes two cases. If <em>every</em> face currently in the source cluster is
+ * moving at once, that cluster is already a complete, human-verified prototype — it is relocated
+ * intact via {@link ClusterRepository#reassignOwnerQuery} (its centroid is never touched or
+ * blended). If only a subset moves, the remainder's centroid is recomputed and the moved subset
+ * either folds into an existing destination cluster the caller specifies, or seeds a brand new
+ * one. This service deliberately does <b>not</b> auto-pick that destination cluster by cosine
+ * similarity — {@link #suggestDestinationCluster} exposes the same similarity heuristic purely as
+ * a suggestion for the UI to pre-select in a picker; the human makes the actual call.
+ * <p>
+ * <b>Orphaned persons (open question 1 from the requirements doc).</b> A correction can leave a
+ * person owning zero clusters (e.g. their only cluster got fully reassigned or excluded away).
+ * This service never deletes that person on its own initiative — methods that can cause this
+ * return the set of newly-orphaned person IDs so the UI can ask the user, then call
+ * {@link #deleteOrphanedPerson} if they confirm.
  */
 @Slf4j
 @Component
@@ -56,17 +72,26 @@ public class PersonCorrectionService {
     // ── FR1 / FR3 — reassign (single face or multi-select) to an existing person ─────────────
 
     /**
-     * Moves {@code faceIds} out of whatever cluster(s) they're currently in and into
-     * {@code targetPersonId}, locking each face so automatic clustering can never move it again.
-     * The destination cluster is whichever of the target person's existing prototypes is
-     * closest (by cosine similarity) to the average of the moved faces' embeddings — matching
-     * FR6's "close enough to any one prototype" semantics — or a brand new prototype if the
-     * target person doesn't have one yet.
+     * Moves {@code faceIds} into {@code targetPersonId}, locking each face so automatic
+     * clustering can never move it again.
+     * <p>
+     * {@code destinationClusterId} is the human's explicit choice of which of the target
+     * person's existing prototypes the moved (partial-move) faces should join — see
+     * {@link #suggestDestinationCluster} for a similarity-based suggestion the UI can pre-select
+     * — or {@code null} to seed a brand new prototype for the target person instead. This choice
+     * only matters for a <em>partial</em> move: if a whole source cluster is moving as one unit,
+     * it is relocated intact (see class javadoc) regardless of {@code destinationClusterId},
+     * since blending an already-complete prototype into another would violate FR6.
+     *
+     * @return IDs of any persons left owning zero clusters as a side effect of this move (a
+     * source cluster's whole membership left and that was its owner's last cluster) — the UI
+     * should ask the user whether to delete them via {@link #deleteOrphanedPerson}.
+     * @throws IllegalArgumentException if {@code destinationClusterId} is given but isn't a
+     *                                  cluster owned by {@code targetPersonId}.
      */
-    // TODO: Unused???
-    public void reassignFacesToExistingPerson(Collection<Long> faceIds, long targetPersonId) {
+    public Set<Long> reassignFacesToExistingPerson(Collection<Long> faceIds, long targetPersonId, Long destinationClusterId) {
         if (faceIds.isEmpty()) {
-            return;
+            return Set.of();
         }
         LocalDateTime now = timeProvider.now();
 
@@ -74,42 +99,127 @@ public class PersonCorrectionService {
         Map<Long, float[]> vectors = loadVectors(faceIds);
         if (vectors.isEmpty()) {
             log.warn("reassignFacesToExistingPerson: none of {} face(s) have an embedding yet — aborting", faceIds.size());
-            return;
+            return Set.of();
         }
-
-        List<Query> buffer = new ArrayList<>();
-
-        float[]                 referenceVector = EmbeddingMath.average(vectors.values());
-        Optional<ClusterRecord> destCluster     = pickBestCluster(targetPersonId, referenceVector);
-
-        long destClusterId;
-        if (destCluster.isPresent()) {
-            destClusterId = destCluster.get()
-                                       .getId();
-            addToCluster(destClusterId, vectors, now, buffer);
-        } else {
-            // Target person doesn't own a cluster yet — this becomes their first prototype.
-            float[] centroid = referenceVector.clone();
-            EmbeddingMath.l2Normalize(centroid);
-            destClusterId = clusterRepo.insert(
-                    targetPersonId, FaceEmbeddingRepository.toBytes(centroid), vectors.size(), now);
-            for (Long faceId : vectors.keySet()) {
-                buffer.add(faceRepo.lockFaceAssignmentQuery(faceId, destClusterId));
+        if (destinationClusterId != null) {
+            ClusterRecord dest = clusterRepo.findById(destinationClusterId)
+                                            .orElseThrow(() -> new IllegalArgumentException(
+                                                    "No such cluster: " + destinationClusterId));
+            if (dest.getPersonId() != targetPersonId) {
+                throw new IllegalArgumentException(
+                        "Cluster " + destinationClusterId + " is not owned by person " + targetPersonId);
             }
         }
-        removeFromOldClusters(faces, now, buffer);
+
+        List<Query> buffer          = new ArrayList<>();
+        Set<Long>   orphanedPersons = new HashSet<>();
+
+        // Faces that end up needing a destination decision (i.e. weren't handled by a whole-
+        // cluster relocation below) and, per source cluster, which of its members are staying
+        // behind and need that cluster's centroid recomputed.
+        Map<Long, float[]>    needsDestination     = new LinkedHashMap<>();
+        Map<Long, List<Long>> partialRemovalsByOld = new LinkedHashMap<>();
+
+        Map<Long, List<FaceRecord>> byOldCluster = new LinkedHashMap<>();
+        for (FaceRecord f : faces) {
+            if (f.getClusterId() != null) {
+                byOldCluster.computeIfAbsent(f.getClusterId(), k -> new ArrayList<>())
+                            .add(f);
+            } else {
+                needsDestination.put(f.getId(), vectors.get(f.getId()));
+            }
+        }
+
+        for (Map.Entry<Long, List<FaceRecord>> e : byOldCluster.entrySet()) {
+            long             oldClusterId = e.getKey();
+            List<FaceRecord> moving       = e.getValue();
+            List<FaceRecord> allMembers   = faceRepo.findByClusterId(oldClusterId);
+
+            if (allMembers.size() == moving.size()) {
+                // Whole cluster relocates — carry the prototype over intact (FR6).
+                ClusterRecord source = clusterRepo.findById(oldClusterId)
+                                                  .orElseThrow();
+                long previousOwner = source.getPersonId();
+                buffer.add(clusterRepo.reassignOwnerQuery(oldClusterId, targetPersonId));
+                for (FaceRecord f : moving) {
+                    buffer.add(faceRepo.lockFaceAssignmentQuery(f.getId(), oldClusterId));
+                }
+                if (previousOwner != targetPersonId) {
+                    long remaining = clusterRepo.findByPersonId(previousOwner)
+                                                .stream()
+                                                .filter(c -> c.getId() != oldClusterId)
+                                                .count();
+                    if (remaining == 0) {
+                        orphanedPersons.add(previousOwner);
+                    }
+                }
+            } else {
+                partialRemovalsByOld.put(oldClusterId, moving.stream()
+                                                             .map(FaceRecord::getId)
+                                                             .toList());
+                for (FaceRecord f : moving) {
+                    needsDestination.put(f.getId(), vectors.get(f.getId()));
+                }
+            }
+        }
+
+        if (!needsDestination.isEmpty()) {
+            if (destinationClusterId != null) {
+                addToCluster(destinationClusterId, needsDestination, now, buffer);
+            } else {
+                // No existing prototype chosen — this partial subset seeds a brand new one.
+                float[] centroid = EmbeddingMath.average(needsDestination.values());
+                EmbeddingMath.l2Normalize(centroid);
+                long newClusterId = clusterRepo.insert(
+                        targetPersonId, FaceEmbeddingRepository.toBytes(centroid), needsDestination.size(), now);
+                for (Long faceId : needsDestination.keySet()) {
+                    buffer.add(faceRepo.lockFaceAssignmentQuery(faceId, newClusterId));
+                }
+            }
+        }
+
+        for (Map.Entry<Long, List<Long>> e : partialRemovalsByOld.entrySet()) {
+            removeFromCluster(e.getKey(), new HashSet<>(e.getValue()), now, buffer)
+                    .ifPresent(orphanedPersons::add);
+        }
+
         execute(buffer);
         publisher.publishEvent(new PersonsUpdatedEvent(this));
+        return orphanedPersons;
+    }
+
+    /**
+     * Similarity-based suggestion only — the caller (UI) decides whether to actually use it. The
+     * best (max cosine similarity) existing cluster owned by {@code targetPersonId} for the
+     * average of {@code faceIds}' embeddings, to pre-select as a default in a destination picker
+     * alongside the target person's other prototypes and a "new prototype" option. Empty if the
+     * person owns no cluster yet, or none of {@code faceIds} have embeddings.
+     */
+    public Optional<ClusterRecord> suggestDestinationCluster(long targetPersonId, Collection<Long> faceIds) {
+        Map<Long, float[]> vectors = loadVectors(faceIds);
+        if (vectors.isEmpty()) {
+            return Optional.empty();
+        }
+        float[] referenceVector = EmbeddingMath.average(vectors.values());
+        return pickBestCluster(targetPersonId, referenceVector);
     }
 
     /**
      * Moves {@code faceIds} out of whatever cluster(s) they're currently in and into a brand new
      * person, locking each face. Mechanically identical for one face (FR1's "New person…" option)
      * or many (FR3's multi-select split).
+     * <p>
+     * If {@code faceIds} turns out to be <em>exactly</em> one whole existing cluster (every face
+     * that cluster currently has, nothing more, nothing less), that cluster is relocated to the
+     * new person intact (FR6) instead of being dissolved and rebuilt from the same vectors as a
+     * freshly-averaged one.
+     *
+     * @return IDs of any persons left owning zero clusters as a side effect (only possible via the
+     * whole-cluster-relocation path) — see {@link #deleteOrphanedPerson}.
      */
-    public void reassignFacesToNewPerson(Collection<Long> faceIds, String newPersonName) {
+    public Set<Long> reassignFacesToNewPerson(Collection<Long> faceIds, String newPersonName) {
         if (faceIds.isEmpty()) {
-            return;
+            return Set.of();
         }
         LocalDateTime now = timeProvider.now();
 
@@ -117,24 +227,75 @@ public class PersonCorrectionService {
         Map<Long, float[]> vectors = loadVectors(faceIds);
         if (vectors.isEmpty()) {
             log.warn("reassignFacesToNewPerson: none of {} face(s) have an embedding yet — aborting", faceIds.size());
-            return;
+            return Set.of();
         }
 
-        List<Query> buffer = new ArrayList<>();
-        removeFromOldClusters(faces, now, buffer);
+        List<Query> buffer   = new ArrayList<>();
+        Set<Long>   orphaned = new HashSet<>();
 
-        float[] centroid    = EmbeddingMath.average(vectors.values());
-        long    coverFaceId = mostCentralFaceId(vectors, centroid);
+        Long soleWholeSourceClusterId = soleWholeSourceCluster(faces, vectors.keySet());
+        long personId;
 
-        long personId = personRepo.insert(newPersonName, coverFaceId, now);
-        long newClusterId = clusterRepo.insert(
-                personId, FaceEmbeddingRepository.toBytes(centroid), vectors.size(), now);
-        for (Long faceId : vectors.keySet()) {
-            buffer.add(faceRepo.lockFaceAssignmentQuery(faceId, newClusterId));
+        if (soleWholeSourceClusterId != null) {
+            ClusterRecord source = clusterRepo.findById(soleWholeSourceClusterId)
+                                              .orElseThrow();
+            long previousOwner = source.getPersonId();
+            long coverFaceId   = mostCentralFaceId(vectors, getFloats(source.getCentroidEmbedding()));
+
+            personId = personRepo.insert(newPersonName, coverFaceId, now);
+            buffer.add(clusterRepo.reassignOwnerQuery(soleWholeSourceClusterId, personId));
+            for (Long faceId : vectors.keySet()) {
+                buffer.add(faceRepo.lockFaceAssignmentQuery(faceId, soleWholeSourceClusterId));
+            }
+            long remaining = clusterRepo.findByPersonId(previousOwner)
+                                        .stream()
+                                        .filter(c -> c.getId() != soleWholeSourceClusterId)
+                                        .count();
+            if (remaining == 0) {
+                orphaned.add(previousOwner);
+            }
+        } else {
+            orphaned.addAll(removeFromOldClusters(faces, now, buffer));
+
+            float[] centroid    = EmbeddingMath.average(vectors.values());
+            long    coverFaceId = mostCentralFaceId(vectors, centroid);
+
+            personId = personRepo.insert(newPersonName, coverFaceId, now);
+            long newClusterId = clusterRepo.insert(
+                    personId, FaceEmbeddingRepository.toBytes(centroid), vectors.size(), now);
+            for (Long faceId : vectors.keySet()) {
+                buffer.add(faceRepo.lockFaceAssignmentQuery(faceId, newClusterId));
+            }
         }
 
         execute(buffer);
         publisher.publishEvent(new PersonsUpdatedEvent(this));
+        return orphaned;
+    }
+
+    /**
+     * Returns the single cluster ID being moved, if and only if every face in {@code faces}
+     * shares that one cluster <em>and</em> {@code movingFaceIds} is that cluster's entire current
+     * membership — i.e. this is cleanly "relocate this whole prototype," not a partial split or a
+     * mashup of several clusters/unclustered faces. Null otherwise.
+     */
+    private Long soleWholeSourceCluster(List<FaceRecord> faces, Set<Long> movingFaceIds) {
+        Long clusterId = null;
+        for (FaceRecord f : faces) {
+            if (f.getClusterId() == null) {
+                return null;
+            }
+            if (clusterId == null) {
+                clusterId = f.getClusterId();
+            } else if (!clusterId.equals(f.getClusterId())) {
+                return null;
+            }
+        }
+        if (clusterId == null) {
+            return null;
+        }
+        List<FaceRecord> allMembers = faceRepo.findByClusterId(clusterId);
+        return allMembers.size() == movingFaceIds.size() ? clusterId : null;
     }
 
     // ── FR2 — confirm a face's current assignment ─────────────────────────────────────────────
@@ -161,23 +322,27 @@ public class PersonCorrectionService {
      * Flags a face as "not a person". Pulls it out of its current cluster (recomputing that
      * cluster's centroid, or deleting the cluster if this was its last member) so it stops
      * influencing anyone's prototype.
+     *
+     * @return the owning person's ID if excluding this face left them owning zero clusters —
+     * see {@link #deleteOrphanedPerson}.
      */
-    // TODO: unused?
-    public void excludeFace(long faceId) {
+    public Optional<Long> excludeFace(long faceId) {
         Optional<FaceRecord> face = faceRepo.findById(faceId);
         if (face.isEmpty()) {
-            return;
+            return Optional.empty();
         }
-        LocalDateTime now    = timeProvider.now();
-        List<Query>   buffer = new ArrayList<>();
+        LocalDateTime  now      = timeProvider.now();
+        List<Query>    buffer   = new ArrayList<>();
+        Optional<Long> orphaned = Optional.empty();
         buffer.add(faceRepo.excludeFaceQuery(faceId));
         if (face.get()
                 .getClusterId() != null) {
-            removeFromCluster(face.get()
-                                  .getClusterId(), Set.of(faceId), now, buffer);
+            orphaned = removeFromCluster(face.get()
+                                             .getClusterId(), Set.of(faceId), now, buffer);
         }
         execute(buffer);
         publisher.publishEvent(new PersonsUpdatedEvent(this));
+        return orphaned;
     }
 
     /**
@@ -185,7 +350,6 @@ public class PersonCorrectionService {
      * cluster) rather than being restored to wherever it used to be — the next clustering pass
      * re-evaluates it from scratch.
      */
-    // TODO: Unused??
     public void includeFace(long faceId) {
         faceRepo.includeFaceQuery(faceId)
                 .execute();
@@ -201,7 +365,6 @@ public class PersonCorrectionService {
      * redirect (FR4 — "B's row is not deleted"). Per FR6, centroids are concatenated, never
      * blended.
      */
-    // TODO: Unused??
     public void mergePerson(long sourcePersonId, long targetPersonId) {
         if (sourcePersonId == targetPersonId) {
             log.warn("mergePerson: source and target are the same person ({}) — ignoring", sourcePersonId);
@@ -229,9 +392,17 @@ public class PersonCorrectionService {
 
     /**
      * Groups {@code faces} by their current (pre-move) cluster and removes each group from it —
-     * one recompute per affected cluster rather than one per face.
+     * one recompute per affected cluster rather than one per face. Only ever reaches a "whole
+     * cluster emptied" outcome here for callers that don't already special-case a whole-cluster
+     * move (see {@link #reassignFacesToExistingPerson}, which handles that case separately via
+     * {@link ClusterRepository#reassignOwnerQuery} instead of calling this at all for that
+     * subset); {@link #reassignFacesToNewPerson} and {@link #excludeFace} still route through
+     * here for their non-whole-cluster paths.
+     *
+     * @return IDs of persons left owning zero clusters as a result — see FIXME resolution notes
+     * on {@link #removeFromCluster}.
      */
-    private void removeFromOldClusters(List<FaceRecord> faces, LocalDateTime now, List<Query> buffer) {
+    private Set<Long> removeFromOldClusters(List<FaceRecord> faces, LocalDateTime now, List<Query> buffer) {
         Map<Long, List<Long>> byOldCluster = new LinkedHashMap<>();
         for (FaceRecord f : faces) {
             if (f.getClusterId() != null) {
@@ -239,30 +410,58 @@ public class PersonCorrectionService {
                             .add(f.getId());
             }
         }
+        Set<Long> orphaned = new HashSet<>();
         for (Map.Entry<Long, List<Long>> e : byOldCluster.entrySet()) {
-            removeFromCluster(e.getKey(), new HashSet<>(e.getValue()), now, buffer);
+            removeFromCluster(e.getKey(), new HashSet<>(e.getValue()), now, buffer)
+                    .ifPresent(orphaned::add);
         }
+        return orphaned;
     }
 
     /**
      * Removes {@code removingFaceIds} from {@code clusterId}'s membership: recomputes the
      * centroid from whoever's left, or deletes the cluster outright if nobody's left (an
      * average-of-nothing is meaningless — see {@link ClusterRepository#deleteQuery}).
+     * <p>
+     * Resolution of the former FIXME on this method:
+     * <ol>
+     *   <li>Whether to remove a person left with zero clusters is a UI decision, not this
+     *       service's to make — this method (and every public method that calls it) surfaces the
+     *       owning person's ID via its return value instead of guessing; see
+     *       {@link #deleteOrphanedPerson}.</li>
+     *   <li>Handled one level up: {@link #reassignFacesToExistingPerson} and
+     *       {@link #reassignFacesToNewPerson} detect a whole-cluster move before ever calling
+     *       this method, and relocate the cluster via {@link ClusterRepository#reassignOwnerQuery}
+     *       instead — this method only ever runs for genuinely partial removals now.</li>
+     *   <li>Not this method's concern — see {@link #suggestDestinationCluster}: the human picks,
+     *       this service only offers a similarity-based suggestion.</li>
+     *   <li>Answered separately — {@code PersonDetailController#onMergeInto} is FR4's
+     *       person-level merge, unrelated to the per-face destination question above; see its
+     *       javadoc.</li>
+     * </ol>
+     *
+     * @return the owning person's ID, if removing these faces left the cluster with no members
+     * (and it was deleted) and that person now owns no cluster at all; empty otherwise.
      */
-    // FIXME: This should be more intelligent.
-    // 1. it should ask if user wants to remove a person once person do not have any more photos after cluster removal
-    // 2. if all cluster photos are moved to another person - it should assign cluster to a person, not just move photos into person
-    // 3. when there are multiple clusters person already has - how should app decide to which moved faces go into?
-    // 4. what does PersonDetailController::onMergeInto supposed to do? is this similar to 3?
-    private void removeFromCluster(long clusterId, Set<Long> removingFaceIds, LocalDateTime now, List<Query> buffer) {
+    private Optional<Long> removeFromCluster(long clusterId, Set<Long> removingFaceIds, LocalDateTime now, List<Query> buffer) {
         List<FaceRecord> currentMembers = faceRepo.findByClusterId(clusterId);
         List<Long> remainingIds = currentMembers.stream()
                                                 .map(FaceRecord::getId)
                                                 .filter(id -> !removingFaceIds.contains(id))
                                                 .toList();
         if (remainingIds.isEmpty()) {
+            Optional<ClusterRecord> cluster = clusterRepo.findById(clusterId);
             buffer.add(clusterRepo.deleteQuery(clusterId));
-            return;
+            if (cluster.isEmpty()) {
+                return Optional.empty();
+            }
+            long personId = cluster.get()
+                                   .getPersonId();
+            long remaining = clusterRepo.findByPersonId(personId)
+                                        .stream()
+                                        .filter(c -> c.getId() != clusterId)
+                                        .count();
+            return remaining == 0 ? Optional.of(personId) : Optional.empty();
         }
         Map<Long, float[]> remainingVectors = loadVectors(remainingIds);
         if (remainingVectors.isEmpty()) {
@@ -270,11 +469,44 @@ public class PersonCorrectionService {
             // recompute; leave the centroid as-is rather than guess.
             log.warn("removeFromCluster: cluster {} has {} remaining member(s) with no embeddings; " +
                     "leaving centroid unchanged", clusterId, remainingIds.size());
-            return;
+            return Optional.empty();
         }
         float[] centroid = EmbeddingMath.average(remainingVectors.values());
         buffer.add(clusterRepo.updateCentroidQuery(
                 clusterId, FaceEmbeddingRepository.toBytes(centroid), remainingIds.size(), now));
+        return Optional.empty();
+    }
+
+    // ── Q1 — orphaned-person cleanup (UI-confirmed only) ──────────────────────────────────────
+
+    /**
+     * Deletes a person who currently owns zero clusters — the confirmed follow-up to an
+     * orphaned-person ID returned by {@link #reassignFacesToExistingPerson},
+     * {@link #reassignFacesToNewPerson}, or {@link #excludeFace}. This service never calls this
+     * itself; it is meant to be invoked only after the UI has asked the user and gotten an
+     * explicit "yes, delete this empty person" confirmation.
+     * <p>
+     * Refuses (returns {@code false}, logs a warning) if the person still owns a cluster — the
+     * caller's orphan detection is stale — or if another person is still redirecting into this
+     * one via merge ({@code merged_into_id}), since deleting a live merge target would break
+     * {@link PersonRepository#resolveCurrentPersonId} for those sources.
+     */
+    public boolean deleteOrphanedPerson(long personId) {
+        if (!clusterRepo.findByPersonId(personId)
+                        .isEmpty()) {
+            log.warn("deleteOrphanedPerson: person {} still owns cluster(s) — refusing to delete", personId);
+            return false;
+        }
+        List<Long> mergeSources = personRepo.findMergeSourceIds(personId);
+        if (!mergeSources.isEmpty()) {
+            log.warn("deleteOrphanedPerson: person {} is still a live merge-redirect target for {} — refusing to delete",
+                    personId, mergeSources);
+            return false;
+        }
+        personRepo.deleteQuery(personId)
+                  .execute();
+        publisher.publishEvent(new PersonsUpdatedEvent(this));
+        return true;
     }
 
     /**
@@ -303,7 +535,8 @@ public class PersonCorrectionService {
 
     /**
      * The best (max cosine similarity) existing cluster owned by {@code personId} for
-     * {@code referenceVector} — empty if the person doesn't own any cluster yet.
+     * {@code referenceVector} — empty if the person doesn't own any cluster yet. Internal helper
+     * for {@link #suggestDestinationCluster} only; nothing here auto-applies this as a decision.
      */
     private Optional<ClusterRecord> pickBestCluster(long personId, float[] referenceVector) {
         List<ClusterRecord> owned   = clusterRepo.findByPersonId(personId);
@@ -320,9 +553,9 @@ public class PersonCorrectionService {
     }
 
     private long mostCentralFaceId(Map<Long, float[]> vectors, float[] centroid) {
-        long  best    = vectors.keySet()
-                               .iterator()
-                               .next();
+        long best = vectors.keySet()
+                           .iterator()
+                           .next();
         float bestSim = -1f;
         for (Map.Entry<Long, float[]> e : vectors.entrySet()) {
             float sim = EmbeddingMath.dot(e.getValue(), centroid);

@@ -26,6 +26,7 @@
                             <ProgressIndicator fx:id="faceLoadIndicator" maxHeight="48.0" maxWidth="48.0" visible="false" />
                         </StackPane>
                         <Button fx:id="browseFacesButton" disable="true" maxWidth="1.7976931348623157E308" onAction="#onBrowseFaces" text="Browse faces…" />
+                        <Button fx:id="mergeIntoButton" disable="true" maxWidth="1.7976931348623157E308" onAction="#onMergeInto" text="Merge into…" />
                     </VBox>
 
                     <!-- ── Editable info fields ── -->
