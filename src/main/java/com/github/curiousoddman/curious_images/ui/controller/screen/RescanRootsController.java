@@ -3,15 +3,14 @@ package com.github.curiousoddman.curious_images.ui.controller.screen;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRecord;
 import com.github.curiousoddman.curious_images.domain.imports.ImportJob;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
+import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
+import com.github.curiousoddman.curious_images.ui.util.StageUtils;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobDescriptor;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.layout.VBox;
-import javafx.stage.Stage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -106,29 +105,15 @@ public class RescanRootsController implements Initializable {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void close() {
-        Stage stage = (Stage) rootsContainer.getScene()
-                                            .getWindow();
-        stage.close();
+        StageUtils.closeWindowOf(rootsContainer);
     }
 
     private void showError(String title, String message) {
-        Alert alert = new Alert(AlertType.ERROR);       // FIXME: centralize Alert creation
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.initOwner(rootsContainer.getScene()
-                                      .getWindow());
-        alert.showAndWait();
+        AlertHelper.showError(rootsContainer, title, message);
     }
 
     private void showInfo(String title, String message) {
-        Alert alert = new Alert(AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.initOwner(rootsContainer.getScene()
-                                      .getWindow());
-        alert.showAndWait();
+        AlertHelper.showInfo(rootsContainer, title, message);
     }
 
     // ── Inner types ───────────────────────────────────────────────────────────

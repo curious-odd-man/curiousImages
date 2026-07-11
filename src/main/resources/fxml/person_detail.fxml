@@ -21,7 +21,7 @@
 
                     <!-- ── Face thumbnail + picker buttons ── -->
                     <VBox alignment="TOP_CENTER" maxWidth="140.0" minWidth="140.0" spacing="6.0">
-                        <StackPane fx:id="faceImageStack" maxHeight="128.0" maxWidth="128.0" minHeight="128.0" minWidth="128.0" style="-fx-border-color: #aaaaaa; -fx-border-width: 1; -fx-border-radius: 4;">
+                        <StackPane fx:id="faceImageStack" maxHeight="128.0" maxWidth="128.0" minHeight="128.0" minWidth="128.0" styleClass="thumbnail-frame">
                             <ImageView fx:id="faceImageView" fitHeight="128.0" fitWidth="128.0" onMouseClicked="#onBrowseFaces" preserveRatio="true" />
                             <ProgressIndicator fx:id="faceLoadIndicator" maxHeight="48.0" maxWidth="48.0" visible="false" />
                         </StackPane>
@@ -34,26 +34,26 @@
 
                         <!-- Name -->
                         <HBox alignment="CENTER_LEFT" spacing="8.0">
-                            <Label minWidth="100.0" style="-fx-font-weight: bold;" text="Name:" />
-                            <TextField fx:id="nameField" editable="false" promptText="Double-click to edit" style="-fx-background-color: transparent; -fx-border-color: transparent;" HBox.hgrow="ALWAYS" />
+                            <Label minWidth="100.0" styleClass="bold-label" text="Name:" />
+                            <TextField fx:id="nameField" editable="false" promptText="Double-click to edit" HBox.hgrow="ALWAYS" />
                         </HBox>
 
                         <!-- Date of Birth -->
                         <HBox alignment="CENTER_LEFT" spacing="8.0">
-                            <Label minWidth="100.0" style="-fx-font-weight: bold;" text="Date of Birth:" />
-                            <TextField fx:id="dobField" editable="false" promptText="Double-click to edit (YYYY-MM-DD)" style="-fx-background-color: transparent; -fx-border-color: transparent;" HBox.hgrow="ALWAYS" />
+                            <Label minWidth="100.0" styleClass="bold-label" text="Date of Birth:" />
+                            <TextField fx:id="dobField" editable="false" promptText="Double-click to edit (YYYY-MM-DD)" HBox.hgrow="ALWAYS" />
                         </HBox>
 
                         <Separator />
 
                         <!-- Notes -->
                         <VBox spacing="4.0">
-                            <Label style="-fx-font-weight: bold;" text="Notes:" />
-                            <TextArea fx:id="notesArea" editable="false" prefRowCount="3" promptText="Double-click to edit notes…" style="-fx-background-color: transparent; -fx-border-color: transparent;" wrapText="true" />
+                            <Label styleClass="bold-label" text="Notes:" />
+                            <TextArea fx:id="notesArea" editable="false" prefRowCount="3" promptText="Double-click to edit notes…" wrapText="true" />
                         </VBox>
 
                         <!-- Editing hint -->
-                        <Label fx:id="editHintLabel" style="-fx-text-fill: #888888; -fx-font-size: 11;" text="Double-click any field to edit  ·  Press Enter (or Tab out) to save  ·  Esc to cancel" />
+                        <Label fx:id="editHintLabel" styleClass="hint-text" text="Double-click any field to edit  ·  Press Enter (or Tab out) to save  ·  Esc to cancel" />
                     </VBox>
                 </HBox>
             </content>

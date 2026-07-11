@@ -21,15 +21,15 @@ import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridRow
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridCallbacks;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridRow;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoRowCell;
+import com.github.curiousoddman.curious_images.ui.styles.CssClasses;
+import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
@@ -37,6 +37,7 @@ import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextInputControl;
 import javafx.scene.control.TitledPane;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
@@ -225,11 +226,6 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
     private final DelayedAction thumbnailGenDebounce   = new DelayedAction(THUMBNAIL_GEN_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
     private final DelayedAction gridMetricsDebounce    = new DelayedAction(GRID_METRICS_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
 
-    private static final String EDIT_STYLE_ACTIVE =
-            "-fx-background-color: -fx-control-inner-background; -fx-border-color: #aaaaaa; -fx-border-radius: 3;";
-    private static final String EDIT_STYLE_IDLE   =
-            "-fx-background-color: transparent; -fx-border-color: transparent;";
-
     // ── Initialisation ────────────────────────────────────────────────────────
 
     @Override
@@ -237,9 +233,9 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
         noImageAvailable = new Image(
                 Objects.requireNonNull(getClass().getResourceAsStream("/img/noimage.png")));
 
-        wireEditableField(nameField, this::commitName);
-        wireEditableTextArea(notesArea, this::commitNotes);
-        wireEditableField(dobField, this::commitDob);
+        wireEditableControl(nameField, this::commitName);
+        wireEditableControl(notesArea, this::commitNotes);
+        wireEditableControl(dobField, this::commitDob);
 
         ageAlbumTree.getSelectionModel()
                     .selectedItemProperty()
@@ -247,7 +243,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
 
         // Virtualized photo grid — same approach as LibraryController's photoGridListView: only
         // enough PhotoRowCells to cover the viewport (plus a small buffer) are ever live.
-        photoGridListView.setCellFactory(lv -> new PhotoRowCell(this));
+        photoGridListView.setCellFactory(lv -> new PhotoRowCell(this, fxmlLoader));
         photoGridListView.setFocusTraversable(false);
 
         photoGridListView.widthProperty()
@@ -330,103 +326,64 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
     // ── Inline editing wiring ─────────────────────────────────────────────────
 
     /**
-     * Makes a {@link TextField} behave as a read-only label until double-clicked,
-     * then commits on Enter or focus-loss, cancels on Escape.
+     * Makes any {@link TextInputControl} (covers both {@link TextField} and {@link TextArea} —
+     * {@code nameField}/{@code dobField} are the former, {@code notesArea} the latter) behave as
+     * a read-only label until double-clicked, then commits on focus-loss, cancels on Escape.
+     * {@link TextField} additionally commits on Enter (a {@link TextArea} treats Enter as a
+     * newline instead, so that key is left alone there).
      */
-    private void wireEditableField(TextField field, Runnable onCommit) {
-        field.setStyle(EDIT_STYLE_IDLE);
-        field.setEditable(false);
+    private void wireEditableControl(TextInputControl control, Runnable onCommit) {
+        control.getStyleClass()
+               .add(CssClasses.EDITABLE_FIELD);
+        control.setEditable(false);
 
-        field.setOnMouseClicked(e -> {
+        control.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) {
-                activateField(field);
+                activateControl(control);
             }
         });
 
-        String[] savedValue = {field.getText()};
+        String[] savedValue = {control.getText()};
 
-        field.focusedProperty()
-             .addListener((obs, wasFocused, isFocused) -> {
-                 if (wasFocused && !isFocused) {
-                     // commit on focus-loss (e.g. Tab-out)
-                     deactivateField(field);
-                     onCommit.run();
-                 }
-                 if (isFocused) {
-                     savedValue[0] = field.getText();
-                 }
-             });
+        control.focusedProperty()
+               .addListener((obs, wasFocused, isFocused) -> {
+                   if (wasFocused && !isFocused) {
+                       // commit on focus-loss (e.g. Tab-out)
+                       deactivateControl(control);
+                       onCommit.run();
+                   }
+                   if (isFocused) {
+                       savedValue[0] = control.getText();
+                   }
+               });
 
-        field.setOnKeyPressed(e -> {
-            if (e.getCode() == KeyCode.ENTER) {
-                deactivateField(field);
+        control.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.ENTER && control instanceof TextField) {
+                deactivateControl(control);
                 onCommit.run();
                 e.consume();
             } else if (e.getCode() == KeyCode.ESCAPE) {
-                field.setText(savedValue[0]);
-                deactivateField(field);
+                control.setText(savedValue[0]);
+                deactivateControl(control);
                 e.consume();
             }
         });
     }
 
-    /**
-     * Same for {@link TextArea}: double-click activates, Escape cancels,
-     * focus-loss commits (Enter inserts a newline as normal).
-     */
-    private void wireEditableTextArea(TextArea area, Runnable onCommit) {
-        area.setStyle(EDIT_STYLE_IDLE);
-        area.setEditable(false);
-
-        area.setOnMouseClicked(e -> {
-            if (e.getClickCount() == 2) {
-                activateArea(area);
-            }
-        });
-
-        String[] savedValue = {area.getText()};
-
-        area.focusedProperty()
-            .addListener((obs, wasFocused, isFocused) -> {
-                if (wasFocused && !isFocused) {
-                    deactivateArea(area);
-                    onCommit.run();
-                }
-                if (isFocused) {
-                    savedValue[0] = area.getText();
-                }
-            });
-
-        area.setOnKeyPressed(e -> {
-            if (e.getCode() == KeyCode.ESCAPE) {
-                area.setText(savedValue[0]);
-                deactivateArea(area);
-                e.consume();
-            }
-        });
+    private void activateControl(TextInputControl control) {
+        control.setEditable(true);
+        control.getStyleClass()
+               .add(CssClasses.EDITABLE_FIELD_ACTIVE);
+        control.requestFocus();
+        if (control instanceof TextField field) {
+            field.selectAll();
+        }
     }
 
-    private void activateField(TextField field) {
-        field.setEditable(true);
-        field.setStyle(EDIT_STYLE_ACTIVE);
-        field.requestFocus();
-        field.selectAll();
-    }
-
-    private void deactivateField(TextField field) {
-        field.setEditable(false);
-        field.setStyle(EDIT_STYLE_IDLE);
-    }
-
-    private void activateArea(TextArea area) {
-        area.setEditable(true);
-        area.setStyle(EDIT_STYLE_ACTIVE);
-        area.requestFocus();
-    }
-
-    private void deactivateArea(TextArea area) {
-        area.setEditable(false);
-        area.setStyle(EDIT_STYLE_IDLE);
+    private void deactivateControl(TextInputControl control) {
+        control.setEditable(false);
+        control.getStyleClass()
+               .remove(CssClasses.EDITABLE_FIELD_ACTIVE);
     }
 
     // ── Commit handlers ───────────────────────────────────────────────────────
@@ -614,14 +571,11 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
         }
         long targetPersonId = idByLabel.get(chosenLabel.get());
 
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
+        boolean confirmed = AlertHelper.confirm(nameField, "Merge people",
                 "Merge \"" + nameField.getText() + "\" into \"" + chosenLabel.get() + "\"? "
                         + "All of this person's face groups will become part of the target. "
-                        + "This can't be undone from the UI.",
-                ButtonType.OK, ButtonType.CANCEL);
-        confirm.setHeaderText("Merge people");
-        Optional<ButtonType> result = confirm.showAndWait();
-        if (result.isEmpty() || result.get() != ButtonType.OK) {
+                        + "This can't be undone from the UI.");
+        if (!confirmed) {
             return;
         }
 

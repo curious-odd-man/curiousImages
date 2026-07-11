@@ -1,11 +1,12 @@
 package com.github.curiousoddman.curious_images.ui.nodes.photogrid;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.model.LoadedFxml;
+import com.github.curiousoddman.curious_images.ui.FxmlLoader;
+import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridRowController;
-import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.control.ListCell;
-import lombok.SneakyThrows;
 
 import java.util.List;
 
@@ -28,18 +29,17 @@ public class PhotoRowCell extends ListCell<PhotoGridRow> {
 
     private List<PhotoRecord> currentPhotos;
 
-    @SneakyThrows
-    public PhotoRowCell(PhotoGridCallbacks callbacks) {
+    public PhotoRowCell(PhotoGridCallbacks callbacks, FxmlLoader fxmlLoader) {
         this.callbacks = callbacks;
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/photo_grid_row.fxml"));
-        this.rowNode = loader.load();
-        this.rowController = loader.getController();
+        LoadedFxml<PhotoGridRowController> loaded = fxmlLoader.load(FxmlView.PHOTO_GRID_ROW, null);
+        this.rowNode = loaded.parent();
+        this.rowController = loaded.controller();
         rowController.bindOnce(
                 callbacks.thumbnailSizeProperty(),
                 callbacks::onPhotoClicked,
                 callbacks::tooltipTextFor
         );
-        setStyle("-fx-background-color: transparent; -fx-padding: 0;");
+        getStyleClass().add("photo-row-cell");
         setFocusTraversable(false);
     }
 

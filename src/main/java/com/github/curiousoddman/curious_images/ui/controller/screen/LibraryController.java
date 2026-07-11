@@ -277,7 +277,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
         // the viewport plus a small buffer, recycling them on scroll — this replaces the old
         // ever-growing FlowPane (see the FIXME this used to carry) with a node count bounded by
         // viewport size, not selection size.
-        photoGridListView.setCellFactory(lv -> new PhotoRowCell(this));
+        photoGridListView.setCellFactory(lv -> new PhotoRowCell(this, fxmlLoader));
         photoGridListView.setFocusTraversable(false);
 
         // Column count depends on viewport width; row height depends on thumbnail size. Both are

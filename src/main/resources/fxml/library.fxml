@@ -198,7 +198,7 @@
                     <ProgressBar fx:id="backgroundProgressBar" maxHeight="1.7976931348623157E308"
                                  maxWidth="1.7976931348623157E308" prefWidth="400.0"/>
                     <Label fx:id="backgroundProgressLabel" contentDisplay="CENTER"
-                           style="-fx-effect: dropshadow(gaussian, black, 2, 0.7, 0, 0);;" text="1 of 10"
+                           styleClass="progress-label-shadow" text="1 of 10"
                            textAlignment="CENTER" textFill="WHITE">
                         <font>
                             <Font name="System Bold" size="20.0"/>

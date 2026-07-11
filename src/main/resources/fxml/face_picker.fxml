@@ -16,7 +16,7 @@
 <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="1080.0" prefWidth="1920.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.FacePickerController">
 
     <top>
-        <Label fx:id="titleLabel" style="-fx-font-weight: bold; -fx-font-size: 14;" text="Click a face to set as cover · Ctrl/Shift-click to select multiple · Right-click for actions">
+        <Label fx:id="titleLabel" styleClass="dialog-title" text="Click a face to set as cover · Ctrl/Shift-click to select multiple · Right-click for actions">
             <BorderPane.margin>
                 <Insets bottom="8.0" left="12.0" right="12.0" top="12.0" />
             </BorderPane.margin>
@@ -24,8 +24,10 @@
     </top>
 
     <center>
-        <ScrollPane fitToWidth="true" style="-fx-background-color: transparent;" BorderPane.alignment="CENTER">
-            <VBox fx:id="faceSectionsBox" spacing="12.0" style="-fx-padding: 4 12 12 12;" />
+        <ScrollPane fitToWidth="true" styleClass="transparent-background" BorderPane.alignment="CENTER">
+            <VBox fx:id="faceSectionsBox" spacing="12.0">
+                <padding><Insets bottom="12.0" left="12.0" right="12.0" top="4.0" /></padding>
+            </VBox>
         </ScrollPane>
     </center>
 
@@ -34,7 +36,7 @@
             <padding>
                 <Insets bottom="12.0" left="12.0" right="12.0" top="8.0" />
             </padding>
-            <Label fx:id="selectionCountLabel" style="-fx-text-fill: #666666;" HBox.hgrow="ALWAYS" />
+            <Label fx:id="selectionCountLabel" styleClass="muted-text" HBox.hgrow="ALWAYS" />
             <Button fx:id="moveSelectedMenuButton" mnemonicParsing="false" onAction="#onMoveSelected" text="Move Selected to…" />
             <Button fx:id="cancelButton" cancelButton="true" onAction="#onCancel" text="Cancel" />
         </HBox>

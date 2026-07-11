@@ -1,15 +1,18 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.model.LoadedFxml;
+import com.github.curiousoddman.curious_images.ui.FxmlLoader;
+import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoRowCell;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
-import javafx.scene.Parent;
 import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
-import lombok.SneakyThrows;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -31,8 +34,16 @@ import java.util.function.Function;
  * viewport plus a small buffer (and recycles them as the user scrolls), the total number of live
  * {@link PhotoCellController} instances stays bounded regardless of how many thousands of photos
  * are in the selection.
+ * <p>
+ * <b>Scope:</b> {@code prototype}, not the app's usual singleton {@code @Component} — a fresh
+ * instance is created every time a {@link PhotoRowCell} loads {@code photo_grid_row.fxml}.
  */
+@Component
+@Scope("prototype")
+@RequiredArgsConstructor
 public class PhotoGridRowController implements Initializable {
+
+    private final FxmlLoader fxmlLoader;
 
     @FXML
     private HBox rowBox;
@@ -114,17 +125,15 @@ public class PhotoGridRowController implements Initializable {
         }
     }
 
-    @SneakyThrows
     private void ensurePoolSize(int minSize) {
         while (pool.size() < minSize) {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/photo_cell.fxml"));
-            Parent               node       = loader.load();
-            PhotoCellController controller = loader.getController();
+            LoadedFxml<PhotoCellController> loaded = fxmlLoader.load(FxmlView.PHOTO_CELL, null);
+            PhotoCellController controller = loaded.controller();
             controller.bindThumbnailSize(thumbnailSize);
             controller.setOnPhotoClicked(onPhotoClicked);
             pool.add(controller);
             rowBox.getChildren()
-                  .add(node);
+                  .add(loaded.parent());
         }
     }
 }

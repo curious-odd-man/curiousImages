@@ -2,14 +2,14 @@ package com.github.curiousoddman.curious_images.ui.controller.screen;
 
 import com.github.curiousoddman.curious_images.model.AddFilesRequest;
 import com.github.curiousoddman.curious_images.model.bundle.AddFilesBundle;
+import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
+import com.github.curiousoddman.curious_images.ui.util.StageUtils;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobDescriptor;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ListView;
 import javafx.scene.control.RadioButton;
@@ -17,7 +17,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
 import javafx.stage.DirectoryChooser;
-import javafx.stage.Stage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -191,18 +190,10 @@ public class AddFilesController implements Initializable {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void close() {
-        Stage stage = (Stage) sourcePathsList.getScene()
-                                             .getWindow();
-        stage.close();
+        StageUtils.closeWindowOf(sourcePathsList);
     }
 
     private void showError(String title, String message) {
-        Alert alert = new Alert(AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.initOwner(sourcePathsList.getScene()
-                                       .getWindow());
-        alert.showAndWait();
+        AlertHelper.showError(sourcePathsList, title, message);
     }
 }

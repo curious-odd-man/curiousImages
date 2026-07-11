@@ -11,8 +11,9 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Font;
 import javafx.util.Duration;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
 
 import java.net.URL;
 import java.util.ResourceBundle;
@@ -26,7 +27,13 @@ import java.util.function.Consumer;
  * resize / thumbnail-size change. This is what replaces the old {@code FlowPane} approach of
  * creating one permanent {@code Node} per photo: the number of live instances is now bounded by
  * (visible rows × columns), not by the size of the selection.
+ * <p>
+ * <b>Scope:</b> {@code prototype}, not the app's usual singleton {@code @Component} — a fresh
+ * instance is created every time the pool grows (see {@code PhotoGridRowController#ensurePoolSize}),
+ * mirroring {@code FacePickerCellController}/{@code DuplicateCellController}.
  */
+@Component
+@Scope("prototype")
 public class PhotoCellController implements Initializable {
 
     @FXML
@@ -47,7 +54,6 @@ public class PhotoCellController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        tooltip.setFont(new Font("Consolas", 15));
         tooltip.setShowDelay(Duration.millis(500));
         imageView.setPreserveRatio(true);
     }

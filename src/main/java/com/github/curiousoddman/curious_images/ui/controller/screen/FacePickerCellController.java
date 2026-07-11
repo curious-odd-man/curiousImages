@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
+import com.github.curiousoddman.curious_images.ui.styles.CssClasses;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Label;
@@ -46,11 +47,6 @@ import static com.sun.javafx.util.Utils.runOnFxThread;
 @Component
 @Scope("prototype")
 public class FacePickerCellController implements Initializable {
-
-    private static final String STYLE_NORMAL   =
-            "-fx-border-color: #aaaaaa; -fx-border-width: 1; -fx-border-radius: 4; -fx-cursor: hand;";
-    private static final String STYLE_SELECTED =
-            "-fx-border-color: #2f7dd1; -fx-border-width: 3; -fx-border-radius: 4; -fx-cursor: hand;";
 
     @FXML
     public StackPane         cellRoot;
@@ -128,7 +124,16 @@ public class FacePickerCellController implements Initializable {
      */
     public void setSelected(boolean selected) {
         this.selected = selected;
-        cellRoot.setStyle(selected ? STYLE_SELECTED : STYLE_NORMAL);
+        if (selected) {
+            if (!cellRoot.getStyleClass()
+                         .contains(CssClasses.FACE_CELL_SELECTED)) {
+                cellRoot.getStyleClass()
+                        .add(CssClasses.FACE_CELL_SELECTED);
+            }
+        } else {
+            cellRoot.getStyleClass()
+                    .remove(CssClasses.FACE_CELL_SELECTED);
+        }
     }
 
     public boolean isSelected() {

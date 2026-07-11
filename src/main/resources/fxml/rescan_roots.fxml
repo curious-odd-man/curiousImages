@@ -15,7 +15,7 @@
         <Insets bottom="16.0" left="16.0" right="16.0" top="16.0" />
     </padding>
 
-    <Label style="-fx-font-weight: bold;" text="Select roots to rescan:" />
+    <Label styleClass="bold-label" text="Select roots to rescan:" />
 
     <!-- Scrollable list of CheckBoxes, one per import root -->
     <ScrollPane fitToWidth="true" hbarPolicy="NEVER" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="220.0">
@@ -38,7 +38,7 @@
 
     <!-- OK / Cancel -->
     <HBox alignment="CENTER_RIGHT" spacing="8.0">
-        <Button defaultButton="true" mnemonicParsing="false" onAction="#onRescan" style="-fx-font-weight: bold;" text="Rescan selected" />
+        <Button defaultButton="true" mnemonicParsing="false" onAction="#onRescan" styleClass="bold-label" text="Rescan selected" />
         <Button mnemonicParsing="false" onAction="#onCancel" text="Cancel" />
     </HBox>
 </VBox>

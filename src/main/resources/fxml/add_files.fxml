@@ -23,7 +23,7 @@
     </padding>
 
     <!-- ── Section 1: What to add ─────────────────────────────────────────── -->
-    <Label text="Source files / folders" style="-fx-font-weight: bold;" />
+    <Label text="Source files / folders" styleClass="bold-label" />
 
     <VBox spacing="6.0">
         <!-- List of paths to be imported (populated from DnD or file chooser) -->
@@ -37,7 +37,7 @@
     <Separator />
 
     <!-- ── Section 2: How to import ──────────────────────────────────────── -->
-    <Label text="Import mode" style="-fx-font-weight: bold;" />
+    <Label text="Import mode" styleClass="bold-label" />
 
     <VBox spacing="6.0">
         <RadioButton fx:id="modeNewRoot" text="Register as a new import root (files stay in place)"
@@ -65,7 +65,7 @@
     <Separator />
 
     <!-- ── Section 3: Post-import options ───────────────────────────────── -->
-    <Label text="After import" style="-fx-font-weight: bold;" />
+    <Label text="After import" styleClass="bold-label" />
 
     <VBox spacing="6.0">
         <CheckBox fx:id="runAiCheckBox"
@@ -82,7 +82,7 @@
     <HBox alignment="CENTER_RIGHT" spacing="8.0">
         <Button text="Start import" onAction="#onStartImport"
                 defaultButton="true" mnemonicParsing="false"
-                style="-fx-font-weight: bold;" />
+                styleClass="bold-label" />
         <Button text="Cancel" onAction="#onCancel" mnemonicParsing="false" />
     </HBox>
 </VBox>

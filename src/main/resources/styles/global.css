@@ -11,3 +11,95 @@
     -fx-border-radius: 4;
     -fx-background-color: derive(#c62828, 90%);
 }
+/* Face-picker grid cell selection border (replaces inline setStyle in FacePickerCellController) */
+.face-cell {
+    -fx-border-color: #aaaaaa;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+    -fx-cursor: hand;
+}
+
+.face-cell-selected {
+    -fx-border-color: #2f7dd1;
+    -fx-border-width: 3;
+    -fx-border-radius: 4;
+    -fx-cursor: hand;
+}
+
+.face-cover-badge {
+    -fx-background-color: rgba(0, 0, 0, 0.65);
+    -fx-text-fill: white;
+    -fx-font-size: 10;
+    -fx-padding: 2 4 2 4;
+    -fx-background-radius: 3;
+}
+
+/* Inline-editable Name/DoB/Notes fields (replaces inline setStyle in PersonDetailController) */
+.editable-field {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.editable-field-active {
+    -fx-background-color: -fx-control-inner-background;
+    -fx-border-color: #aaaaaa;
+    -fx-border-radius: 3;
+}
+
+/* ListCell wrapper for one row of the virtualized photo grid (replaces inline setStyle in PhotoRowCell) */
+.photo-row-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+/* Shared monospace text style (photo details labels / tooltips) */
+.monospace-text {
+    -fx-font-family: "Consolas";
+    -fx-font-size: 15;
+}
+
+/* Bold section/field label, used across several dialogs (Person Detail, Face Picker, Rescan
+   Roots, Add Files) wherever a Label or the "Rescan selected"/"Start import" button needs to
+   stand out as a heading/primary action. */
+.bold-label {
+    -fx-font-weight: bold;
+}
+
+/* Dialog header line (Face Picker) */
+.dialog-title {
+    -fx-font-weight: bold;
+    -fx-font-size: 14;
+}
+
+/* Small greyed-out helper text under an editable form (Person Detail's edit hint) */
+.hint-text {
+    -fx-text-fill: #888888;
+    -fx-font-size: 11;
+}
+
+/* Secondary/less prominent text, e.g. a selection-count summary (Face Picker) */
+.muted-text {
+    -fx-text-fill: #666666;
+}
+
+/* Transparent-background ScrollPane viewport (Face Picker) */
+.transparent-background {
+    -fx-background-color: transparent;
+}
+
+/* Static (non-interactive) thumbnail frame, e.g. the person profile's face preview */
+.thumbnail-frame {
+    -fx-border-color: #aaaaaa;
+    -fx-border-width: 1;
+    -fx-border-radius: 4;
+}
+
+/* Preloader splash screen loading text */
+.loading-text {
+    -fx-font-size: 18px;
+}
+
+/* Drop-shadow on the "N of M" background-progress overlay label so it stays legible over any
+   thumbnail behind it (library.fxml) */
+.progress-label-shadow {
+    -fx-effect: dropshadow(gaussian, black, 2, 0.7, 0, 0);
+}

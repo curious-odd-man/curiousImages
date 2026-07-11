@@ -10,26 +10,22 @@ import com.github.curiousoddman.curious_images.model.bundle.SlideshowBundle;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
+import com.github.curiousoddman.curious_images.ui.controller.custom.DuplicateCellController;
 import com.github.curiousoddman.curious_images.ui.styles.CssClasses;
+import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Accordion;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.Label;
 import javafx.scene.control.TitledPane;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Font;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -54,8 +50,6 @@ import static com.sun.javafx.util.Utils.runOnFxThread;
 @Component
 @RequiredArgsConstructor
 public class DuplicatesController implements Initializable {
-
-    public static final Font CONSOLAS = new Font("Consolas", 15);
 
     private final FxmlLoader                 fxmlLoader;
     private final DuplicateGroupRepository   duplicateGroupRepository;
@@ -158,28 +152,17 @@ public class DuplicatesController implements Initializable {
      * tooltip — the whole point is comparing photos side by side), and a "keep" checkbox.
      */
     private DuplicateCell createDuplicateCell(List<DuplicateCell> cells, PhotoRecord photo, ThumbnailRecord thumbnail) {
-        // FIXME:  This should be FXML file
-        ImageView imageView = new ImageView(getImage(thumbnail, noImageAvailable));
-        imageView.setPreserveRatio(true);
-        imageView.setFitWidth(160.0);
-        imageView.setFitHeight(160.0);
+        LoadedFxml<DuplicateCellController> loaded = fxmlLoader.load(FxmlView.DUPLICATE_CELL, null);
+        DuplicateCellController             cell   = loaded.controller();
 
-        Label infoLabel = new Label(buildPhotoDetailsText(photo));
-        infoLabel.setWrapText(true);
-        infoLabel.setMaxWidth(220.0);
-        infoLabel.setFont(CONSOLAS);
+        cell.setThumbnail(getImage(thumbnail, noImageAvailable));
+        cell.setInfoText(buildPhotoDetailsText(photo));
 
-        CheckBox checkBox = new CheckBox("Keep");
-
-        VBox container = new VBox(6.0, imageView, infoLabel, checkBox);
-        container.setAlignment(Pos.TOP_CENTER);
-        container.setPadding(new Insets(8.0));
-        container.setMaxWidth(240.0);
-
-        DuplicateCell cell = new DuplicateCell(photo, checkBox, container);
-        checkBox.selectedProperty()
-                .addListener((obs, was, isNow) -> updateActionButtonsState());
-        return cell;
+        DuplicateCell result = new DuplicateCell(photo, cell.checkBox(), cell.container());
+        cell.checkBox()
+            .selectedProperty()
+            .addListener((obs, was, isNow) -> updateActionButtonsState());
+        return result;
     }
 
     // ----------------------------------------------------------------------------------------
@@ -287,12 +270,10 @@ public class DuplicatesController implements Initializable {
               .append(failure.reason())
               .append('\n');
         }
-        runOnFxThread(() -> {
-            Alert alert = new Alert(Alert.AlertType.WARNING, sb.toString()
-                                                               .strip(), ButtonType.OK);
-            alert.setHeaderText("Some photos couldn't be moved to the recycle bin and were left in place");
-            alert.showAndWait();
-        });
+        runOnFxThread(() -> AlertHelper.showWarning(duplicatesAccordion,
+                "Some photos couldn't be moved to the recycle bin and were left in place",
+                sb.toString()
+                  .strip()));
     }
 
     // ----------------------------------------------------------------------------------------
