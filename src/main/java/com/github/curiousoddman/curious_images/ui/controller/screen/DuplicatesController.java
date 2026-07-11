@@ -2,17 +2,22 @@ package com.github.curiousoddman.curious_images.ui.controller.screen;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
+import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateResolutionService;
+import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.model.DuplicateGroupView;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
+import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.custom.DuplicateCellController;
 import com.github.curiousoddman.curious_images.ui.styles.CssClasses;
 import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
 import com.github.curiousoddman.curious_images.ui.util.StageUtils;
+import com.github.curiousoddman.curious_images.util.async.DelayedAction;
+import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -28,12 +33,18 @@ import javafx.scene.layout.VBox;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController.getImage;
 import static com.github.curiousoddman.curious_images.util.HumanReadableUtils.size;
@@ -46,9 +57,13 @@ import static com.sun.javafx.util.Utils.runOnFxThread;
 @RequiredArgsConstructor
 public class DuplicatesController implements Initializable {
 
+    private static final int THUMBNAIL_GEN_DEBOUNCE_MS = 150;
+
     private final FxmlLoader                 fxmlLoader;
     private final DuplicateGroupRepository   duplicateGroupRepository;
     private final DuplicateResolutionService duplicateResolutionService;
+    private final ThumbnailRepository        thumbnailRepository;
+    private final JobManager                 jobManager;
 
     @FXML
     public Accordion duplicatesAccordion;
@@ -58,6 +73,16 @@ public class DuplicatesController implements Initializable {
     public Button    deleteSelectedButton;
 
     private Image noImageAvailable;
+
+    private final DelayedAction thumbnailGenDebounce   = new DelayedAction(THUMBNAIL_GEN_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
+    private final Set<Long>     pendingThumbnailGenIds = new HashSet<>();
+
+    /**
+     * Rebuilt on every {@link #populateDuplicatesAccordion} call (the whole accordion is
+     * replaced each load, unlike the virtualized grid in {@code LibraryController}), so it always
+     * reflects exactly the cells currently in the tree — no stale entries to prune.
+     */
+    private final Map<Long, DuplicateCellController> visiblePhotoCells = new HashMap<>();
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -94,17 +119,24 @@ public class DuplicatesController implements Initializable {
     }
 
     private void populateDuplicatesAccordion(List<DuplicateGroupView> groups) {
+        visiblePhotoCells.clear();
+        List<Long> missingThumbnailIds = new ArrayList<>();
+
         ObservableList<TitledPane> panes = duplicatesAccordion.getPanes();
         panes.setAll(groups.stream()
-                           .map(this::buildDuplicateGroupPane)
+                           .map(group -> buildDuplicateGroupPane(group, missingThumbnailIds))
                            .toList());
         if (!panes.isEmpty()) {
             duplicatesAccordion.setExpandedPane(panes.getFirst());
         }
         updateActionButtonsState();
+
+        if (!missingThumbnailIds.isEmpty()) {
+            queueThumbnailGeneration(missingThumbnailIds);
+        }
     }
 
-    private TitledPane buildDuplicateGroupPane(DuplicateGroupView group) {
+    private TitledPane buildDuplicateGroupPane(DuplicateGroupView group, List<Long> missingThumbnailIds) {
         List<DuplicateCell> cells     = new ArrayList<>();
         FlowPane            cellsPane = new FlowPane(10.0, 10.0);
         cellsPane.setPadding(new Insets(10.0));
@@ -114,6 +146,12 @@ public class DuplicatesController implements Initializable {
             VBox container = cell.container();
             cellsPane.getChildren()
                      .add(container);
+
+            ThumbnailRecord thumbnail = pwt.thumbnail();
+            if (thumbnail == null || !ThumbnailUtils.hasCachedFile(thumbnail)) {
+                missingThumbnailIds.add(pwt.photo()
+                                           .getId());
+            }
         }
 
         // Wire slideshow click for each cell in this duplicate group
@@ -153,11 +191,69 @@ public class DuplicatesController implements Initializable {
         cell.setThumbnail(getImage(thumbnail, noImageAvailable));
         cell.setInfoText(buildPhotoDetailsText(photo));
 
-        DuplicateCell result = new DuplicateCell(photo, cell.checkBox(), cell.container());
+        visiblePhotoCells.put(photo.getId(), cell);
+
+        DuplicateCell result = new DuplicateCell(photo, cell.checkBox(), cell.container(), cell);
         cell.checkBox()
             .selectedProperty()
             .addListener((obs, was, isNow) -> updateActionButtonsState());
         return result;
+    }
+
+    // ----------------------------------------------------------------------------------------
+    // Thumbnail generation
+    // ----------------------------------------------------------------------------------------
+
+    /**
+     * Debounced request for real-thumbnail generation, mirroring {@code LibraryController}'s
+     * approach: repeated calls while the tab is loading/repopulating coalesce into one job
+     * submission instead of firing a job per group.
+     */
+    private void queueThumbnailGeneration(List<Long> ids) {
+        pendingThumbnailGenIds.addAll(ids);
+        thumbnailGenDebounce.reSchedule(() -> {
+            if (pendingThumbnailGenIds.isEmpty()) {
+                return;
+            }
+            List<Long> batch = List.copyOf(pendingThumbnailGenIds);
+            pendingThumbnailGenIds.clear();
+            jobManager.submitThumbnailGenerationJob(batch);
+        });
+    }
+
+    /**
+     * Swaps the placeholder image of any still-visible duplicate cell for the real thumbnail,
+     * once {@code ThumbnailGenerationJob} has generated it. Photo IDs not currently in
+     * {@link #visiblePhotoCells} (accordion reloaded/collapsed since the request was made) are
+     * simply skipped — not an error, since {@link #loadDuplicatesTab} always does a fresh, correct
+     * lookup on the next reload.
+     * <p>
+     * Written directly against {@link DuplicateCellController} rather than reusing
+     * {@code ThumbnailUtils.updateThumbnailImage}, since that helper is typed to
+     * {@code PhotoCellController} and this tab's cell controller doesn't share that interface.
+     */
+    @EventListener
+    public void onThumbnailsReady(ThumbnailsReadyEvent event) {
+        List<Long> relevantIds = event.getPhotoIds()
+                                      .stream()
+                                      .filter(visiblePhotoCells::containsKey)
+                                      .toList();
+        if (relevantIds.isEmpty()) {
+            return;
+        }
+        runOnDaemonThread("DuplicatesThumbnailUpdate", () -> {
+            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(relevantIds);
+            for (Map.Entry<Long, ThumbnailRecord> entry : thumbs.entrySet()) {
+                ThumbnailRecord thumbnail = entry.getValue();
+                if (!ThumbnailUtils.hasCachedFile(thumbnail)) {
+                    continue;
+                }
+                DuplicateCellController cell = visiblePhotoCells.get(entry.getKey());
+                if (cell != null) {
+                    runOnFxThread(() -> cell.setThumbnail(ThumbnailUtils.loadThumbnailImage(thumbnail)));
+                }
+            }
+        });
     }
 
     // ----------------------------------------------------------------------------------------
@@ -342,7 +438,8 @@ public class DuplicatesController implements Initializable {
      * red/green preview border, kept together so hover preview and button actions can read/style
      * them without walking the scene graph.
      */
-    private record DuplicateCell(PhotoRecord photo, CheckBox checkBox, VBox container) {
+    private record DuplicateCell(PhotoRecord photo, CheckBox checkBox, VBox container,
+                                 DuplicateCellController controller) {
     }
 
     /**
