@@ -124,7 +124,7 @@ public class AiPipelineJob extends BackgroundJob {
                 if (faceSet.contains(photoId)) {
                     List<DetectedFace> faces = retinaFaceDetector.detect(img);
                     for (DetectedFace face : faces) {
-                        Path faceThumbnailPath = faceThumbnailsRepository.createFaceThumbnail(ImageUtils.toBufferedImage(img), face);
+                        Path faceThumbnailPath = faceThumbnailsRepository.createFaceThumbnail(photo.getAbsolutePath(), ImageUtils.toBufferedImage(img), face);
                         long faceId = faceRepo.insertAndGetId(
                                 photoId, face.x(), face.y(), face.w(), face.h(),
                                 face.confidence(), toLandmarks(face.landmarks()), now, faceThumbnailPath);

@@ -9,19 +9,16 @@ import org.springframework.stereotype.Repository;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.nio.file.Path;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Repository
 @RequiredArgsConstructor
 public class FaceThumbnailsRepository {
     public static final int FACE_THUMBNAIL_SIZE = 128;
-    public static final int MAX_DIRECTORIES     = 100;
 
     private final ThumbnailGenerator thumbnailGenerator;
-    private final AtomicInteger      faceCounter = new AtomicInteger(0);
 
     @SneakyThrows
-    public Path createFaceThumbnail(BufferedImage img, DetectedFace face) {
+    public Path createFaceThumbnail(String originImageFullPath, BufferedImage img, DetectedFace face) {
         int x = (int) (img.getWidth() * face.x());
         int y = (int) (img.getHeight() * face.y());
         int w = (int) (img.getWidth() * face.w());
@@ -34,7 +31,7 @@ public class FaceThumbnailsRepository {
                 x, y, x + w, y + h, null
         );
 
-        Path thumbnailPath = constructPath();
+        Path thumbnailPath = constructPath(originImageFullPath, x, y, w, h);
         return thumbnailGenerator.writeThumbnail(
                                          faceImage,
                                          thumbnailPath,
@@ -43,17 +40,21 @@ public class FaceThumbnailsRepository {
                                  .cachePath();
     }
 
-    private Path constructPath() {
-        int i = faceCounter.addAndGet(1);
+    private Path constructPath(String originImageFullPath, int x, int y, int w, int h) {
+        Path path = Path.of(originImageFullPath);
+        String fileName = path.getFileName()
+                              .toString();
+        int lastIndexOfDot = fileName.lastIndexOf('.');
 
-        int firstLevelDir  = i % MAX_DIRECTORIES;
-        int secondLevelDir = (i / MAX_DIRECTORIES) % MAX_DIRECTORIES;
+        String dirName = null;
+        if (lastIndexOfDot > 0) {
+            dirName = fileName.substring(0, lastIndexOfDot);
+        } else {
+            dirName = fileName;
+        }
 
-        return Path.of(
-                ".cimages-faces",
-                String.valueOf(firstLevelDir),
-                String.valueOf(secondLevelDir),
-                i + ".jpg"
-        );
+        return path.getParent()
+                   .resolve(dirName)
+                   .resolve("%d_%d_%d_%d.jpg".formatted(x, y, w, h));
     }
 }
