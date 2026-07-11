@@ -40,3 +40,4 @@ logs
 /scripts/.venv/
 /src/main/resources/models/*
 !/src/main/resources/models/ai.md
+faces
