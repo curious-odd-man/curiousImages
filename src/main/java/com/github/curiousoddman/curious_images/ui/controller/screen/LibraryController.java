@@ -15,6 +15,7 @@ import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferences
 import com.github.curiousoddman.curious_images.event.model.AiPipelineCompleteEvent;
 import com.github.curiousoddman.curious_images.event.model.BackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.model.LibraryUpdatedEvent;
+import com.github.curiousoddman.curious_images.event.model.PersonDeletedEvent;
 import com.github.curiousoddman.curious_images.event.model.PersonRenamedEvent;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.event.payload.BackgroundProcessPayload;
@@ -453,6 +454,29 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
                 if (node != null && node.payload() instanceof PersonPayload(long personId)
                         && personId == event.getPersonId()) {
                     runOnFxThread(() -> personItem.setValue(new LibraryTreeNode(event.getNewName(), node.payload(), node.type())));
+                    return;
+                }
+            }
+        }
+    }
+
+    @EventListener
+    public void onPersonDeleted(PersonDeletedEvent event) {
+        TreeItem<LibraryTreeNode> root = libraryTreeView.getRoot();
+        if (root == null) {
+            return;
+        }
+        for (TreeItem<LibraryTreeNode> section : root.getChildren()) {
+            if (section.getValue() == null || section.getValue()
+                                                     .type() != NodeType.PERSONS_ROOT) {
+                continue;
+            }
+            for (TreeItem<LibraryTreeNode> personItem : section.getChildren()) {
+                LibraryTreeNode node = personItem.getValue();
+                if (node != null && node.payload() instanceof PersonPayload(long personId)
+                        && personId == event.getPersonId()) {
+                    runOnFxThread(() -> section.getChildren()
+                                               .remove(personItem));
                     return;
                 }
             }

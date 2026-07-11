@@ -4,6 +4,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.ClusterRecor
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 import com.github.curiousoddman.curious_images.domain.ai.PersonCorrectionService;
+import com.github.curiousoddman.curious_images.event.model.PersonDeletedEvent;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.persistence.ClusterRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
@@ -38,6 +39,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
@@ -112,11 +114,12 @@ public class FacePickerController implements Initializable {
 
     private static final long UNCLUSTERED_KEY = -1L;
 
-    private final FxmlLoader              fxmlLoader;
-    private final PersonRepository        personRepo;
-    private final ClusterRepository       clusterRepo;
-    private final FaceRepository          faceRepo;
-    private final PersonCorrectionService personCorrectionService;
+    private final FxmlLoader                fxmlLoader;
+    private final PersonRepository          personRepo;
+    private final ClusterRepository         clusterRepo;
+    private final FaceRepository            faceRepo;
+    private final PersonCorrectionService   personCorrectionService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @FXML
     public VBox   faceSectionsBox;
@@ -580,7 +583,6 @@ public class FacePickerController implements Initializable {
             String label = personRepo.findById(personId)
                                      .map(this::displayName)
                                      .orElse("Person #" + personId);
-            // FIXME: deleting a person should remove tree item immediately
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION,
                     "\"" + label + "\" has no photos left after this move. Delete this person?",
                     ButtonType.OK, ButtonType.CANCEL);
@@ -588,6 +590,7 @@ public class FacePickerController implements Initializable {
             Optional<ButtonType> result = alert.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.OK) {
                 personCorrectionService.deleteOrphanedPerson(personId);
+                eventPublisher.publishEvent(new PersonDeletedEvent(this, personId));
             }
         }
     }
