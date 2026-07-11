@@ -397,10 +397,7 @@ public class PersonClusteringService {
                 Optional<Long> existingPersonId =
                         personRepo.findPersonIdOwningMostFaces(memberFaceIds, oldFaceToPersonSnapshot);
 
-                long personId = existingPersonId.orElseGet(() -> {
-                    long id = personRepo.insert(null, coverFaceId, now);
-                    return id;
-                });
+                long personId = existingPersonId.orElseGet(() -> personRepo.insert(null, coverFaceId, now));
                 if (existingPersonId.isEmpty()) {
                     personsCreated++;
                 }

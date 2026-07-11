@@ -14,9 +14,9 @@ import java.util.Set;
 
 class ImageUtilsNewTest {
 
-    static List<Duration> old90Perf  = new ArrayList<>();
-    static List<Duration> new90Perf  = new ArrayList<>();
-    static List<Duration> new290Perf = new ArrayList<>();
+    static final List<Duration> old90Perf  = new ArrayList<>();
+    static final List<Duration> new90Perf  = new ArrayList<>();
+    static final List<Duration> new290Perf = new ArrayList<>();
 
     public static void main(String[] args) throws IOException {
         List<Path> found = new ArrayList<>();

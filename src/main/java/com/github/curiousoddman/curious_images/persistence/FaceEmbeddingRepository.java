@@ -73,9 +73,6 @@ public class FaceEmbeddingRepository {
      * Converts a float[512] embedding to 2048 little-endian bytes.
      */
     public static byte[] toBytes(float[] embedding) {
-        ByteBuffer buf = ByteBuffer.allocate(embedding.length * 4)
-                                   .order(ByteOrder.LITTLE_ENDIAN);
-        for (float v : embedding) buf.putFloat(v);
-        return buf.array();
+        return ClipEmbeddingRepository.toBytes(embedding);
     }
 }

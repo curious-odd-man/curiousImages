@@ -159,36 +159,38 @@ public class ClipTokenizer {
             }
 
             // Merge the best pair everywhere in the symbol list
-            String       merged = symbols.get(bestIdx) + symbols.get(bestIdx + 1);
-            List<String> next   = new ArrayList<>();
-            int          i      = 0;
-            while (i < symbols.size()) {
-                if (i == bestIdx && i + 1 < symbols.size()
-                        && symbols.get(i)
-                                  .equals(symbols.get(bestIdx))
-                        && symbols.get(i + 1)
-                                  .equals(symbols.get(bestIdx + 1))) {
-                    next.add(merged);
-                    i += 2;
-                    // Continue merging all occurrences of the same pair
-                    while (i + 1 < symbols.size()
-                            && symbols.get(i)
-                                      .equals(symbols.get(bestIdx))
-                            && symbols.get(i + 1)
-                                      .equals(symbols.get(bestIdx + 1))) {
-                        next.add(merged);
-                        i += 2;
-                    }
-                } else {
-                    next.add(symbols.get(i));
-                    i++;
-                }
-            }
-            symbols = next;
+            symbols = getStrings(symbols, bestIdx);
         }
 
         bpeCache.put(word, symbols);
         return symbols;
+    }
+
+    private static List<String> getStrings(List<String> symbols, int bestIdx) {
+        String       merged = symbols.get(bestIdx) + symbols.get(bestIdx + 1);
+        List<String> next   = new ArrayList<>();
+        int          i      = 0;
+        while (i < symbols.size()) {
+            if (i == bestIdx && i + 1 < symbols.size()
+                    && symbols.get(i)
+                              .equals(symbols.get(bestIdx))
+                    && symbols.get(i + 1)
+                              .equals(symbols.get(bestIdx + 1))) {
+                // Continue merging all occurrences of the same pair
+                do {
+                    next.add(merged);
+                    i += 2;
+                } while (i + 1 < symbols.size()
+                        && symbols.get(i)
+                                  .equals(symbols.get(bestIdx))
+                        && symbols.get(i + 1)
+                                  .equals(symbols.get(bestIdx + 1)));
+            } else {
+                next.add(symbols.get(i));
+                i++;
+            }
+        }
+        return next;
     }
 
     /**
@@ -244,7 +246,6 @@ public class ClipTokenizer {
 
     // ── Resource loading ──────────────────────────────────────────────────────
 
-    @SuppressWarnings("unchecked")
     private void loadVocab() throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         try (InputStream in = ClipTokenizer.class.getResourceAsStream(VOCAB_RESOURCE)) {
@@ -253,7 +254,7 @@ public class ClipTokenizer {
                         "CLIP vocab not found: " + VOCAB_RESOURCE + ". " +
                                 "Download from https://github.com/openai/CLIP and place in src/main/resources/clip-tokenizer/");
             }
-            encoder = mapper.readValue(in, new TypeReference<Map<String, Integer>>() {});
+            encoder = mapper.readValue(in, new TypeReference<>() {});
         }
         decoder = new HashMap<>();
         encoder.forEach((k, v) -> decoder.put(v, k));

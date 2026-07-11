@@ -249,7 +249,8 @@ public class PersonCorrectionService {
             }
             long remaining = clusterRepo.findByPersonId(previousOwner)
                                         .stream()
-                                        .filter(c -> c.getId() != soleWholeSourceClusterId)
+                                        .filter(c -> !c.getId()
+                                                       .equals(soleWholeSourceClusterId))
                                         .count();
             if (remaining == 0) {
                 orphaned.add(previousOwner);

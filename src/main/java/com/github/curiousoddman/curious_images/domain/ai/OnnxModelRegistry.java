@@ -42,7 +42,7 @@ public class OnnxModelRegistry implements DisposableBean {
         }
 
         try {
-            log.info("Loading ONNX model '{}' from {}: {}", modelKey, modelPath, env.getAvailableProviders());
+            log.info("Loading ONNX model '{}' from {}: {}", modelKey, modelPath, OrtEnvironment.getAvailableProviders());
             OrtSession.SessionOptions opts = new OrtSession.SessionOptions();
             opts.setIntraOpNumThreads(config.getIntraOpThreads());
             switch (config.getExecutionProvider()) {

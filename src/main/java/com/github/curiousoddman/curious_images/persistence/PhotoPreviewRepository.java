@@ -8,7 +8,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.github.curiousoddman.curious_images.dbobj.Tables.PHOTO_PREVIEW;

@@ -12,6 +12,8 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -49,7 +51,15 @@ public class PhotoCellController implements Initializable {
     @FXML
     private Tooltip   tooltip;
 
+    /**
+     * -- SETTER --
+     *  Set once at creation by
+     *  — fired on single click, for as long
+     *  as this pooled instance lives.
+     */
+    @Setter
     private Consumer<PhotoRecord> onPhotoClicked;
+    @Getter
     private PhotoRecord           currentPhoto;
 
     @Override
@@ -78,14 +88,6 @@ public class PhotoCellController implements Initializable {
                  .bind(size);
         imageView.fitHeightProperty()
                  .bind(size);
-    }
-
-    /**
-     * Set once at creation by {@link PhotoGridRowController} — fired on single click, for as long
-     * as this pooled instance lives.
-     */
-    public void setOnPhotoClicked(Consumer<PhotoRecord> onPhotoClicked) {
-        this.onPhotoClicked = onPhotoClicked;
     }
 
     /**
@@ -129,10 +131,6 @@ public class PhotoCellController implements Initializable {
         cellRoot.setVisible(false);
         cellRoot.setManaged(false);
         imageView.setImage(null);
-    }
-
-    public PhotoRecord getCurrentPhoto() {
-        return currentPhoto;
     }
 
     @FXML

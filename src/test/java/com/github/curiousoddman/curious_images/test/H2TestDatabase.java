@@ -5,7 +5,6 @@ import com.github.curiousoddman.curious_images.domain.ExceptionTranslator;
 import lombok.experimental.UtilityClass;
 import org.flywaydb.core.Flyway;
 import org.jooq.DSLContext;
-import org.jooq.impl.DSL;
 import org.jooq.impl.DefaultDSLContext;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 

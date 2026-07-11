@@ -158,7 +158,7 @@ class JobManagerTest {
                                .size() == 1);
         assertThat(manager.getQueuedJobs()).hasSize(1);
         assertThat(manager.getQueuedJobs()
-                          .get(0)
+                          .getFirst()
                           .getName()).isEqualTo("queued");
 
         running.release();

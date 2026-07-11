@@ -47,29 +47,24 @@ public record LibraryTreeNode(String displayName, NodePayload payload, NodeType 
     /**
      * Returns the Ikonli icon for this node type.
      */
-    // @formatter:off
     public Ikon icon() {
         return switch (type) {
-            case FOLDERS_ROOT     -> MaterialDesignF.FOLDER_MULTIPLE;
-            case IMPORT_ROOT      -> MaterialDesignD.DATABASE;
-            case FOLDER           -> MaterialDesignF.FOLDER;
-            case TIMELINE_ROOT    -> MaterialDesignC.CLOCK_OUTLINE;
-            case TIMELINE_YEAR    -> MaterialDesignC.CALENDAR_BLANK;
-            case TIMELINE_MONTH   -> MaterialDesignC.CALENDAR;
-            case TIMELINE_DAY     -> MaterialDesignC.CALENDAR_TODAY;
+            case FOLDERS_ROOT -> MaterialDesignF.FOLDER_MULTIPLE;
+            case IMPORT_ROOT -> MaterialDesignD.DATABASE;
+            case FOLDER -> MaterialDesignF.FOLDER;
+            case TIMELINE_ROOT -> MaterialDesignC.CLOCK_OUTLINE;
+            case TIMELINE_YEAR -> MaterialDesignC.CALENDAR_BLANK;
+            case TIMELINE_MONTH -> MaterialDesignC.CALENDAR;
+            case TIMELINE_DAY -> MaterialDesignC.CALENDAR_TODAY;
             case TIMELINE_UNDATED -> MaterialDesignC.CALENDAR_REMOVE;
-            case ALBUMS_ROOT           -> MaterialDesignA.ALBUM;
-            case ALBUM_EVENT_ROOT      -> MaterialDesignC.CAMERA_BURST;
-            case ALBUM_LOCATION_ROOT   -> MaterialDesignM.MAP_MARKER_MULTIPLE;
-            case ALBUM_SIMILARITY_ROOT -> MaterialDesignG.GOOGLE_PHOTOS;
-            case ALBUM_EVENT           -> MaterialDesignC.CAMERA_BURST;
-            case ALBUM_LOCATION        -> MaterialDesignM.MAP_MARKER_MULTIPLE;
-            case ALBUM_SIMILARITY      -> MaterialDesignG.GOOGLE_PHOTOS;
-            case PERSONS_ROOT     -> MaterialDesignA.ACCOUNT_GROUP;
-            case PERSON           -> MaterialDesignA.ACCOUNT;
+            case ALBUMS_ROOT -> MaterialDesignA.ALBUM;
+            case ALBUM_EVENT_ROOT, ALBUM_EVENT -> MaterialDesignC.CAMERA_BURST;
+            case ALBUM_LOCATION_ROOT, ALBUM_LOCATION -> MaterialDesignM.MAP_MARKER_MULTIPLE;
+            case ALBUM_SIMILARITY_ROOT, ALBUM_SIMILARITY -> MaterialDesignG.GOOGLE_PHOTOS;
+            case PERSONS_ROOT -> MaterialDesignA.ACCOUNT_GROUP;
+            case PERSON -> MaterialDesignA.ACCOUNT;
         };
     }
-    // @formatter:on
 
     @Override
     public String toString() {

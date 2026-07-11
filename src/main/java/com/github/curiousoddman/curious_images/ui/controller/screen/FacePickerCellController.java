@@ -11,6 +11,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -59,9 +60,10 @@ public class FacePickerCellController implements Initializable {
 
     private static Image noImageAvailable;
 
-    private FaceRecord                         face;
-    private boolean                            selected;
-    private Consumer<FaceRecord>               onPrimaryClick;
+    private FaceRecord           face;
+    @Getter
+    private boolean              selected;
+    private Consumer<FaceRecord> onPrimaryClick;
     private Consumer<FaceRecord>               onToggleSelect;
     private BiConsumer<FaceRecord, MouseEvent> onContextMenuRequested;
 
@@ -134,10 +136,6 @@ public class FacePickerCellController implements Initializable {
             cellRoot.getStyleClass()
                     .remove(CssClasses.FACE_CELL_SELECTED);
         }
-    }
-
-    public boolean isSelected() {
-        return selected;
     }
 
     private void loadThumbnail(FaceRecord face) {

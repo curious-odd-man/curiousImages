@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images.domain.ai;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ClipEmbeddingRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.ClusterRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceEmbeddingRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
@@ -215,7 +216,7 @@ public class AiPipelineJob extends BackgroundJob {
                         //  relying on this index reflecting corrections promptly.
                         Long personId = (face.getClusterId() != null)
                                 ? clusterRepo.findById(face.getClusterId())
-                                             .map(c -> c.getPersonId())
+                                             .map(ClusterRecord::getPersonId)
                                              .orElse(null)
                                 : null;
                         faceVectorIndex.upsert(face.getId(), personId, faceEmbed);

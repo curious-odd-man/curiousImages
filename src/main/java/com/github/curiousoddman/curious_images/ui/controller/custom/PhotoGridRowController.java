@@ -10,6 +10,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -60,6 +61,7 @@ public class PhotoGridRowController implements Initializable {
      * recycled to a different set of photos, and discard its result instead of overwriting cells
      * that are now showing something else.
      */
+    @Getter
     private long showToken;
 
     @Override
@@ -78,10 +80,6 @@ public class PhotoGridRowController implements Initializable {
         this.thumbnailSize = thumbnailSize;
         this.onPhotoClicked = onPhotoClicked;
         this.tooltipTextFn = tooltipTextFn;
-    }
-
-    public long getShowToken() {
-        return showToken;
     }
 
     public List<PhotoCellController> getCellControllers() {

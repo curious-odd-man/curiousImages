@@ -1,5 +1,6 @@
 package com.github.curiousoddman.curious_images.event.model;
 
+import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 
 /**
@@ -7,6 +8,7 @@ import org.springframework.context.ApplicationEvent;
  * the user presses Enter or clicks Search. Consumed by {@code LibraryController} itself to
  * populate the photo grid with semantic search results.
  */
+@Getter
 public class SearchRequestedEvent extends ApplicationEvent {
 
     private final String query;
@@ -16,7 +18,4 @@ public class SearchRequestedEvent extends ApplicationEvent {
         this.query = query;
     }
 
-    public String getQuery() {
-        return query;
-    }
 }

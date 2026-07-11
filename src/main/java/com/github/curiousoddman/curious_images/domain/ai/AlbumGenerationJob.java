@@ -45,7 +45,7 @@ public class AlbumGenerationJob extends BackgroundJob {
 
 
     @Override
-    public void runImpl() throws Exception {
+    public void runImpl() {
         publishStarted(getProcessName());
         log.info("Regenerating albums...");
         try {

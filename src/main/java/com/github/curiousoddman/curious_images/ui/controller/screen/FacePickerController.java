@@ -34,7 +34,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
@@ -123,7 +125,23 @@ public class FacePickerController implements Initializable {
     @FXML
     public Label  selectionCountLabel;
 
+    /**
+     * -- SETTER --
+     * Must be called by the owner (
+     * etc. happens outside this
+     * controller) so
+     * and a face click can close the dialog.
+     */
+    @Setter
     private Stage      stage;
+    /**
+     * -- GETTER --
+     * The face the user clicked, or
+     * if they cancelled/closed the dialog without
+     * choosing one. Only meaningful after
+     * has returned.
+     */
+    @Getter
     private FaceRecord selectedFace;
     private long       currentPersonId;
     private boolean    correctionsHappened;
@@ -142,22 +160,6 @@ public class FacePickerController implements Initializable {
             moveSelectedMenuButton.setDisable(true);
         }
         updateSelectionLabel();
-    }
-
-    /**
-     * Must be called by the owner ({@code stage.setScene(...)} etc. happens outside this
-     * controller) so {@link #onCancel} and a face click can close the dialog.
-     */
-    public void setStage(Stage stage) {
-        this.stage = stage;
-    }
-
-    /**
-     * The face the user clicked, or {@code null} if they cancelled/closed the dialog without
-     * choosing one. Only meaningful after {@code stage.showAndWait()} has returned.
-     */
-    public FaceRecord getSelectedFace() {
-        return selectedFace;
     }
 
     /**

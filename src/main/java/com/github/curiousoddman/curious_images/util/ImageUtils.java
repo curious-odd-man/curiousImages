@@ -81,11 +81,9 @@ public class ImageUtils {
         int type;
         switch (mat.channels()) {
             case 1 -> type = BufferedImage.TYPE_BYTE_GRAY;
-            case 3 -> {
-                // BufferedImage.TYPE_3BYTE_BGR expects BGR byte order — which is exactly
+            case 3 -> // BufferedImage.TYPE_3BYTE_BGR expects BGR byte order — which is exactly
                 // what imread/imdecode already produce, so no channel swap needed here.
-                type = BufferedImage.TYPE_3BYTE_BGR;
-            }
+                    type = BufferedImage.TYPE_3BYTE_BGR;
             case 4 -> {
                 // BufferedImage has no native BGRA byte-order type; convert to ARGB-compatible
                 // BGR order first (drop or reorder alpha as needed for your use case).
