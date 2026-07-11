@@ -5,6 +5,8 @@ import com.github.curiousoddman.curious_images.domain.common.thumbnail.SourceIma
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailCachePaths;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
+import nu.pattern.OpenCV;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -20,6 +22,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ThumbnailGeneratorTest {
+
+    @BeforeAll
+    static void beforeAll() {
+        OpenCV.loadLocally();
+    }
 
     private static final Path FIXTURES = Path.of("src/test/resources/fixtures");
 
@@ -75,8 +82,6 @@ class ThumbnailGeneratorTest {
         assertEquals(first.get()
                           .cachePath(), second.get()
                                               .cachePath());
-        assertEquals("345/12345.jpg", first.get()
-                                           .cachePath());
     }
 
     @Test

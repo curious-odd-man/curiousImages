@@ -9,6 +9,8 @@ import com.github.curiousoddman.curious_images.util.ImageUtils;
 import com.github.curiousoddman.curious_images.util.async.jobs.IrrecoverableIterationException;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import nu.pattern.OpenCV;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.opencv.core.Mat;
 
@@ -32,6 +34,11 @@ import static com.github.curiousoddman.curious_images.util.FileUtils.extensionOf
 
 @Slf4j
 class RetinaFaceDetectorTest {
+
+    @BeforeAll
+    static void beforeAll() {
+        OpenCV.loadLocally();
+    }
 
     @Test
     void faceDetectionTest() throws IOException, OrtException, IrrecoverableIterationException {
