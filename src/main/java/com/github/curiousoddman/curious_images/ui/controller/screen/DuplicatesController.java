@@ -6,19 +6,18 @@ import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateResolution
 import com.github.curiousoddman.curious_images.model.DuplicateGroupView;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
-import com.github.curiousoddman.curious_images.model.bundle.SlideshowBundle;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.custom.DuplicateCellController;
 import com.github.curiousoddman.curious_images.ui.styles.CssClasses;
 import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
+import com.github.curiousoddman.curious_images.ui.util.StageUtils;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
-import javafx.scene.Scene;
 import javafx.scene.control.Accordion;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -26,12 +25,8 @@ import javafx.scene.control.TitledPane;
 import javafx.scene.image.Image;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
@@ -281,29 +276,7 @@ public class DuplicatesController implements Initializable {
     // ----------------------------------------------------------------------------------------
 
     private void openSlideshow(List<PhotoRecord> photos, int startIndex) {
-        openSlideshow(photos, startIndex, duplicatesAccordion.getScene(), fxmlLoader, log);
-    }
-
-    // FIXME: This should be moved to common code
-    static void openSlideshow(List<PhotoRecord> photos, int startIndex, Scene scene2, FxmlLoader fxmlLoader, Logger log) {
-        try {
-            Stage stage = new Stage();
-            stage.setTitle("Slideshow");
-            stage.initStyle(StageStyle.UNDECORATED);
-            stage.initModality(Modality.APPLICATION_MODAL);
-            stage.initOwner(scene2.getWindow());
-
-            LoadedFxml<SlideshowController> loaded     = fxmlLoader.load(FxmlView.SLIDESHOW, null);
-            SlideshowController             controller = loaded.controller();
-            controller.initSlideshow(new SlideshowBundle(photos, startIndex));
-
-            Scene scene = new Scene(loaded.parent());
-            stage.setScene(scene);
-            stage.setMaximized(true);
-            stage.show();
-        } catch (Exception ex) {
-            log.error("Failed to open slideshow", ex);
-        }
+        StageUtils.openSlideshow(photos, startIndex, duplicatesAccordion.getScene(), fxmlLoader);
     }
 
     // ----------------------------------------------------------------------------------------

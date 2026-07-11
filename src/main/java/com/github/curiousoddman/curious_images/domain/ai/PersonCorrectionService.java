@@ -399,7 +399,7 @@ public class PersonCorrectionService {
      * subset); {@link #reassignFacesToNewPerson} and {@link #excludeFace} still route through
      * here for their non-whole-cluster paths.
      *
-     * @return IDs of persons left owning zero clusters as a result — see FIXME resolution notes
+     * @return IDs of persons left owning zero clusters as a result
      * on {@link #removeFromCluster}.
      */
     private Set<Long> removeFromOldClusters(List<FaceRecord> faces, LocalDateTime now, List<Query> buffer) {
@@ -423,7 +423,6 @@ public class PersonCorrectionService {
      * centroid from whoever's left, or deletes the cluster outright if nobody's left (an
      * average-of-nothing is meaningless — see {@link ClusterRepository#deleteQuery}).
      * <p>
-     * Resolution of the former FIXME on this method:
      * <ol>
      *   <li>Whether to remove a person left with zero clusters is a UI decision, not this
      *       service's to make — this method (and every public method that calls it) surfaces the

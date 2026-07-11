@@ -12,7 +12,6 @@ import lombok.experimental.UtilityClass;
  * Every controller used to construct its own {@code Alert} (error/info popup, or a
  * confirmation with OK/CANCEL) with slightly different boilerplate for
  * {@code setHeaderText}/{@code initOwner}/result-checking. That duplication is what the
- * {@code // FIXME: centralize Alert creation} comments (see {@code RescanRootsController},
  * {@code AddFilesController}) were pointing at — this class is that centralization point.
  */
 @UtilityClass

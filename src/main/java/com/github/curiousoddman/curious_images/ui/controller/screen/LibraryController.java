@@ -1,9 +1,6 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
-// FIXME: Not this file, but somewhere is thread running that does not allow JVM to stop. Need to find and fix that. - this could be relevant to running album generation
-// FIXME: After AI pipeline finishes face detection - albums of faces are not immediately shown - require app restart. - this could be relevant to running album generation
 // FIXME: Person faces are strange - looks like those are not always correct.
-// FIXME: Person albums do not trigger thumbnails generation and, besides, show NO IMAGE, rather than Loading thumbnail...
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.AlbumRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FolderRecord;
@@ -49,6 +46,7 @@ import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.UndatedPaylo
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridCallbacks;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridRow;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoRowCell;
+import com.github.curiousoddman.curious_images.ui.util.StageUtils;
 import com.github.curiousoddman.curious_images.util.HumanReadableUtils;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
@@ -275,7 +273,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
 
         // Virtualized photo grid: ListView only ever instantiates enough PhotoRowCells to cover
         // the viewport plus a small buffer, recycling them on scroll — this replaces the old
-        // ever-growing FlowPane (see the FIXME this used to carry) with a node count bounded by
+        // ever-growing FlowPane with a node count bounded by
         // viewport size, not selection size.
         photoGridListView.setCellFactory(lv -> new PhotoRowCell(this, fxmlLoader));
         photoGridListView.setFocusTraversable(false);
@@ -1090,8 +1088,8 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
                 }
                 if (type == NodeType.FOLDER) {
                     // Walk up the tree to find the enclosing IMPORT_ROOT
-                    TreeItem<?> item = libraryTreeView.getRoot();   // TODO: UNused?
-                    return findImportRootPath(libraryTreeView.getRoot(), node.displayName());
+                    TreeItem<LibraryTreeNode> item = libraryTreeView.getRoot();
+                    return findImportRootPath(item, node.displayName());
                 }
             }
         }
@@ -1159,6 +1157,6 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
     }
 
     private void openSlideshow(List<PhotoRecord> photos, int startIndex) {
-        DuplicatesController.openSlideshow(photos, startIndex, photoGridListView.getScene(), fxmlLoader, log);
+        StageUtils.openSlideshow(photos, startIndex, photoGridListView.getScene(), fxmlLoader);
     }
 }
