@@ -1,3 +1,11 @@
+# Overview
+
+⚠ AI Slop Warning!
+
+This app was written with a heavy use of Claude and ChatGPT. Free tier only :D
+I am trying to keep it not let it go completely, but I also don't review every line of code produced by AI. Soo..
+Use with caution.
+
 # Initial setup
 
 1. download models (see details in [here](src\main\resources\models\ai.md)):

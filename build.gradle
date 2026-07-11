@@ -13,6 +13,7 @@ plugins {
     id 'application'
     id "org.jooq.jooq-codegen-gradle" version "3.19.28"
     id "org.flywaydb.flyway" version "11.19.1"
+    id "de.undercouch.download" version "5.6.0"
 }
 
 group = 'com.github.curiousoddman'
@@ -268,3 +269,58 @@ tasks.register('deploy') {
         if (stderr) println "stderr: ${stderr}"
     }
 }
+
+def modelDir = layout.projectDirectory.dir("src/main/resources/models").asFile
+
+def models = [
+        [
+                url : "https://huggingface.co/TheEeeeLin/HivisionIDPhotos_matting/resolve/main/retinaface-resnet50.onnx",
+                file: "retinaface-resnet50.onnx"
+        ],
+        [
+                url : "https://huggingface.co/public-data/insightface/resolve/main/models/buffalo_l/w600k_r50.onnx",
+                file: "arcface_r50.onnx"
+        ],
+        [
+                url : "https://huggingface.co/immich-app/ViT-B-32__openai/resolve/main/visual/model.onnx",
+                file: "clip_image_vit_b32.onnx"
+        ],
+        [
+                url : "https://huggingface.co/immich-app/ViT-B-32__openai/resolve/main/textual/model.onnx",
+                file: "clip_text_vit_b32.onnx"
+        ]
+]
+
+tasks.register("downloadModels") {
+    doLast {
+        modelDir.mkdirs()
+
+        models.each { model ->
+            File target = new File(modelDir, model.file)
+
+            if (target.exists()) {
+                println "Model already present: ${target.name}"
+                return
+            }
+
+            println "Downloading ${target.name}..."
+
+            try {
+                download.run {
+                    src model.url
+                    dest target
+                    overwrite false
+                    onlyIfModified true
+                }
+
+                if (!target.exists() || target.length() == 0) {
+                    println "ERROR: Download of ${target.name} produced an empty or missing file."
+                }
+            } catch (Exception e) {
+                println "ERROR downloading ${target.name}: ${e.message}"
+            }
+        }
+    }
+}
+
+processResources.dependsOn(downloadModels)
