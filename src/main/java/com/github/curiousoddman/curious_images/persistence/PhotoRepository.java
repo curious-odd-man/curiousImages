@@ -293,17 +293,6 @@ public class PhotoRepository {
                   .fetch(PHOTO.ID);
     }
 
-    /** FIXME: Unneeded?
-     * Returns photo IDs that still need face embedding.
-     */
-    public List<Long> findPendingFaceEmbed() {
-        return dsl.select(PHOTO.ID)
-                  .from(PHOTO)
-                  .where(PHOTO.AI_FACE_DETECT_DONE.eq(true))
-                  .and(PHOTO.AI_FACE_EMBED_DONE.eq(false))
-                  .fetch(PHOTO.ID);
-    }
-
     /**
      * Returns photo IDs that still need CLIP embedding.
      */

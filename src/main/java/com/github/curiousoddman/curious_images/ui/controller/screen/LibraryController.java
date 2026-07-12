@@ -1,7 +1,5 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
-// FIXME: Person faces are strange - looks like those are not always correct.
-
 import com.github.curiousoddman.curious_images.dbobj.tables.records.AlbumRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FolderRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRecord;
