@@ -29,7 +29,7 @@ import java.util.Set;
  * A photo whose rotation is being manually corrected was, by definition, scanned by the AI
  * pipeline with the wrong orientation — its face bounding boxes, face crops, face/CLIP embeddings,
  * and any resulting cluster membership are all now meaningless. Rather than leave stale AI data
- * around waiting to be silently overwritten by a future pipeline run, {@link #rotate} does all of
+ * around waiting to be silently overwritten by a future pipeline run, {@link #rotateAndClearAiResults} does all of
  * the following for one photo:
  * <ol>
  *   <li>updates {@code PHOTO.ORIENTATION} to the new (normalized 0/90/180/270) value;</li>
@@ -57,7 +57,7 @@ public class PhotoRotationService {
 
     /**
      * The three rotation deltas the context menu offers ("Rotate 90° CW / 90° CCW / 180°" — see
-     * {@code PhotoCellController}). {@link #rotate} normalizes the resulting angle into
+     * {@code PhotoCellController}). {@link #rotateAndClearAiResults} normalizes the resulting angle into
      * {0, 90, 180, 270} regardless of which delta is passed.
      */
     public static final int ROTATE_CW  = 90;
@@ -81,8 +81,7 @@ public class PhotoRotationService {
      *                     any value is accepted and normalized, but the menu only ever offers
      *                     these three
      */
-    // FIXME: REname
-    public void rotate(long photoId, int deltaDegrees) {
+    public void rotateAndClearAiResults(long photoId, int deltaDegrees) {
         PhotoRecord photo = photoRepo.findById(photoId)
                                      .orElse(null);
         if (photo == null) {
@@ -118,10 +117,7 @@ public class PhotoRotationService {
         deleteFaceThumbnailFiles(faces);
         removeFromLuceneIndexes(photoId, faceIds);
 
-        // Immediate thumbnail regen (the baked-in rotation changed) + a fresh AI pass for this
-        // photo, now that its AI_*_DONE flags are all false again.
         jobManager.submitThumbnailGenerationJob(List.of(photoId));
-        jobManager.submitAiPipelineJob();
     }
 
     private void deleteFaceThumbnailFiles(List<FaceRecord> faces) {

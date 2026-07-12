@@ -54,6 +54,6 @@ public class ImageContextMenu {
     }
 
     private void rotateCurrentPhoto(PhotoRecord photo, int deltaDegrees) {
-        runOnDaemonThread("RotatePhoto", () -> photoRotationService.rotate(photo.getId(), deltaDegrees));
+        runOnDaemonThread("RotatePhoto", () -> photoRotationService.rotateAndClearAiResults(photo.getId(), deltaDegrees));
     }
 }
