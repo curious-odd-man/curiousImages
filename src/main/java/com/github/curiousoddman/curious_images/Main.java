@@ -12,6 +12,7 @@ public class Main {
     // FIXME: cr2 images ai pipeline fails - codec is not supported.
     // FIXME: Rotated face thumbnail is produced - need to investigate
     // FIXME: Duplicates detection would fail if one photo is rotated, while another is not.
+    // FIXME: Duplicates detection - cannot delete files - DB constraints
     public static void main(String[] args) {
         LauncherImpl.launchApplication(JavafxApplication.class, AnimatedPreloader.class, args);
     }

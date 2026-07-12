@@ -19,7 +19,8 @@ public class JavafxApplication extends Application {
 
     @Override
     public void init() {
-        applicationContext = new SpringApplicationBuilder(Main.class).run();
+        applicationContext = new SpringApplicationBuilder(Main.class).headless(false)
+                                                                     .run();
     }
 
     @Override
