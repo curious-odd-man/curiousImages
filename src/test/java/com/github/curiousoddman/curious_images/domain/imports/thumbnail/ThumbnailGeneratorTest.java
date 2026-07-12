@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images.domain.imports.thumbnail;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.curiousoddman.curious_images.domain.common.thumbnail.GeneratedThumbnail;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.SourceImageDecoder;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailCachePaths;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator;
@@ -44,11 +45,11 @@ class ThumbnailGeneratorTest {
     @Test
     void landscapeImageIsConstrainedToLongestEdge512PreservingAspectRatio() throws IOException {
         // Fixture is 800x600 (4:3 landscape)
-        Optional<ThumbnailGenerator.GeneratedThumbnail> result =
+        Optional<GeneratedThumbnail> result =
                 generator.generate(FIXTURES.resolve("with-exif-dates.jpg"), "jpg", 0);
 
         assertTrue(result.isPresent());
-        ThumbnailGenerator.GeneratedThumbnail thumbnail = result.get();
+        GeneratedThumbnail thumbnail = result.get();
         assertEquals(512, thumbnail.width(), "longest edge (width, for landscape) must be 512");
         assertEquals(384, thumbnail.height(), "height must scale to preserve the 4:3 aspect ratio");
 
@@ -61,20 +62,20 @@ class ThumbnailGeneratorTest {
     @Test
     void portraitImageIsConstrainedToLongestEdge512PreservingAspectRatio() {
         // Fixture is 600x800 (3:4 portrait)
-        Optional<ThumbnailGenerator.GeneratedThumbnail> result =
+        Optional<GeneratedThumbnail> result =
                 generator.generate(FIXTURES.resolve("portrait.jpg"), "jpg", 0);
 
         assertTrue(result.isPresent());
-        ThumbnailGenerator.GeneratedThumbnail thumbnail = result.get();
+        GeneratedThumbnail thumbnail = result.get();
         assertEquals(384, thumbnail.width(), "width must scale to preserve the 3:4 aspect ratio");
         assertEquals(512, thumbnail.height(), "longest edge (height, for portrait) must be 512");
     }
 
     @Test
     void shardPathIsDeterministicAndReproducibleForAGivenPhotoId() {
-        Optional<ThumbnailGenerator.GeneratedThumbnail> first =
+        Optional<GeneratedThumbnail> first =
                 generator.generate(FIXTURES.resolve("with-exif-dates.jpg"), "jpg", 0);
-        Optional<ThumbnailGenerator.GeneratedThumbnail> second =
+        Optional<GeneratedThumbnail> second =
                 generator.generate(FIXTURES.resolve("with-exif-dates.jpg"), "jpg", 0);
 
         assertTrue(first.isPresent());
@@ -97,7 +98,7 @@ class ThumbnailGeneratorTest {
 
     @Test
     void unsupportedOrUndecodableSourceProducesNoThumbnailRatherThanThrowing() {
-        Optional<ThumbnailGenerator.GeneratedThumbnail> result =
+        Optional<GeneratedThumbnail> result =
                 generator.generate(FIXTURES.resolve("README.md"), "jpg", 0);
 
         assertTrue(result.isEmpty());

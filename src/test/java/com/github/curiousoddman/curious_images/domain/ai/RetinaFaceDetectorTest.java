@@ -55,7 +55,7 @@ class RetinaFaceDetectorTest {
         int fileNameCounter = 0;
         for (File file : files) {
             ExtractedMetadata  metadata      = metadataExtractor.extract(file.toPath(), extensionOf(file.getName()));
-            Mat                img           = loadImageOriented(file.getAbsolutePath(), metadata.orientationDegrees());
+            Mat                img           = loadImageOriented(file.getAbsolutePath());
             List<DetectedFace> detectedFaces = retinaFaceDetector.detect(img);
 
             Files.createDirectories(Path.of("faces"));

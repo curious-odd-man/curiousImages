@@ -199,7 +199,7 @@ public class SlideshowController implements Initializable {
                              // Only apply if the user hasn't navigated away
                              if (photos.get(currentIndex) == photo) {
                                  fullImageView.setImage(fullImage);
-                                 applyExifRotation(photo.getOrientation());
+                                 rotateIfNeeded(photo.getOrientation());
                                  crossFadeToFull();
                                  runOnFxThread(() -> rootPane.requestFocus());
                              }
@@ -345,17 +345,10 @@ public class SlideshowController implements Initializable {
         applyTransform(false);
     }
 
-    /**
-     * Converts an EXIF orientation tag value to degrees and applies it to the full-res ImageView.
-     * Thumbnails are already pre-rotated and must NOT be rotated here.
-     * <p>
-     * EXIF orientation values:
-     * 1 = normal, 3 = 180°, 6 = 90° CW, 8 = 90° CCW (270° CW)
-     */
-    private void applyExifRotation(Integer exifOrientation) {
-        log.info("EXIF orientation raw value: {}", exifOrientation);
+    private void rotateIfNeeded(Integer orientationDegrees) {
+        log.info("EXIF orientation raw value: {}", orientationDegrees);
 
-        currentRotation = Objects.requireNonNullElse(exifOrientation, 0.0)
+        currentRotation = Objects.requireNonNullElse(orientationDegrees, 0.0)
                                  .intValue();
         fullImageView.setRotate(currentRotation);
 

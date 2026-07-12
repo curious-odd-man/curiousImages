@@ -140,7 +140,6 @@ public class DuplicatesController implements Initializable {
     private void loadCurrentDuplicatesView() {
         updateDuplicateControls();
         ObservableList<Node> duplicateItems = dupliacteItemsVbox.getChildren();
-        duplicateItems.clear();
         visiblePhotoCells.clear();
         keepSelectedButton.setDisable(true);
         deleteSelectedButton.setDisable(true);
@@ -182,7 +181,7 @@ public class DuplicatesController implements Initializable {
                      });
             }
 
-            runOnFxThread(() -> duplicateItems.addAll(cells));
+            runOnFxThread(() -> duplicateItems.setAll(cells));
 
             if (!ids.isEmpty()) {
                 queueThumbnailGeneration(ids);

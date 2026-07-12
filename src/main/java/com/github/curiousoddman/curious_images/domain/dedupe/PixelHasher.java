@@ -34,7 +34,7 @@ public class PixelHasher {
      * thumbnail generation skipping undecodable files during import.
      */
     public PhotoHashResult hash(long photoId, Path file, String extension, long fileSize) {
-        Optional<Mat> image = imageDecoder.decode(file, extension);
+        Optional<Mat> image = imageDecoder.decode(file, extension, 0);
         return image
                 .map(mat -> new PhotoHashResult(photoId, extension, fileSize, file.toString(), hashPixels(mat)))
                 .orElseGet(() -> new PhotoHashResult(photoId, extension, fileSize, file.toString(), null));

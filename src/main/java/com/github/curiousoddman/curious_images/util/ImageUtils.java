@@ -17,58 +17,6 @@ import java.util.stream.IntStream;
 
 @UtilityClass
 public class ImageUtils {
-
-    public static BufferedImage rotate90(BufferedImage src) {
-        int w = src.getWidth();
-        int h = src.getHeight();
-
-        BufferedImage dst = new BufferedImage(h, w, src.getType());
-
-        IntStream.range(0, h)
-                 .parallel()
-                 .forEach(y -> {
-                     for (int x = 0; x < w; x++) {
-                         dst.setRGB(h - 1 - y, x, src.getRGB(x, y));
-                     }
-                 });
-
-        return dst;
-    }
-
-    public static BufferedImage rotate180(BufferedImage src) {
-        int w = src.getWidth();
-        int h = src.getHeight();
-
-        BufferedImage dst = new BufferedImage(w, h, src.getType());
-
-        IntStream.range(0, h)
-                 .parallel()
-                 .forEach(y -> {
-                     for (int x = 0; x < w; x++) {
-                         dst.setRGB(w - 1 - x, h - 1 - y, src.getRGB(x, y));
-                     }
-                 });
-
-        return dst;
-    }
-
-    public static BufferedImage rotate270(BufferedImage src) {
-        int w = src.getWidth();
-        int h = src.getHeight();
-
-        BufferedImage dst = new BufferedImage(h, w, src.getType());
-
-        IntStream.range(0, h)
-                 .parallel()
-                 .forEach(y -> {
-                     for (int x = 0; x < w; x++) {
-                         dst.setRGB(y, w - 1 - x, src.getRGB(x, y));
-                     }
-                 });
-
-        return dst;
-    }
-
     /**
      * Converts an OpenCV {@link Mat} to a {@link BufferedImage}. Handles the common cases:
      * 3-channel BGR (as produced by Imgcodecs.imread/imdecode), 1-channel grayscale, and
@@ -143,6 +91,9 @@ public class ImageUtils {
         return mat;
     }
 
+    /**
+     * This method returns rotated image per orientation metadata
+     */
     public static Mat imreadUnicodeSafe(Path path, int flags) throws IOException {
         byte[]    bytes   = Files.readAllBytes(path); // Java handles Unicode paths natively
         MatOfByte encoded = new MatOfByte(bytes);
@@ -171,30 +122,11 @@ public class ImageUtils {
      * <p>
      * Caller owns the returned Mat and MUST call {@code .release()} on it when done.
      */
-    public static Mat loadImageOriented(String absolutePath, Integer orientation) throws IOException {
+    public static Mat loadImageOriented(String absolutePath) throws IOException {
         Mat img = imreadUnicodeSafe(Path.of(absolutePath), Imgcodecs.IMREAD_COLOR);
         if (img.empty()) {
             throw new IOException("OpenCV could not decode: " + absolutePath);
         }
-        rotateForOrientation(img, orientation);
         return img;
-    }
-
-    /**
-     * In-place rotation to match the stored orientation (clockwise degrees — see
-     * ThumbnailGenerator#rotate / PhotoMetadataExtractor's EXIF Orientation mapping, the only
-     * producer of this value). Mirrors ThumbnailGenerator.rotate's normalization exactly.
-     */
-    private static void rotateForOrientation(Mat img, Integer degrees) {
-        if (degrees == null) {
-            return;
-        }
-        int normalized = ((degrees % 360) + 360) % 360;
-        switch (normalized) {
-            case 90 -> Core.rotate(img, img, Core.ROTATE_90_CLOCKWISE);
-            case 180 -> Core.rotate(img, img, Core.ROTATE_180);
-            case 270 -> Core.rotate(img, img, Core.ROTATE_90_COUNTERCLOCKWISE);
-            default -> { /* 0, or any non-90/180/270 value: no-op, same as original rotate() */ }
-        }
     }
 }

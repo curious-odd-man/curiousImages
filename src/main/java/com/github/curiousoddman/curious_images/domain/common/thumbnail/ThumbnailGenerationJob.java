@@ -88,8 +88,9 @@ public class ThumbnailGenerationJob extends BackgroundJob {
             int    rotation  = photo.getOrientation() == null ? 0 : photo.getOrientation();
             long   photoId   = photo.getId();
 
-            Optional<BufferedImage> decoded = imageDecoder.decode(file, extension).map(ImageUtils::toBufferedImage);
-            decoded.ifPresent(image -> writeAndPersist(photoId, image, file, rotation));
+            Optional<BufferedImage> decoded = imageDecoder.decode(file, extension, rotation)
+                                                          .map(ImageUtils::toBufferedImage);
+            decoded.ifPresent(image -> writeAndPersist(photoId, image, file));
             completed.incrementAndGet();
             publishProgressThrottled("Generating thumbnails", completed.get(), total, "", completed.get() == total);
         }
@@ -101,10 +102,10 @@ public class ThumbnailGenerationJob extends BackgroundJob {
         }
     }
 
-    private void writeAndPersist(long photoId, BufferedImage image, Path file, int rotation) {
+    private void writeAndPersist(long photoId, BufferedImage image, Path file) {
         try {
-            ThumbnailGenerator.GeneratedThumbnail thumbnail =
-                    thumbnailGenerator.writeThumbnail(image, file, rotation, ThumbnailGenerator.LONGEST_EDGE);
+            GeneratedThumbnail thumbnail =
+                    thumbnailGenerator.writeThumbnail(image, file, ThumbnailGenerator.LONGEST_EDGE);
             thumbnailRepository.upsertQuery(photoId, thumbnail.cachePath()
                                                               .toString(),
                                        thumbnail.width(), thumbnail.height(), timeProvider.now())

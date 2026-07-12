@@ -35,7 +35,6 @@ public class FaceThumbnailsRepository {
         return thumbnailGenerator.writeThumbnail(
                                          faceImage,
                                          thumbnailPath,
-                                         0,
                                          FACE_THUMBNAIL_SIZE)
                                  .cachePath();
     }

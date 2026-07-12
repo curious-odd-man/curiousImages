@@ -276,6 +276,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
         // the viewport plus a small buffer, recycling them on scroll — this replaces the old
         // ever-growing FlowPane with a node count bounded by
         // viewport size, not selection size.
+        // FIXME: duplicate
         photoGridListView.setCellFactory(lv -> new PhotoRowCell(this, fxmlLoader));
         photoGridListView.setFocusTraversable(false);
 
@@ -827,6 +828,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
         photoCountLabel.setText("");
     }
 
+    // FIXME: Duplicate
     private static Map<Long, Integer> buildIndexMap(List<PhotoRecord> photos) {
         Map<Long, Integer> map = new HashMap<>(photos.size() * 2);
         for (int i = 0; i < photos.size(); i++) {
@@ -844,6 +846,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
      * (an O(n) rebuild of the item list) if the column count changed or {@code force} is set —
      * a resize that doesn't change the column count, or a slider drag, shouldn't re-trigger it.
      */
+    // FIXME: duplicate
     private void recomputeGridMetrics(boolean force) {
         double viewportWidth = photoGridListView.getWidth();
         if (viewportWidth <= 0) {

@@ -3,6 +3,7 @@ package com.github.curiousoddman.curious_images.domain.common.thumbnail;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -39,12 +40,16 @@ public class SourceImageDecoder {
     /**
      * @return the decoded image, or empty if nothing decodable was found (corrupt file, CR2 with
      * no usable embedded preview, etc.) — never throws for a single bad file.
+     * NOTE:
+     * - CR2 file preview jpeg has same orientation as raw image, but metadata extractor only reads jpeg bytes, without orientation - therefore manually rotate image
+     * - imreadUnicodeSafe reads whole file instead - therefore it produces already rotated Mat
      */
-    public Optional<Mat> decode(Path sourceFile, String extension) {
+    public Optional<Mat> decode(Path sourceFile, String extension, int rotationDegreeForCr2) {
         try {
             if (CR2_EXTENSION.equalsIgnoreCase(extension)) {
                 return metadataExtractor.extractEmbeddedPreviewBytes(sourceFile)
-                                        .map(this::decodeBytes);
+                                        .map(this::decodeBytes)
+                                        .map(mat -> rotateForOrientation(mat, rotationDegreeForCr2));
             }
             Mat img = imreadUnicodeSafe(sourceFile, Imgcodecs.IMREAD_COLOR);
             return img.empty() ? Optional.empty() : Optional.of(img);
@@ -63,5 +68,19 @@ public class SourceImageDecoder {
             return null;
         }
         return decoded;
+    }
+
+    private static Mat rotateForOrientation(Mat img, Integer degrees) {
+        if (degrees == null) {
+            return img;
+        }
+        int normalized = ((degrees % 360) + 360) % 360;
+        switch (normalized) {
+            case 90 -> Core.rotate(img, img, Core.ROTATE_90_CLOCKWISE);
+            case 180 -> Core.rotate(img, img, Core.ROTATE_180);
+            case 270 -> Core.rotate(img, img, Core.ROTATE_90_COUNTERCLOCKWISE);
+            default -> { /* 0, or any non-90/180/270 value: no-op, same as original rotate() */ }
+        }
+        return img;
     }
 }

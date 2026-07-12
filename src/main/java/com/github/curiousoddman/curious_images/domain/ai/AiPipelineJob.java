@@ -119,7 +119,7 @@ public class AiPipelineJob extends BackgroundJob {
                 PhotoRecord photo = photoRepo.findById(photoId)
                                              .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
                 lastPhotoPath = photo.getAbsolutePath();
-                img = ImageUtils.loadImageOriented(photo.getAbsolutePath(), photo.getOrientation());
+                img = ImageUtils.loadImageOriented(photo.getAbsolutePath());
 
                 if (faceSet.contains(photoId)) {
                     List<DetectedFace> faces = retinaFaceDetector.detect(img);
