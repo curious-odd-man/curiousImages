@@ -301,7 +301,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
                    .selectedItemProperty()
                    .addListener((obs, oldTab, newTab) -> {
                        if (newTab == duplicatesTab) {
-                           duplicatesController.activate(noImageAvailable);
+                           duplicatesController.activateDuplicatesView();
                        }
                    });
     }

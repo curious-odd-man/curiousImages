@@ -3,7 +3,7 @@ package com.github.curiousoddman.curious_images.persistence;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.dedupe.PhotoHashRepository;
-import com.github.curiousoddman.curious_images.model.DuplicateGroupView;
+import com.github.curiousoddman.curious_images.model.DuplicateGroup;
 import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
@@ -79,7 +79,7 @@ public class DuplicateGroupRepository {
      * if generated). Since {@link #deleteGroupsNotInJob} guarantees only the latest completed
      * job's groups exist at any time, no job filter is needed here.
      */
-    public List<DuplicateGroupView> findAllGroupsWithMembers() {
+    public List<DuplicateGroup> findAllGroupsWithMembers() {
         var rows = dsl.select(DUPLICATE_GROUP.ID, DUPLICATE_GROUP.EXTENSION, DUPLICATE_GROUP.PIXEL_HASH)
                       .select(PHOTO.fields())
                       .select(THUMBNAIL.fields())
@@ -105,7 +105,7 @@ public class DuplicateGroupRepository {
 
         return byGroupId.values()
                         .stream()
-                        .map(acc -> new DuplicateGroupView(acc.groupId, acc.extension, acc.pixelHash, acc.photos))
+                        .map(acc -> new DuplicateGroup(acc.groupId, acc.extension, acc.pixelHash, acc.photos))
                         .toList();
     }
 

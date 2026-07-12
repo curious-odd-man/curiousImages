@@ -1,24 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.control.CheckBox?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.*?>
+<?import javafx.scene.text.*?>
 
 <!--
     One photo within a duplicate group on the Duplicates tab: thumbnail, full metadata shown
     inline (not a hover tooltip - the whole point is comparing photos side by side), and a
     "keep" checkbox. See DuplicateCellController.
 -->
-<VBox fx:id="cellRoot" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.github.curiousoddman.curious_images.ui.controller.custom.DuplicateCellController"
-      alignment="TOP_CENTER" maxWidth="240.0" spacing="6.0">
-    <padding>
-        <Insets bottom="8.0" left="8.0" right="8.0" top="8.0"/>
-    </padding>
 
-    <ImageView fx:id="imageView" fitWidth="160.0" fitHeight="160.0" preserveRatio="true"/>
-    <Label fx:id="infoLabel" maxWidth="220.0" styleClass="monospace-text" wrapText="true"/>
-    <CheckBox fx:id="checkBox" text="Keep"/>
-</VBox>
+
+<HBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" spacing="20.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.custom.DuplicateCellController">
+   <children>
+   
+          <StackPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
+           <children>
+               <Rectangle fx:id="placeholderRect" arcHeight="10.0" arcWidth="10.0" fill="#d8d8d8" />
+               <Label fx:id="placeholderLabel" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Loading..." StackPane.alignment="CENTER" />
+               <ImageView fx:id="imageView" preserveRatio="true" visible="false" />
+           </children>
+       </StackPane>
+      <VBox fx:id="cellRoot" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" spacing="6.0">
+          <padding>
+              <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
+          </padding>
+          <Label fx:id="infoLabel" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" styleClass="monospace-text" wrapText="true" />
+          <CheckBox fx:id="checkBox" text="Mark">
+            <font>
+               <Font name="Consolas Bold" size="20.0" />
+            </font>
+         </CheckBox>
+      </VBox>
+   </children>
+</HBox>
