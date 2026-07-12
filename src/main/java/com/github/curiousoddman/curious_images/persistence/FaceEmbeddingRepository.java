@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images.persistence;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceEmbeddingRecord;
+import com.github.curiousoddman.curious_images.util.EmbeddingMath;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Query;
@@ -12,6 +13,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.github.curiousoddman.curious_images.dbobj.Tables.FACE_EMBEDDING;
+import static com.github.curiousoddman.curious_images.util.EmbeddingMath.toBytes;
 
 /**
  * Hand-written jOOQ repository for {@code face_embedding}.
@@ -78,14 +80,5 @@ public class FaceEmbeddingRepository {
         ctx.deleteFrom(FACE_EMBEDDING)
            .where(FACE_EMBEDDING.FACE_ID.in(faceIds))
            .execute();
-    }
-
-    // ── Serialisation helpers ─────────────────────────────────────────────────
-
-    /**
-     * Converts a float[512] embedding to 2048 little-endian bytes.
-     */
-    public static byte[] toBytes(float[] embedding) {
-        return ClipEmbeddingRepository.toBytes(embedding);
     }
 }

@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images.persistence;
 
 import com.github.curiousoddman.curious_images.domain.dedupe.PhotoHashRepository;
+import com.github.curiousoddman.curious_images.util.TextUtils;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
@@ -49,16 +50,8 @@ public class DuplicateJobRepository {
         dsl.update(DUPLICATE_JOB)
            .set(DUPLICATE_JOB.STATUS, "FAILED")
            .set(DUPLICATE_JOB.ENDED_AT, endedAt)
-           .set(DUPLICATE_JOB.ERROR_MESSAGE, truncate(errorMessage, 2048))
+           .set(DUPLICATE_JOB.ERROR_MESSAGE, TextUtils.truncate(errorMessage, 2048))
            .where(DUPLICATE_JOB.ID.eq(jobId))
            .execute();
-    }
-
-    // FIXME: common code
-    private static String truncate(String s, int max) {
-        if (s == null) {
-            return null;
-        }
-        return s.length() <= max ? s : s.substring(0, max);
     }
 }

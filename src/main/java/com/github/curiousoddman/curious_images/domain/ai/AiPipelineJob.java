@@ -8,6 +8,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.domain.index.ClipVectorIndex;
 import com.github.curiousoddman.curious_images.domain.index.FaceVectorIndex;
 import com.github.curiousoddman.curious_images.persistence.*;
+import com.github.curiousoddman.curious_images.util.EmbeddingMath;
 import com.github.curiousoddman.curious_images.util.ImageUtils;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import com.github.curiousoddman.curious_images.util.async.jobs.BackgroundJob;
@@ -194,7 +195,7 @@ public class AiPipelineJob extends BackgroundJob {
                 ClipEmbeddingRecord clipRec = clipEmbeddingRepo.findByPhotoId(photoId)
                                                                .orElse(null);
                 if (clipRec != null) {
-                    float[] clipEmbed = ClipEmbeddingRepository.getFloats(clipRec.getEmbedding());
+                    float[] clipEmbed = EmbeddingMath.getFloats(clipRec.getEmbedding());
                     clipVectorIndex.upsert(photoId, clipEmbed);
                 }
 
@@ -207,7 +208,7 @@ public class AiPipelineJob extends BackgroundJob {
                 for (FaceRecord face : faces) {
                     FaceEmbeddingRecord emb = faceEmbeds.get(face.getId());
                     if (emb != null) {
-                        float[] faceEmbed = ClipEmbeddingRepository.getFloats(emb.getEmbedding());
+                        float[] faceEmbed = EmbeddingMath.getFloats(emb.getEmbedding());
                         // face no longer stores its person directly (see FaceRepository); resolve
                         // via cluster_id -> cluster.person_id instead.
                         // TODO: this index is only refreshed here, at Lucene-indexing time — it is

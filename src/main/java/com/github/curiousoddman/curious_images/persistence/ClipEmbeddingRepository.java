@@ -1,13 +1,12 @@
 package com.github.curiousoddman.curious_images.persistence;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ClipEmbeddingRecord;
+import com.github.curiousoddman.curious_images.util.EmbeddingMath;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Query;
 import org.springframework.stereotype.Repository;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,7 +30,7 @@ public class ClipEmbeddingRepository {
      * @param modelVersion e.g. {@code "clip_vit_b32"}
      */
     public Query upsertQuery(long photoId, float[] embedding, String modelVersion) {
-        byte[] bytes = toBytes(embedding);
+        byte[] bytes = EmbeddingMath.toBytes(embedding);
         return dsl.mergeInto(CLIP_EMBEDDING)
                   .using(dsl.selectOne())
                   .on(CLIP_EMBEDDING.PHOTO_ID.eq(photoId))
@@ -65,27 +64,5 @@ public class ClipEmbeddingRepository {
         ctx.deleteFrom(CLIP_EMBEDDING)
            .where(CLIP_EMBEDDING.PHOTO_ID.eq(photoId))
            .execute();
-    }
-
-    // ── Serialisation helpers ─────────────────────────────────────────────────
-
-    // FIXME: move to common library classes
-    public static byte[] toBytes(float[] embedding) {
-        ByteBuffer buf = ByteBuffer.allocate(embedding.length * 4)
-                                   .order(ByteOrder.LITTLE_ENDIAN);
-        for (float v : embedding) {
-            buf.putFloat(v);
-        }
-        return buf.array();
-    }
-
-    public static float[] getFloats(byte[] bytes) {
-        ByteBuffer buf = ByteBuffer.wrap(bytes)
-                                   .order(ByteOrder.LITTLE_ENDIAN);
-        float[] out = new float[bytes.length / 4];
-        for (int i = 0; i < out.length; i++) {
-            out[i] = buf.getFloat();
-        }
-        return out;
     }
 }

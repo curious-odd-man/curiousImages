@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import static com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository.getFloats;
+import static com.github.curiousoddman.curious_images.util.EmbeddingMath.getFloats;
 
 /**
  * Implements the human-correction actions from {@code face-person-correction-requirements.md}:
@@ -171,7 +171,7 @@ public class PersonCorrectionService {
                 float[] centroid = EmbeddingMath.average(needsDestination.values());
                 EmbeddingMath.l2Normalize(centroid);
                 long newClusterId = clusterRepo.insert(
-                        targetPersonId, FaceEmbeddingRepository.toBytes(centroid), needsDestination.size(), now);
+                        targetPersonId, EmbeddingMath.toBytes(centroid), needsDestination.size(), now);
                 for (Long faceId : needsDestination.keySet()) {
                     buffer.add(faceRepo.lockFaceAssignmentQuery(faceId, newClusterId));
                 }
@@ -307,7 +307,7 @@ public class PersonCorrectionService {
 
             personId = personRepo.insert(newPersonName, coverFaceId, now);
             long newClusterId = clusterRepo.insert(
-                    personId, FaceEmbeddingRepository.toBytes(centroid), vectors.size(), now);
+                    personId, EmbeddingMath.toBytes(centroid), vectors.size(), now);
             for (Long faceId : vectors.keySet()) {
                 buffer.add(faceRepo.lockFaceAssignmentQuery(faceId, newClusterId));
             }
@@ -517,7 +517,7 @@ public class PersonCorrectionService {
         }
         float[] centroid = EmbeddingMath.average(remainingVectors.values());
         buffer.add(clusterRepo.updateCentroidQuery(
-                clusterId, FaceEmbeddingRepository.toBytes(centroid), remainingIds.size(), now));
+                clusterId, EmbeddingMath.toBytes(centroid), remainingIds.size(), now));
         return Optional.empty();
     }
 
@@ -571,7 +571,7 @@ public class PersonCorrectionService {
         float[] centroid = EmbeddingMath.average(all);
 
         buffer.add(clusterRepo.updateCentroidQuery(
-                clusterId, FaceEmbeddingRepository.toBytes(centroid), all.size(), now));
+                clusterId, EmbeddingMath.toBytes(centroid), all.size(), now));
         for (Long faceId : newVectors.keySet()) {
             buffer.add(faceRepo.lockFaceAssignmentQuery(faceId, clusterId));
         }

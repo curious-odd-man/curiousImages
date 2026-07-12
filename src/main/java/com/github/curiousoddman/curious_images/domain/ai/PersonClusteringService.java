@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository.getFloats;
+import static com.github.curiousoddman.curious_images.util.EmbeddingMath.getFloats;
 
 /**
  * Groups face embeddings into person candidates using centroid-based clustering over cosine
@@ -163,12 +163,12 @@ public class PersonClusteringService {
                 EmbeddingMath.incrementalUpdate(centroid, oldSize, v);
                 sizes.set(best, oldSize + 1);
                 buffer.add(clusterRepo.updateCentroidQuery(
-                        clusterId, FaceEmbeddingRepository.toBytes(centroid), oldSize + 1, now));
+                        clusterId, EmbeddingMath.toBytes(centroid), oldSize + 1, now));
                 matched++;
             } else {
                 // Nothing matched — seed a brand new person + single-member cluster immediately.
                 long personId = personRepo.insert(null, face.getId(), now);
-                clusterId = clusterRepo.insert(personId, FaceEmbeddingRepository.toBytes(v), 1, now);
+                clusterId = clusterRepo.insert(personId, EmbeddingMath.toBytes(v), 1, now);
                 clusterIds.add(clusterId);
                 centroids.add(v.clone());
                 sizes.add(1);
@@ -376,7 +376,7 @@ public class PersonClusteringService {
                 Long    personId = existingClusterOwner.get(c);
                 float[] centroid = centroids.get(c);
                 buffer.add(clusterRepo.updateCentroidQuery(
-                        seedClusterId, FaceEmbeddingRepository.toBytes(centroid), memberIdx.size(), now));
+                        seedClusterId, EmbeddingMath.toBytes(centroid), memberIdx.size(), now));
                 clustersUpdated++;
 
                 for (int idx : memberIdx) {
@@ -403,7 +403,7 @@ public class PersonClusteringService {
                 }
 
                 long newClusterId = clusterRepo.insert(
-                        personId, FaceEmbeddingRepository.toBytes(centroid), memberIdx.size(), now);
+                        personId, EmbeddingMath.toBytes(centroid), memberIdx.size(), now);
                 for (int idx : memberIdx) {
                     buffer.add(faceRepo.assignClusterQuery(faceIds[idx], newClusterId));
                 }

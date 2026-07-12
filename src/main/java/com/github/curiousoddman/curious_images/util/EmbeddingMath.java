@@ -4,6 +4,8 @@ import com.github.curiousoddman.curious_images.domain.ai.PersonClusteringService
 import com.github.curiousoddman.curious_images.domain.ai.PersonCorrectionService;
 import lombok.experimental.UtilityClass;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -133,5 +135,24 @@ public final class EmbeddingMath {
             }
         }
         return assignments;
+    }
+
+    public static byte[] toBytes(float[] embedding) {
+        ByteBuffer buf = ByteBuffer.allocate(embedding.length * 4)
+                                   .order(ByteOrder.LITTLE_ENDIAN);
+        for (float v : embedding) {
+            buf.putFloat(v);
+        }
+        return buf.array();
+    }
+
+    public static float[] getFloats(byte[] bytes) {
+        ByteBuffer buf = ByteBuffer.wrap(bytes)
+                                   .order(ByteOrder.LITTLE_ENDIAN);
+        float[] out = new float[bytes.length / 4];
+        for (int i = 0; i < out.length; i++) {
+            out[i] = buf.getFloat();
+        }
+        return out;
     }
 }

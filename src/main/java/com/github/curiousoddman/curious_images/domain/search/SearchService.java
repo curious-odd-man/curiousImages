@@ -7,6 +7,7 @@ import com.github.curiousoddman.curious_images.domain.index.ClipVectorIndex;
 import com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository;
 import com.github.curiousoddman.curious_images.persistence.ClusterRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
+import com.github.curiousoddman.curious_images.util.EmbeddingMath;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -48,7 +49,7 @@ public class SearchService {
                                                    .orElseThrow(() -> new IllegalStateException(
                                                            "No CLIP embedding for photo " + photoId +
                                                                    " — run the AI pipeline first."));
-        float[]    embedding = ClipEmbeddingRepository.getFloats(rec.getEmbedding());
+        float[]    embedding = EmbeddingMath.getFloats(rec.getEmbedding());
         List<Long> results   = clipVectorIndex.search(embedding, topK + 1);
         results = results.stream()
                          .filter(id -> id != photoId)
