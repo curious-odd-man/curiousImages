@@ -51,9 +51,9 @@ public class PhotoGridRowController implements Initializable {
 
     private final List<PhotoCellController> pool = new ArrayList<>();
 
-    private ObservableValue<Number>        thumbnailSize;
-    private Consumer<PhotoRecord>          onPhotoClicked;
-    private Function<PhotoRecord, String>  tooltipTextFn;
+    private ObservableValue<Number>       thumbnailSize;
+    private Consumer<PhotoRecord>         onPhotoClicked;
+    private Function<PhotoRecord, String> tooltipTextFn;
 
     /**
      * Bumped on every {@link #showRow}. Lets a stale, in-flight background thumbnail/preview
@@ -71,12 +71,13 @@ public class PhotoGridRowController implements Initializable {
 
     /**
      * Called once, right after this row controller is created — the thumbnail-size binding
-     * target, click handler, and tooltip-text function are all shared/stable for the lifetime of
-     * the row controller (only the photos shown change, via {@link #showRow}).
+     * target, click handler, tooltip-text function, and context-menu handlers are all
+     * shared/stable for the lifetime of the row controller (only the photos shown change, via
+     * {@link #showRow}).
      */
     public void bindOnce(ObservableValue<Number> thumbnailSize,
-                          Consumer<PhotoRecord> onPhotoClicked,
-                          Function<PhotoRecord, String> tooltipTextFn) {
+                         Consumer<PhotoRecord> onPhotoClicked,
+                         Function<PhotoRecord, String> tooltipTextFn) {
         this.thumbnailSize = thumbnailSize;
         this.onPhotoClicked = onPhotoClicked;
         this.tooltipTextFn = tooltipTextFn;
@@ -125,8 +126,8 @@ public class PhotoGridRowController implements Initializable {
 
     private void ensurePoolSize(int minSize) {
         while (pool.size() < minSize) {
-            LoadedFxml<PhotoCellController> loaded = fxmlLoader.load(FxmlView.PHOTO_CELL, null);
-            PhotoCellController controller = loaded.controller();
+            LoadedFxml<PhotoCellController> loaded     = fxmlLoader.load(FxmlView.PHOTO_CELL, null);
+            PhotoCellController             controller = loaded.controller();
             controller.bindThumbnailSize(thumbnailSize);
             controller.setOnPhotoClicked(onPhotoClicked);
             pool.add(controller);

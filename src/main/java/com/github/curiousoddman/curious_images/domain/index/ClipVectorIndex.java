@@ -52,6 +52,15 @@ public class ClipVectorIndex {
     }
 
     /**
+     * Removes the CLIP embedding document for {@code photoId}, if present. Call {@link #commit()}
+     * afterward to make the removal visible to searchers. Used by {@code PhotoRotationService}
+     * when a photo's rotation is manually corrected and its embedding is deleted outright.
+     */
+    public void delete(long photoId) throws IOException {
+        clipIndexWriter.deleteDocuments(new Term("photo_id", String.valueOf(photoId)));
+    }
+
+    /**
      * Commits buffered writes and refreshes searchers. Call after each batch in the indexing
      * pipeline stage.
      */

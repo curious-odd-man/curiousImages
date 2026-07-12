@@ -14,6 +14,7 @@ public class Main {
     // FIXME: Duplicates screen - thumbnails are generated for all images at once, but should for only visible.
     // FIXME: cr2 images ai pipeline fails - codec is not supported.
     // FIXME: Rotated face thumbnail is produced - need to investigate
+    // FIXME: Duplicates detection would fail if one photo is rotated, while another is not.
     public static void main(String[] args) {
         LauncherImpl.launchApplication(JavafxApplication.class, AnimatedPreloader.class, args);
     }

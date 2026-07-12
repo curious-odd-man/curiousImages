@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.ui.util.ImageContextMenu;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -8,11 +9,13 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -36,7 +39,10 @@ import java.util.function.Consumer;
  */
 @Component
 @Scope("prototype")
+@RequiredArgsConstructor
 public class PhotoCellController implements Initializable {
+
+    private final ImageContextMenu imageContextMenu;
 
     @FXML
     private Label     cellRoot;
@@ -51,21 +57,21 @@ public class PhotoCellController implements Initializable {
     @FXML
     private Tooltip   tooltip;
 
-    /**
-     * -- SETTER --
-     *  Set once at creation by
-     *  — fired on single click, for as long
-     *  as this pooled instance lives.
-     */
     @Setter
     private Consumer<PhotoRecord> onPhotoClicked;
+
     @Getter
-    private PhotoRecord           currentPhoto;
+    private PhotoRecord currentPhoto;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         tooltip.setShowDelay(Duration.millis(500));
         imageView.setPreserveRatio(true);
+
+        // Built fresh on every right-click rather than a field held for the pooled instance's
+        // lifetime — a pre-created ContextMenu would sit in memory for every pool slot even
+        // though it's shown at most once at a time. See onCellContextMenuRequested.
+        cellRoot.setOnContextMenuRequested(e -> imageContextMenu.show(currentPhoto, cellRoot, e));
     }
 
     /**
@@ -135,7 +141,7 @@ public class PhotoCellController implements Initializable {
 
     @FXML
     private void onCellClicked(MouseEvent e) {
-        if (e.getClickCount() == 1 && currentPhoto != null && onPhotoClicked != null) {
+        if (e.getClickCount() == 1 && e.getButton() == MouseButton.PRIMARY && currentPhoto != null && onPhotoClicked != null) {
             onPhotoClicked.accept(currentPhoto);
         }
     }

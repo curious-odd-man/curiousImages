@@ -2,13 +2,16 @@ package com.github.curiousoddman.curious_images.ui.controller.screen;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
+import com.github.curiousoddman.curious_images.domain.common.photo.PhotoRotationService;
 import com.github.curiousoddman.curious_images.model.bundle.SlideshowBundle;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
+import com.github.curiousoddman.curious_images.ui.util.ImageContextMenu;
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -38,6 +41,7 @@ import static com.sun.javafx.util.Utils.runOnFxThread;
  *   <li>Show a warning badge when the source file is not found on disk.</li>
  *   <li>Left/right navigation (mouse buttons + keyboard arrows).</li>
  *   <li>Scroll-to-zoom around the cursor, drag-to-pan.</li>
+ *   <li>Right-click context menu: rotate (see {@link PhotoRotationService}) / reveal in Explorer.</li>
  *   <li>Auto-hide navigation controls after 2 s of mouse inactivity.</li>
  *   <li>Close on Esc or the ✕ button.</li>
  * </ul>
@@ -54,6 +58,7 @@ public class SlideshowController implements Initializable {
 
     // ── Dependencies ────────────────────────────────────────────────────────
     private final ThumbnailRepository thumbnailRepository;
+    private final ImageContextMenu    imageContextMenu;
     @FXML
     public        StackPane           imagesPane;
 
@@ -127,6 +132,7 @@ public class SlideshowController implements Initializable {
         setupZoomAndPan();
         setupKeyboard();
         setupButtons();
+        setupContextMenu();
     }
 
     // ────────────────────────────────────────────────────────────────────────
@@ -417,9 +423,35 @@ public class SlideshowController implements Initializable {
     }
 
     // ────────────────────────────────────────────────────────────────────────
-    // Helpers
+    // Context menu — rotate / reveal in Explorer
     // ────────────────────────────────────────────────────────────────────────
 
+    /**
+     * Built fresh on every right-click (not held as a field) so the (rarely-shown) slideshow
+     * overlay doesn't keep a {@link ContextMenu} instance around for its whole lifetime, mirroring
+     * {@code PhotoCellController}/{@code DuplicatesController}.
+     */
+    private void setupContextMenu() {
+        rootPane.setOnContextMenuRequested(e -> {
+            if (photos == null || photos.isEmpty()) {
+                return;
+            }
+            PhotoRecord photo = photos.get(currentIndex);
+            imageContextMenu.show(photo, rootPane, e);
+        });
+    }
+
+    /**
+     * Rotates the currently-displayed photo. The DB write + AI-data wipe (see
+     * {@link PhotoRotationService}) runs off the FX thread; once it's done, this photo's
+     * in-memory {@link PhotoRecord#getOrientation()} is updated and the full-res view is
+     * re-rotated immediately, without waiting for the async thumbnail regeneration job to finish.
+     */
+
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Helpers
+    // ────────────────────────────────────────────────────────────────────────
     private Image loadThumbnailImage(ThumbnailRecord thumbnail) {
         return getImage(thumbnail, noImageAvailable);
     }

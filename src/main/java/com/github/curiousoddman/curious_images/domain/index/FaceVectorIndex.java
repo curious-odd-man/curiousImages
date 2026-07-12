@@ -64,6 +64,15 @@ public class FaceVectorIndex {
     }
 
     /**
+     * Removes the face embedding document for {@code faceId}, if present. Call {@link #commit()}
+     * afterward to make the removal visible to searchers. Used by {@code PhotoRotationService}
+     * when a photo's rotation is manually corrected and its faces are deleted outright.
+     */
+    public void delete(long faceId) throws IOException {
+        faceIndexWriter.deleteDocuments(new Term("face_id", String.valueOf(faceId)));
+    }
+
+    /**
      * Commits buffered writes and refreshes searchers.
      */
     public void commit() throws IOException {

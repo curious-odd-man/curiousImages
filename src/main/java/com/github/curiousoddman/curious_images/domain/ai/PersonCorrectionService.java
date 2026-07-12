@@ -204,6 +204,50 @@ public class PersonCorrectionService {
         return pickBestCluster(targetPersonId, referenceVector);
     }
 
+    // ── Used by PhotoRotationService — manual rotation correction wipes a photo's faces ───────
+
+    /**
+     * Wipes clustering involvement for every one of {@code faceIds} — recomputes or deletes
+     * whichever cluster(s) they belonged to — without assigning them anywhere new. Used by
+     * {@code PhotoRotationService} right before it deletes the corresponding {@code FACE} rows
+     * outright: a photo whose rotation was manually corrected has meaningless bounding
+     * boxes/embeddings for its existing faces, so unlike FR1/FR3/FR5 there is no "new home" for
+     * them — they're simply going away. Unclustered IDs in {@code faceIds} are silently skipped
+     * (nothing to clean up for them).
+     * <p>
+     * Must be called <em>before</em> the caller deletes the {@code FACE} rows — this method reads
+     * each face's current {@code cluster_id} via {@link FaceRepository#findByIds}, which returns
+     * nothing for rows that no longer exist.
+     *
+     * @return newly-orphaned person IDs — same semantics as {@link #reassignFacesToExistingPerson}
+     * etc. This method never deletes an orphaned person itself; see {@link #deleteOrphanedPerson}.
+     */
+    public Set<Long> removeFacesFromClusters(Collection<Long> faceIds) {
+        if (faceIds.isEmpty()) {
+            return Set.of();
+        }
+        LocalDateTime    now   = timeProvider.now();
+        List<FaceRecord> faces = faceRepo.findByIds(faceIds);
+
+        Map<Long, Set<Long>> byCluster = new LinkedHashMap<>();
+        for (FaceRecord f : faces) {
+            if (f.getClusterId() != null) {
+                byCluster.computeIfAbsent(f.getClusterId(), k -> new HashSet<>())
+                         .add(f.getId());
+            }
+        }
+
+        List<Query> buffer   = new ArrayList<>();
+        Set<Long>   orphaned = new HashSet<>();
+        for (Map.Entry<Long, Set<Long>> e : byCluster.entrySet()) {
+            removeFromCluster(e.getKey(), e.getValue(), now, buffer)
+                    .ifPresent(orphaned::add);
+        }
+        execute(buffer);
+        publisher.publishEvent(new PersonsUpdatedEvent(this));
+        return orphaned;
+    }
+
     /**
      * Moves {@code faceIds} out of whatever cluster(s) they're currently in and into a brand new
      * person, locking each face. Mechanically identical for one face (FR1's "New person…" option)

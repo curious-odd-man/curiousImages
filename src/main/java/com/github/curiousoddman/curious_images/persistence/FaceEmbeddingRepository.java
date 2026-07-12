@@ -6,8 +6,6 @@ import org.jooq.DSLContext;
 import org.jooq.Query;
 import org.springframework.stereotype.Repository;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +63,21 @@ public class FaceEmbeddingRepository {
                   .fetch()
                   .stream()
                   .collect(Collectors.toMap(FaceEmbeddingRecord::getFaceId, r -> r));
+    }
+
+    /**
+     * Deletes embedding rows for the given face IDs. Call inside the same transaction as the
+     * corresponding {@code FACE} row deletion — see {@code PhotoRotationService}, which is the
+     * only current caller (a photo's rotation was manually corrected, so its faces/embeddings are
+     * being wiped outright rather than reassigned anywhere).
+     */
+    public void deleteByFaceIds(DSLContext ctx, Collection<Long> faceIds) {
+        if (faceIds.isEmpty()) {
+            return;
+        }
+        ctx.deleteFrom(FACE_EMBEDDING)
+           .where(FACE_EMBEDDING.FACE_ID.in(faceIds))
+           .execute();
     }
 
     // ── Serialisation helpers ─────────────────────────────────────────────────

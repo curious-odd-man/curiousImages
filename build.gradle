@@ -162,6 +162,8 @@ dependencies {
 
     implementation "org.kordamp.ikonli:ikonli-javafx:${ikonliVersion}"
     implementation "org.kordamp.ikonli:ikonli-materialdesign2-pack:${ikonliVersion}"
+    implementation "org.kordamp.ikonli:ikonli-bootstrapicons-pack:${ikonliVersion}"
+
 
     implementation 'com.drewnoakes:metadata-extractor:2.20.0'
     implementation 'net.coobird:thumbnailator:0.4.21'

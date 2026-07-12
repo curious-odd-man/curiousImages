@@ -56,8 +56,20 @@ public class ClipEmbeddingRepository {
                   .fetch();
     }
 
+    /**
+     * Deletes the CLIP embedding row for a photo, if any. Call inside the same transaction as the
+     * corresponding {@code PHOTO}/{@code FACE} row changes — see {@code PhotoRotationService}, the
+     * only current caller (manual rotation correction wipes a photo's AI data outright).
+     */
+    public void deleteByPhotoId(DSLContext ctx, long photoId) {
+        ctx.deleteFrom(CLIP_EMBEDDING)
+           .where(CLIP_EMBEDDING.PHOTO_ID.eq(photoId))
+           .execute();
+    }
+
     // ── Serialisation helpers ─────────────────────────────────────────────────
 
+    // FIXME: move to common library classes
     public static byte[] toBytes(float[] embedding) {
         ByteBuffer buf = ByteBuffer.allocate(embedding.length * 4)
                                    .order(ByteOrder.LITTLE_ENDIAN);

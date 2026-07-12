@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images.persistence;
 
 import com.github.curiousoddman.curious_images.domain.dedupe.PhotoHashRepository;
+import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
@@ -13,12 +14,9 @@ import static com.github.curiousoddman.curious_images.dbobj.tables.DuplicateJob.
  * conventions. Requires the DUPLICATE_JOB jOOQ classes, generated from migration V004.
  */
 @Repository
+@RequiredArgsConstructor
 public class DuplicateJobRepository {
     private final DSLContext dsl;
-
-    public DuplicateJobRepository(DSLContext dsl) {
-        this.dsl = dsl;
-    }
 
     public long insertRunning(LocalDateTime startedAt, int totalCount) {
         return dsl.insertInto(DUPLICATE_JOB)
@@ -56,6 +54,7 @@ public class DuplicateJobRepository {
            .execute();
     }
 
+    // FIXME: common code
     private static String truncate(String s, int max) {
         if (s == null) {
             return null;

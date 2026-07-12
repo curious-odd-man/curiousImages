@@ -108,6 +108,28 @@ public class PhotoRepository {
     }
 
     /**
+     * Manual rotation correction (context-menu "Rotate" action, see {@code PhotoRotationService}):
+     * overwrites the stored {@code ORIENTATION} and resets every AI "done" flag + clears the last
+     * error/retry count, so the next {@code AiPipelineJob} run reprocesses this photo from scratch.
+     * Executes immediately against the caller-supplied {@code ctx} — always called as one step of
+     * {@code PhotoRotationService#rotate}'s single-photo transaction, never in bulk, mirroring the
+     * {@code ctx}-taking delete methods elsewhere in this class/{@code ThumbnailRepository}/etc.
+     */
+    public void updateOrientationAndResetAi(DSLContext ctx, long photoId, int newOrientationDegrees, LocalDateTime now) {
+        ctx.update(PHOTO)
+           .set(PHOTO.ORIENTATION, newOrientationDegrees)
+           .set(PHOTO.AI_FACE_DETECT_DONE, false)
+           .set(PHOTO.AI_FACE_EMBED_DONE, false)
+           .set(PHOTO.AI_CLIP_EMBED_DONE, false)
+           .set(PHOTO.AI_LUCENE_INDEX_DONE, false)
+           .set(PHOTO.AI_LAST_ERROR, (String) null)
+           .set(PHOTO.AI_RETRY_COUNT, (short) 0)
+           .set(PHOTO.AI_UPDATED_AT, now)
+           .where(PHOTO.ID.eq(photoId))
+           .execute();
+    }
+
+    /**
      * Deletes a single photo row, used when resolving duplicates. Caller is responsible for first
      * deleting dependent rows ({@code THUMBNAIL}, {@code DUPLICATE_GROUP_MEMBER}) and for passing
      * a {@code ctx} bound to the same transaction — see {@code DuplicateResolutionService}.
@@ -271,7 +293,7 @@ public class PhotoRepository {
                   .fetch(PHOTO.ID);
     }
 
-    /**
+    /** FIXME: Unneeded?
      * Returns photo IDs that still need face embedding.
      */
     public List<Long> findPendingFaceEmbed() {

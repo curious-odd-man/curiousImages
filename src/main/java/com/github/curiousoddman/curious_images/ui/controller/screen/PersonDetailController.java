@@ -5,7 +5,6 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.ai.PersonCorrectionService;
-import com.github.curiousoddman.curious_images.domain.common.thumbnail.PersonService;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.event.model.PersonRenamedEvent;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
@@ -134,7 +133,6 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
     private final FxmlLoader                fxmlLoader;
     private final PersonCorrectionService   personCorrectionService;
     private final ApplicationEventPublisher applicationEventPublisher;
-    private final PersonService             personService;
 
     // ── FXML nodes ────────────────────────────────────────────────────────────
 
