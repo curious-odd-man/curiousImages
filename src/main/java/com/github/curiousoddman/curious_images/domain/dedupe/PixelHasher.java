@@ -1,6 +1,6 @@
 package com.github.curiousoddman.curious_images.domain.dedupe;
 
-import com.github.curiousoddman.curious_images.domain.common.thumbnail.SourceImageDecoder;
+import com.github.curiousoddman.curious_images.util.ImageUtils;
 import lombok.RequiredArgsConstructor;
 import org.opencv.core.Mat;
 import org.springframework.stereotype.Component;
@@ -13,19 +13,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Optional;
 
-/**
- * Computes a hash of a photo's decoded pixel content.
- * <p>
- * Hashing the decoded raster (rather than the file's raw bytes) is what makes "same JPEG with
- * different EXIF" and "same JPEG renamed" both hash identically: re-encoding metadata doesn't
- * touch pixel data. For CR2, {@link SourceImageDecoder} decodes the embedded preview — exactly
- * the same source the thumbnail pipeline uses — so this never performs a full RAW render; a CR2's
- * "pixel content" for duplicate-detection purposes is its embedded preview's pixel content.
- */
 @Component
 @RequiredArgsConstructor
 public class PixelHasher {
-    private final SourceImageDecoder imageDecoder;
+    private final ImageUtils imageUtils;
 
     /**
      * @return a result with a non-null {@code pixelHash}, or one with a {@code null} pixelHash if
@@ -34,7 +25,7 @@ public class PixelHasher {
      * thumbnail generation skipping undecodable files during import.
      */
     public PhotoHashResult hash(long photoId, Path file, String extension, long fileSize) {
-        Optional<Mat> image = imageDecoder.decode(file, extension, 0);
+        Optional<Mat> image = imageUtils.imageOrCr2Preview(file, extension, 0);
         return image
                 .map(mat -> new PhotoHashResult(photoId, extension, fileSize, file.toString(), hashPixels(mat)))
                 .orElseGet(() -> new PhotoHashResult(photoId, extension, fileSize, file.toString(), null));

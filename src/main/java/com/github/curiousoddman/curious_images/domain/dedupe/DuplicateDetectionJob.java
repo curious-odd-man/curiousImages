@@ -44,9 +44,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 @RequiredArgsConstructor
 public class DuplicateDetectionJob extends BackgroundJob {
-    public static final  String DUPLICATE_DETECTION = "Duplicate Detection";
-    public static final AtomicInteger THREAD_COUNTER = new AtomicInteger();
-    private static final int    DB_FLUSH_BATCH_SIZE = 200;
+    public static final  String        DUPLICATE_DETECTION = "Duplicate Detection";
+    public static final  AtomicInteger THREAD_COUNTER      = new AtomicInteger();
+    private static final int           DB_FLUSH_BATCH_SIZE = 200;
 
     private final DSLContext               dsl;
     private final PhotoRepository          photoRepository;
@@ -195,7 +195,7 @@ public class DuplicateDetectionJob extends BackgroundJob {
             GroupKey key = new GroupKey(entry.getValue()
                                              .extension(), entry.getValue()
                                                                 .pixelHash());
-            groups.computeIfAbsent(key, k -> new ArrayList<>())
+            groups.computeIfAbsent(key, _ -> new ArrayList<>())
                   .add(entry.getKey());
         }
         groups.values()

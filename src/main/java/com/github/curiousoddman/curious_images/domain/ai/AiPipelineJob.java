@@ -57,6 +57,7 @@ public class AiPipelineJob extends BackgroundJob {
     private final TimeProvider             timeProvider;
     private final FaceThumbnailsRepository faceThumbnailsRepository;
     private final JobManager               jobManager;
+    private final ImageUtils               imageUtils;
     private final boolean                  faceDetectionOnly;
 
     @Override
@@ -128,7 +129,7 @@ public class AiPipelineJob extends BackgroundJob {
             PhotoRecord photo = photoRepo.findById(photoId)
                                          .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
             lastPhotoPath = photo.getAbsolutePath();
-            img = ImageUtils.loadImageOriented(photo.getAbsolutePath());
+            img = imageUtils.imageOrCr2Preview(photo).orElseThrow();
 
             if (faceSet.contains(photoId)) {
                 List<DetectedFace> faces = retinaFaceDetector.detect(img);

@@ -42,7 +42,7 @@ public class ThumbnailGenerationJob extends BackgroundJob {
 
     private final PhotoRepository     photoRepository;
     private final ThumbnailRepository thumbnailRepository;
-    private final SourceImageDecoder  imageDecoder;
+    private final ImageUtils          imageUtils;
     private final ThumbnailGenerator  thumbnailGenerator;
     private final TimeProvider        timeProvider;
     private final List<Long>          photoIds;
@@ -83,14 +83,12 @@ public class ThumbnailGenerationJob extends BackgroundJob {
 
             // Writer role: resize + JPEG-encode + write-to-SSD — safe to parallelize across
             // cores, since it isn't HDD-bound.
-            Path   file      = Path.of(photo.getAbsolutePath());
-            String extension = photo.getExtension();
-            int    rotation  = photo.getOrientation() == null ? 0 : photo.getOrientation();
-            long   photoId   = photo.getId();
+            Path file    = Path.of(photo.getAbsolutePath());
+            long photoId = photo.getId();
 
-            Optional<BufferedImage> decoded = imageDecoder.decode(file, extension, rotation)
-                                                          .map(ImageUtils::toBufferedImage);
-            decoded.ifPresent(image -> writeAndPersist(photoId, image, file));
+            imageUtils.imageOrCr2Preview(photo)
+                      .map(ImageUtils::toBufferedImage)
+                      .ifPresent(image -> writeAndPersist(photoId, image, file));
             completed.incrementAndGet();
             publishProgressThrottled("Generating thumbnails", completed.get(), total, "", completed.get() == total);
         }
@@ -104,8 +102,7 @@ public class ThumbnailGenerationJob extends BackgroundJob {
 
     private void writeAndPersist(long photoId, BufferedImage image, Path file) {
         try {
-            GeneratedThumbnail thumbnail =
-                    thumbnailGenerator.writeThumbnail(image, file, ThumbnailGenerator.LONGEST_EDGE);
+            GeneratedThumbnail thumbnail = thumbnailGenerator.writeThumbnail(image, file, ThumbnailGenerator.LONGEST_EDGE);
             thumbnailRepository.upsertQuery(photoId, thumbnail.cachePath()
                                                               .toString(),
                                        thumbnail.width(), thumbnail.height(), timeProvider.now())

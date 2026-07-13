@@ -9,7 +9,6 @@ import com.github.curiousoddman.curious_images.domain.ai.FaceAligner;
 import com.github.curiousoddman.curious_images.domain.ai.PersonClusteringService;
 import com.github.curiousoddman.curious_images.domain.ai.RetinaFaceDetector;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.PersonService;
-import com.github.curiousoddman.curious_images.domain.common.thumbnail.SourceImageDecoder;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerationJob;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator;
 import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateDetectionJob;
@@ -35,6 +34,7 @@ import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoPreviewRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
+import com.github.curiousoddman.curious_images.util.ImageUtils;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
@@ -54,7 +54,7 @@ public class JobFactory {
     private final PhotoPreviewRepository photoPreviewRepository;
     private final PhotoMetadataExtractor photoMetadataExtractor;
     private final ThumbnailGenerator     thumbnailGenerator;
-    private final SourceImageDecoder     sourceImageDecoder;
+    private final ImageUtils             imageUtils;
     private final TimeProvider           timeProvider;
 
     private final PhotoHashRepository      photoHashRepository;
@@ -105,7 +105,7 @@ public class JobFactory {
         return new ThumbnailGenerationJob(
                 photoRepository,
                 thumbnailRepository,
-                sourceImageDecoder,
+                imageUtils,
                 thumbnailGenerator,
                 timeProvider,
                 photoIds
@@ -143,6 +143,7 @@ public class JobFactory {
                 timeProvider,
                 faceThumbnailsRepository,
                 jobManager,
+                imageUtils,
                 aiFaceDetectionOnly
         );
     }
