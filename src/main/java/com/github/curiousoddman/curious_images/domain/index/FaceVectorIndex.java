@@ -88,6 +88,7 @@ public class FaceVectorIndex {
      * @param k              maximum results
      * @param personIdFilter if non-null, only return faces belonging to this person
      */
+    // TODO: Unused
     public List<Long> searchFaces(float[] queryVec, int k, Long personIdFilter) throws IOException {
         IndexSearcher searcher = faceSearcherManager.acquire();
         try {

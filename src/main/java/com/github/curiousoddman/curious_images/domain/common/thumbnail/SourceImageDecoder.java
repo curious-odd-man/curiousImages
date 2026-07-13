@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import java.nio.file.Path;
 import java.util.Optional;
 
-import static com.github.curiousoddman.curious_images.util.ImageUtils.imreadUnicodeSafe;
+import static com.github.curiousoddman.curious_images.util.ImageUtils.imreadRotated;
 
 /**
  * Decodes a source photo file to a {@link Mat} (BGR), the one place in the codebase that
@@ -51,7 +51,7 @@ public class SourceImageDecoder {
                                         .map(this::decodeBytes)
                                         .map(mat -> rotateForOrientation(mat, rotationDegreeForCr2));
             }
-            Mat img = imreadUnicodeSafe(sourceFile, Imgcodecs.IMREAD_COLOR);
+            Mat img = imreadRotated(sourceFile, Imgcodecs.IMREAD_COLOR);
             return img.empty() ? Optional.empty() : Optional.of(img);
         } catch (Exception e) {
             log.warn("Failed to decode {}", sourceFile, e);

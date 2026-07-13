@@ -243,15 +243,9 @@ public class PhotoRepository {
                   .toList();
     }
 
-    public Query markFaceDetectDoneQuery(long photoId, LocalDateTime now) {
+    public Query markFaceDetectAndEmbedDoneQuery(long photoId, LocalDateTime now) {
         return dsl.update(PHOTO)
                   .set(PHOTO.AI_FACE_DETECT_DONE, true)
-                  .set(PHOTO.AI_UPDATED_AT, now)
-                  .where(PHOTO.ID.eq(photoId));
-    }
-
-    public Query markFaceEmbedDoneQuery(long photoId, LocalDateTime now) {
-        return dsl.update(PHOTO)
                   .set(PHOTO.AI_FACE_EMBED_DONE, true)
                   .set(PHOTO.AI_UPDATED_AT, now)
                   .where(PHOTO.ID.eq(photoId));

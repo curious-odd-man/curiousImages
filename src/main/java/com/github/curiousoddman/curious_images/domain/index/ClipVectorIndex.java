@@ -33,9 +33,6 @@ import static org.apache.lucene.index.VectorSimilarityFunction.DOT_PRODUCT;
 @Component
 @RequiredArgsConstructor
 public class ClipVectorIndex {
-
-    private static final int DIMS = 512;
-
     private final IndexWriter     clipIndexWriter;
     private final SearcherManager clipSearcherManager;
 

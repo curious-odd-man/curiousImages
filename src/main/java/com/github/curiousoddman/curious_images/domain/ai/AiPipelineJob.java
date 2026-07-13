@@ -10,6 +10,7 @@ import com.github.curiousoddman.curious_images.domain.index.FaceVectorIndex;
 import com.github.curiousoddman.curious_images.persistence.*;
 import com.github.curiousoddman.curious_images.util.EmbeddingMath;
 import com.github.curiousoddman.curious_images.util.ImageUtils;
+import com.github.curiousoddman.curious_images.util.QueryBuffer;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import com.github.curiousoddman.curious_images.util.async.jobs.BackgroundJob;
 import com.github.curiousoddman.curious_images.util.async.jobs.IrrecoverableIterationException;
@@ -30,12 +31,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.github.curiousoddman.curious_images.util.QueryBuffer.DB_FLUSH_BATCH_SIZE;
+
 @Slf4j
 @RequiredArgsConstructor
 public class AiPipelineJob extends BackgroundJob {
     public static final String AI_PIPELINE = "AI Pipeline";
 
-    private static final int    DB_FLUSH_BATCH_SIZE  = 50;
     private static final String ARCFACE_MODEL_VER    = "arcface_r50";
     private static final String CLIP_IMAGE_MODEL_VER = "clip_vit_b32";
 
@@ -104,68 +106,71 @@ public class AiPipelineJob extends BackgroundJob {
         List<Long> photoIds = new ArrayList<>(allPending);
 
         publishInProgress("Processing photos...", 0, photoIds.size());
-
-        List<Query> buffer = new ArrayList<>(DB_FLUSH_BATCH_SIZE);
-        for (int i = 0; i < photoIds.size(); i++) {
-            if (isInterruptRequested()) {
-                flush(buffer);
-                return;
-            }
-
-            long          photoId       = photoIds.get(i);
-            LocalDateTime now           = timeProvider.now();
-            String        lastPhotoPath = "";
-            Mat           img           = null;
-            try {
-                PhotoRecord photo = photoRepo.findById(photoId)
-                                             .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
-                lastPhotoPath = photo.getAbsolutePath();
-                img = ImageUtils.loadImageOriented(photo.getAbsolutePath());
-
-                if (faceSet.contains(photoId)) {
-                    List<DetectedFace> faces = retinaFaceDetector.detect(img);
-                    for (DetectedFace face : faces) {
-                        Path faceThumbnailPath = faceThumbnailsRepository.createFaceThumbnail(photo.getAbsolutePath(), ImageUtils.toBufferedImage(img), face);
-                        long faceId = faceRepo.insertAndGetId(
-                                photoId, face.x(), face.y(), face.w(), face.h(),
-                                face.confidence(), toLandmarks(face.landmarks()), now, faceThumbnailPath);
-
-                        Mat     aligned   = faceAligner.align(faceId, img, face.landmarks());
-                        float[] embedding = arcFaceEncoder.encode(aligned);
-                        aligned.release();
-                        buffer.add(faceEmbeddingRepo.upsertQuery(faceId, embedding, ARCFACE_MODEL_VER));
-                    }
-                    buffer.add(photoRepo.markFaceDetectDoneQuery(photoId, now));
-                    buffer.add(photoRepo.markFaceEmbedDoneQuery(photoId, now));
-                }
-
-                if (clipSet.contains(photoId)) {
-                    float[] clipEmbedding = clipImageEncoder.encode(img);
-                    buffer.add(clipEmbeddingRepo.upsertQuery(photoId, clipEmbedding, CLIP_IMAGE_MODEL_VER));
-                    buffer.add(photoRepo.markClipEmbedDoneQuery(photoId, now));
-                }
-            } catch (IrrecoverableIterationException e) {
-                log.warn("Face/CLIP processing failed for photo {}", photoId, e);
-                buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
-                log.error("Exiting loop - cannot recover from that....");
-                publishFailed(e.getCause());
-                return;
-            } catch (Exception e) {
-                log.error("Face/CLIP processing failed for photo {}", photoId, e);
-                buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
-            } finally {
-                if (img != null) {
-                    img.release(); // native memory — must release explicitly, GC won't do it
+        try (QueryBuffer buffer = new QueryBuffer(dsl)) {
+            for (int i = 0; i < photoIds.size(); i++) {
+                if (detectFacesAndEmbedding(photoIds, i, faceSet, buffer, clipSet)) {
+                    return;
                 }
             }
-
-            if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
-                flush(buffer);
-            }
-            publishProgressThrottled("Processing photos", i + 1, photoIds.size(),
-                    lastPhotoPath, i == photoIds.size() - 1);
         }
-        flush(buffer);
+    }
+
+    private boolean detectFacesAndEmbedding(List<Long> photoIds, int i, Set<Long> faceSet, QueryBuffer buffer, Set<Long> clipSet) {
+        if (isInterruptRequested()) {
+            return true;
+        }
+
+        long          photoId       = photoIds.get(i);
+        LocalDateTime now           = timeProvider.now();
+        String        lastPhotoPath = "";
+        Mat           img           = null;
+        try {
+            PhotoRecord photo = photoRepo.findById(photoId)
+                                         .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
+            lastPhotoPath = photo.getAbsolutePath();
+            img = ImageUtils.loadImageOriented(photo.getAbsolutePath());
+
+            if (faceSet.contains(photoId)) {
+                List<DetectedFace> faces = retinaFaceDetector.detect(img);
+                for (DetectedFace face : faces) {
+                    Path faceThumbnailPath = faceThumbnailsRepository.createFaceThumbnail(photo.getAbsolutePath(), ImageUtils.toBufferedImage(img), face);
+                    long faceId = faceRepo.insertAndGetId(
+                            photoId, face.x(), face.y(), face.w(), face.h(),
+                            face.confidence(), toLandmarks(face.landmarks()), now, faceThumbnailPath);
+
+                    Mat     aligned   = faceAligner.align(faceId, img, face.landmarks());
+                    float[] embedding = arcFaceEncoder.encode(aligned);
+                    aligned.release();
+                    buffer.add(faceEmbeddingRepo.upsertQuery(faceId, embedding, ARCFACE_MODEL_VER));
+                }
+                buffer.add(photoRepo.markFaceDetectAndEmbedDoneQuery(photoId, now));
+            }
+
+            if (clipSet.contains(photoId)) {
+                float[] clipEmbedding = clipImageEncoder.encode(img);
+                buffer.add(
+                        clipEmbeddingRepo.upsertQuery(photoId, clipEmbedding, CLIP_IMAGE_MODEL_VER),
+                        photoRepo.markClipEmbedDoneQuery(photoId, now)
+                );
+            }
+        } catch (IrrecoverableIterationException e) {
+            log.warn("Face/CLIP processing failed for photo {}", photoId, e);
+            buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
+            log.error("Exiting loop - cannot recover from that....");
+            publishFailed(e.getCause());
+            return true;
+        } catch (Exception e) {
+            log.error("Face/CLIP processing failed for photo {}", photoId, e);
+            buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
+        } finally {
+            if (img != null) {
+                img.release(); // native memory — must release explicitly, GC won't do it
+            }
+        }
+
+        publishProgressThrottled("Processing photos", i + 1, photoIds.size(),
+                lastPhotoPath, i == photoIds.size() - 1);
+        return false;
     }
 
     // ── Stage 4: Lucene indexing ──────────────────────────────────────────────
@@ -178,67 +183,65 @@ public class AiPipelineJob extends BackgroundJob {
         }
         publishInProgress("Indexing vectors...", 0, photoIds.size());
 
-        List<Query> statusBuffer = new ArrayList<>(DB_FLUSH_BATCH_SIZE);
-
-        for (int i = 0; i < photoIds.size(); i++) {
-            if (isInterruptRequested()) {
-                flush(statusBuffer);
-                clipVectorIndex.commit();
-                faceVectorIndex.commit();
-                return;
-            }
-
-            long          photoId = photoIds.get(i);
-            LocalDateTime now     = timeProvider.now();
-            try {
-                // Index CLIP embedding
-                ClipEmbeddingRecord clipRec = clipEmbeddingRepo.findByPhotoId(photoId)
-                                                               .orElse(null);
-                if (clipRec != null) {
-                    float[] clipEmbed = EmbeddingMath.getFloats(clipRec.getEmbedding());
-                    clipVectorIndex.upsert(photoId, clipEmbed);
+        try (QueryBuffer buffer = new QueryBuffer(dsl)) {
+            for (int i = 0; i < photoIds.size(); i++) {
+                if (isInterruptRequested()) {
+                    clipVectorIndex.commit();
+                    faceVectorIndex.commit();
+                    return;
                 }
 
-                // Index face embeddings
-                List<FaceRecord> faces = faceRepo.findByPhotoId(photoId);
-                List<Long> faceIds = faces.stream()
-                                          .map(FaceRecord::getId)
-                                          .toList();
-                Map<Long, FaceEmbeddingRecord> faceEmbeds = faceEmbeddingRepo.findByFaceIds(faceIds);
-                for (FaceRecord face : faces) {
-                    FaceEmbeddingRecord emb = faceEmbeds.get(face.getId());
-                    if (emb != null) {
-                        float[] faceEmbed = EmbeddingMath.getFloats(emb.getEmbedding());
-                        // face no longer stores its person directly (see FaceRepository); resolve
-                        // via cluster_id -> cluster.person_id instead.
-                        // TODO: this index is only refreshed here, at Lucene-indexing time — it is
-                        //  NOT updated when a manual correction (reassign/merge/exclude, FR1-FR5)
-                        //  changes a face's owner later. Revisit if face-similarity search starts
-                        //  relying on this index reflecting corrections promptly.
-                        Long personId = (face.getClusterId() != null)
-                                ? clusterRepo.findById(face.getClusterId())
-                                             .map(ClusterRecord::getPersonId)
-                                             .orElse(null)
-                                : null;
-                        faceVectorIndex.upsert(face.getId(), personId, faceEmbed);
+                long          photoId = photoIds.get(i);
+                LocalDateTime now     = timeProvider.now();
+                try {
+                    // Index CLIP embedding
+                    ClipEmbeddingRecord clipRec = clipEmbeddingRepo.findByPhotoId(photoId)
+                                                                   .orElse(null);
+                    if (clipRec != null) {
+                        float[] clipEmbed = EmbeddingMath.getFloats(clipRec.getEmbedding());
+                        clipVectorIndex.upsert(photoId, clipEmbed);
                     }
+
+                    // Index face embeddings
+                    List<FaceRecord> faces = faceRepo.findByPhotoId(photoId);
+                    List<Long> faceIds = faces.stream()
+                                              .map(FaceRecord::getId)
+                                              .toList();
+                    Map<Long, FaceEmbeddingRecord> faceEmbeds = faceEmbeddingRepo.findByFaceIds(faceIds);
+                    for (FaceRecord face : faces) {
+                        FaceEmbeddingRecord emb = faceEmbeds.get(face.getId());
+                        if (emb != null) {
+                            float[] faceEmbed = EmbeddingMath.getFloats(emb.getEmbedding());
+                            // face no longer stores its person directly (see FaceRepository); resolve
+                            // via cluster_id -> cluster.person_id instead.
+                            // TODO: this index is only refreshed here, at Lucene-indexing time — it is
+                            //  NOT updated when a manual correction (reassign/merge/exclude, FR1-FR5)
+                            //  changes a face's owner later. Revisit if face-similarity search starts
+                            //  relying on this index reflecting corrections promptly.
+                            Long personId = (face.getClusterId() != null)
+                                    ? clusterRepo.findById(face.getClusterId())
+                                                 .map(ClusterRecord::getPersonId)
+                                                 .orElse(null)
+                                    : null;
+                            faceVectorIndex.upsert(face.getId(), personId, faceEmbed);
+                        }
+                    }
+
+                    buffer.add(photoRepo.markLuceneIndexDoneQuery(photoId, now));
+                } catch (Exception e) {
+                    log.warn("Lucene indexing failed for photo {}", photoId, e);
+                    buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
                 }
 
-                statusBuffer.add(photoRepo.markLuceneIndexDoneQuery(photoId, now));
-            } catch (Exception e) {
-                log.warn("Lucene indexing failed for photo {}", photoId, e);
-                statusBuffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
+                int nextIndex = i + 1;
+                if (nextIndex % DB_FLUSH_BATCH_SIZE == 0) {
+                    clipVectorIndex.commit();
+                    faceVectorIndex.commit();
+                }
+                publishProgressThrottled("Indexing vectors", nextIndex, photoIds.size(),
+                        "Photo id: " + photoId, i == photoIds.size() - 1);
             }
-
-            if (statusBuffer.size() >= DB_FLUSH_BATCH_SIZE) {
-                flush(statusBuffer);
-                clipVectorIndex.commit();
-                faceVectorIndex.commit();
-            }
-            publishProgressThrottled("Indexing vectors", i + 1, photoIds.size(),
-                    "Photo id: " + photoId, i == photoIds.size() - 1);
         }
-        flush(statusBuffer);
         clipVectorIndex.commit();
         faceVectorIndex.commit();
     }
@@ -253,16 +256,6 @@ public class AiPipelineJob extends BackgroundJob {
                 landmarks[3][0], landmarks[3][1],
                 landmarks[4][0], landmarks[4][1]
         );
-    }
-
-    private void flush(List<Query> buffer) {
-        if (buffer.isEmpty()) {
-            return;
-        }
-        dsl.transaction(cfg -> DSL.using(cfg)
-                                  .batch(buffer)
-                                  .execute());
-        buffer.clear();
     }
 
     @Override

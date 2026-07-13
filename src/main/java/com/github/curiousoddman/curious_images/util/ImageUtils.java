@@ -1,7 +1,6 @@
 package com.github.curiousoddman.curious_images.util;
 
 import lombok.experimental.UtilityClass;
-import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
@@ -13,7 +12,6 @@ import java.awt.image.DataBufferByte;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.stream.IntStream;
 
 @UtilityClass
 public class ImageUtils {
@@ -94,7 +92,7 @@ public class ImageUtils {
     /**
      * This method returns rotated image per orientation metadata
      */
-    public static Mat imreadUnicodeSafe(Path path, int flags) throws IOException {
+    public static Mat imreadRotated(Path path, int flags) throws IOException {
         byte[]    bytes   = Files.readAllBytes(path); // Java handles Unicode paths natively
         MatOfByte encoded = new MatOfByte(bytes);
         Mat       img     = Imgcodecs.imdecode(encoded, flags);
@@ -123,7 +121,7 @@ public class ImageUtils {
      * Caller owns the returned Mat and MUST call {@code .release()} on it when done.
      */
     public static Mat loadImageOriented(String absolutePath) throws IOException {
-        Mat img = imreadUnicodeSafe(Path.of(absolutePath), Imgcodecs.IMREAD_COLOR);
+        Mat img = imreadRotated(Path.of(absolutePath), Imgcodecs.IMREAD_COLOR);
         if (img.empty()) {
             throw new IOException("OpenCV could not decode: " + absolutePath);
         }
