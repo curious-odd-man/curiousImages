@@ -5,6 +5,7 @@ import com.github.curiousoddman.curious_images.persistence.DuplicateGroupReposit
 import com.github.curiousoddman.curious_images.persistence.DuplicateJobRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoHashRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
+import com.github.curiousoddman.curious_images.util.QueryBuffer;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import com.github.curiousoddman.curious_images.util.async.jobs.BackgroundJob;
 import lombok.RequiredArgsConstructor;
@@ -45,14 +46,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 @RequiredArgsConstructor
 public class DuplicateDetectionJob extends BackgroundJob {
-    public static final  String        DUPLICATE_DETECTION = "Duplicate Detection";
-    public static final  AtomicInteger THREAD_COUNTER      = new AtomicInteger();
-    private static final int           DB_FLUSH_BATCH_SIZE = 200;
+    public static final String        DUPLICATE_DETECTION = "Duplicate Detection";
+    public static final AtomicInteger THREAD_COUNTER      = new AtomicInteger();
 
     private final DSLContext               dsl;
-    private final PhotoRepository        photoRepository;
-    private final PhotoHashRepository    photoHashRepository;
-    private final DuplicateJobRepository duplicateJobRepository;
+    private final PhotoRepository          photoRepository;
+    private final PhotoHashRepository      photoHashRepository;
+    private final DuplicateJobRepository   duplicateJobRepository;
     private final DuplicateGroupRepository duplicateGroupRepository;
     private final PixelHasher              pixelHasher;
     private final TimeProvider             timeProvider;
@@ -122,72 +122,55 @@ public class DuplicateDetectionJob extends BackgroundJob {
      */
     private boolean hashAndPersist(List<PhotoForHashing> needsHashing, int totalPhotos,
                                    AtomicInteger processed, Map<Long, HashEntry> hashByPhoto) {
-        ExecutorService executor = Executors.newFixedThreadPool(threadCount, r -> {
+        LocalDateTime now = timeProvider.now();
+
+        try (ExecutorService executor = Executors.newFixedThreadPool(threadCount, r -> {
             Thread t = new Thread(r, "duplicate-hash-" + THREAD_COUNTER.incrementAndGet());
             t.setDaemon(true);
             return t;
-        });
-        CompletionService<PixelHasher.PhotoHashResult> completionService = new ExecutorCompletionService<>(executor);
-        LocalDateTime                                  now               = timeProvider.now();
+        })) {
+            CompletionService<PixelHasher.PhotoHashResult> completionService = new ExecutorCompletionService<>(executor);
 
-        try {
             for (PhotoForHashing photo : needsHashing) {
                 completionService.submit(() ->
                         pixelHasher.hash(photo.id(), Path.of(photo.absolutePath()), photo.extension(), photo.fileSize()));
             }
 
-            List<Query> buffer = new ArrayList<>(DB_FLUSH_BATCH_SIZE);
-            for (int i = 0; i < needsHashing.size(); i++) {
-                if (isInterruptRequested()) {
-                    flush(buffer);
-                    executor.shutdownNow();
-                    return true;
-                }
-
-                PixelHasher.PhotoHashResult result;
-                try {
-                    result = completionService.take()
-                                              .get();
-                } catch (InterruptedException ie) {
-                    Thread.currentThread()
-                          .interrupt();
-                    flush(buffer);
-                    executor.shutdownNow();
-                    return true;
-                } catch (ExecutionException ee) {
-                    log.warn("Failed to hash a photo", ee.getCause());
-                    processed.incrementAndGet();
-                    continue;
-                }
-
-                if (result.pixelHash() != null) {
-                    hashByPhoto.put(result.photoId(), new HashEntry(result.extension(), result.pixelHash()));
-                    buffer.add(photoHashRepository.upsertQuery(result.photoId(), result.pixelHash(), result.fileSize(), now));
-                    if (buffer.size() >= DB_FLUSH_BATCH_SIZE) {
-                        flush(buffer);
+            try (QueryBuffer buffer = new QueryBuffer(dsl)) {
+                for (int i = 0; i < needsHashing.size(); i++) {
+                    if (isInterruptRequested()) {
+                        executor.shutdownNow();
+                        return true;
                     }
+
+                    PixelHasher.PhotoHashResult result;
+                    try {
+                        result = completionService.take()
+                                                  .get();
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread()
+                              .interrupt();
+                        executor.shutdownNow();
+                        return true;
+                    } catch (ExecutionException ee) {
+                        log.warn("Failed to hash a photo", ee.getCause());
+                        processed.incrementAndGet();
+                        continue;
+                    }
+
+                    if (result.pixelHash() != null) {
+                        hashByPhoto.put(result.photoId(), new HashEntry(result.extension(), result.pixelHash()));
+                        buffer.add(photoHashRepository.upsertQuery(result.photoId(), result.pixelHash(), result.fileSize(), now));
+                    }
+                    // else: undecodable file (corrupt / CR2 with no usable preview) — skip silently,
+                    // same "don't fail the whole job over one bad file" policy as ImportService.
+
+                    int done = processed.incrementAndGet();
+                    publishProgressThrottled("Hashing photos", done, totalPhotos, result.absolutePath(), done == totalPhotos);
                 }
-                // else: undecodable file (corrupt / CR2 with no usable preview) — skip silently,
-                // same "don't fail the whole job over one bad file" policy as ImportService.
-
-                int done = processed.incrementAndGet();
-                publishProgressThrottled("Hashing photos", done, totalPhotos, result.absolutePath(), done == totalPhotos);
             }
-            flush(buffer);
             return false;
-        } finally {
-            executor.shutdown();
         }
-    }
-
-    private void flush(List<Query> buffer) {
-        if (buffer.isEmpty()) {
-            return;
-        }
-        dsl.transaction(configuration -> DSL.using(configuration)
-                                            .batch(buffer)
-                                            .execute());
-        buffer.clear();
     }
 
     private Map<GroupKey, List<Long>> groupDuplicates(Map<Long, HashEntry> hashByPhoto) {
