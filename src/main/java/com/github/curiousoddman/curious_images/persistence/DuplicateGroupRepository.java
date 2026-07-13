@@ -2,7 +2,6 @@ package com.github.curiousoddman.curious_images.persistence;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
-import com.github.curiousoddman.curious_images.domain.dedupe.PhotoHashRepository;
 import com.github.curiousoddman.curious_images.model.DuplicateGroup;
 import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import org.jooq.DSLContext;

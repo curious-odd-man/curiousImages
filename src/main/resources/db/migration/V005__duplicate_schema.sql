@@ -13,7 +13,7 @@
 -- "preview identical", not "full raw decode identical".
 CREATE TABLE photo_hash
 (
-    photo_id         BIGINT PRIMARY KEY REFERENCES photo (id),
+    photo_id         BIGINT PRIMARY KEY REFERENCES photo (id) ON DELETE CASCADE,
     pixel_hash       VARCHAR(64), -- SHA-256 hex of decoded pixel bytes (or CR2 preview)
     hashed_file_size BIGINT,      -- PHOTO.file_size at hash time; mismatch => stale, rehash
     hashed_at        TIMESTAMP

@@ -3,6 +3,7 @@ package com.github.curiousoddman.curious_images.domain.dedupe;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoHashRecord;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.DuplicateJobRepository;
+import com.github.curiousoddman.curious_images.persistence.PhotoHashRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import com.github.curiousoddman.curious_images.util.async.jobs.BackgroundJob;
@@ -49,9 +50,9 @@ public class DuplicateDetectionJob extends BackgroundJob {
     private static final int           DB_FLUSH_BATCH_SIZE = 200;
 
     private final DSLContext               dsl;
-    private final PhotoRepository          photoRepository;
-    private final PhotoHashRepository      photoHashRepository;
-    private final DuplicateJobRepository   duplicateJobRepository;
+    private final PhotoRepository        photoRepository;
+    private final PhotoHashRepository    photoHashRepository;
+    private final DuplicateJobRepository duplicateJobRepository;
     private final DuplicateGroupRepository duplicateGroupRepository;
     private final PixelHasher              pixelHasher;
     private final TimeProvider             timeProvider;

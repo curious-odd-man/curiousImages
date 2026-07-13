@@ -26,13 +26,12 @@ import java.util.List;
  * Once at least one photo from a group is removed, the group is re-checked: if fewer than 2
  * members remain it's no longer a meaningful duplicate set, so the group itself is deleted too.
  */
-@Service
 @Slf4j
+@Service
 @RequiredArgsConstructor
 public class DuplicateResolutionService {
     private final DSLContext               dsl;
     private final PhotoRepository          photoRepository;
-    private final ThumbnailRepository      thumbnailRepository;
     private final DuplicateGroupRepository duplicateGroupRepository;
 
     /**
@@ -75,7 +74,6 @@ public class DuplicateResolutionService {
             dsl.transaction(cfg -> {
                 DSLContext ctx = cfg.dsl();
                 duplicateGroupRepository.deleteMember(ctx, groupId, photo.getId());
-                thumbnailRepository.deleteByPhotoId(ctx, photo.getId());
                 photoRepository.deleteById(ctx, photo.getId());
             });
             deletedPhotoIds.add(photo.getId());

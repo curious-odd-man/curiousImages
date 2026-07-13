@@ -1,6 +1,7 @@
-package com.github.curiousoddman.curious_images.domain.dedupe;
+package com.github.curiousoddman.curious_images.persistence;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoHashRecord;
+import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Query;
 import org.springframework.stereotype.Repository;
@@ -20,12 +21,9 @@ import static com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash.PHO
  * Requires the PHOTO_HASH jOOQ table/record classes, generated from migration V004.
  */
 @Repository
+@RequiredArgsConstructor
 public class PhotoHashRepository {
     private final DSLContext dsl;
-
-    public PhotoHashRepository(DSLContext dsl) {
-        this.dsl = dsl;
-    }
 
     /**
      * Loads every existing PHOTO_HASH row, keyed by photo_id. Called once per duplicate-detection

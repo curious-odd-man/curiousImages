@@ -1,6 +1,5 @@
 package com.github.curiousoddman.curious_images.persistence;
 
-import com.github.curiousoddman.curious_images.domain.dedupe.PhotoHashRepository;
 import com.github.curiousoddman.curious_images.util.TextUtils;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;

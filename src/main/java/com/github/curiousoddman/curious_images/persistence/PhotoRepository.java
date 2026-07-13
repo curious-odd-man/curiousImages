@@ -19,15 +19,6 @@ import java.util.Optional;
 
 import static com.github.curiousoddman.curious_images.dbobj.Tables.PHOTO;
 
-/**
- * Hand-written jOOQ repository for {@code photo}. {@code absolute_path} is {@code UNIQUE} — see
- * implementation plan §12 for the full idempotent-rescan rationale this repository supports.
- * <p>
- * {@link #insert} is the one write that always happens immediately (not batched): it's the only
- * write in the pipeline that needs a freshly generated {@code id} back before the corresponding
- * {@code THUMBNAIL} row can be queued. Every other write returns an unexecuted {@link Query} so
- * {@code ImportService} can buffer and flush it via {@code DSLContext#batch(...)} — see §13.
- */
 @Repository
 @RequiredArgsConstructor
 public class PhotoRepository {

@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 public class Main {
     // FIXME: Duplicates screen - Maybe highlight similar/different parts?
     // FIXME: Duplicates detection would fail if one photo is rotated, while another is not.
-    // FIXME: Duplicates detection - cannot delete files - DB constraints
     public static void main(String[] args) {
         LauncherImpl.launchApplication(JavafxApplication.class, AnimatedPreloader.class, args);
     }

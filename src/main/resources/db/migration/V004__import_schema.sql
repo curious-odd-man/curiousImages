@@ -56,7 +56,7 @@ CREATE INDEX idx_photo_capture_date ON photo (capture_date);
 -- Deliberately no image bytes stored here — only the cache path. See implementation plan §10.
 CREATE TABLE thumbnail
 (
-    photo_id     BIGINT PRIMARY KEY REFERENCES photo (id),
+    photo_id     BIGINT PRIMARY KEY REFERENCES photo (id) ON DELETE CASCADE,
     cache_path   VARCHAR(2048), -- relative to the configured thumbnail cache root
     width        INT,
     height       INT,

@@ -40,17 +40,6 @@ public class ThumbnailRepository {
                   .values(photoId, cachePath, width, height, now);
     }
 
-    /**
-     * Deletes a thumbnail row for a photo being removed, used when resolving duplicates. Caller
-     * passes a {@code ctx} bound to the same transaction as the {@code PHOTO} row delete — see
-     * {@code DuplicateResolutionService}.
-     */
-    public void deleteByPhotoId(DSLContext ctx, long photoId) {
-        ctx.deleteFrom(THUMBNAIL)
-           .where(THUMBNAIL.PHOTO_ID.eq(photoId))
-           .execute();
-    }
-
     public Optional<ThumbnailRecord> findByPhotoId(long photoId) {
         return Optional.ofNullable(
                 dsl.selectFrom(THUMBNAIL)
