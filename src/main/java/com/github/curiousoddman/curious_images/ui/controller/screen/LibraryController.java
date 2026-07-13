@@ -46,6 +46,7 @@ import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridCallb
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridRow;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoRowCell;
 import com.github.curiousoddman.curious_images.ui.util.StageUtils;
+import com.github.curiousoddman.curious_images.util.CollectionUtils;
 import com.github.curiousoddman.curious_images.util.HumanReadableUtils;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
@@ -810,7 +811,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
         visiblePhotoCells.clear();
         pendingThumbnailGenIds.clear();
         currentPhotos = photos;
-        photoIndexById = buildIndexMap(photos);
+        photoIndexById = CollectionUtils.getIdToIndexMap(photos);
         photoCountLabel.setText(photos.size() + " photo" + (photos.size() == 1 ? "" : "s"));
         recomputeGridMetrics(true); // force a regroup even if the column count is unchanged
     }
@@ -824,16 +825,6 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
         photoGridListView.getItems()
                          .clear();
         photoCountLabel.setText("");
-    }
-
-    // FIXME: Duplicate
-    private static Map<Long, Integer> buildIndexMap(List<PhotoRecord> photos) {
-        Map<Long, Integer> map = new HashMap<>(photos.size() * 2);
-        for (int i = 0; i < photos.size(); i++) {
-            map.put(photos.get(i)
-                          .getId(), i);
-        }
-        return map;
     }
 
     /**
@@ -863,6 +854,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
         }
     }
 
+    // FIXME: duplicate
     private void regroupIntoRows(int columns) {
         List<PhotoGridRow> rows = new ArrayList<>();
         for (int i = 0; i < currentPhotos.size(); i += columns) {

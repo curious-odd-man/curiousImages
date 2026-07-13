@@ -75,6 +75,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.FacePickerCellController.loadImage;
+import static com.github.curiousoddman.curious_images.util.CollectionUtils.getIdToIndexMap;
 import static com.github.curiousoddman.curious_images.util.HumanReadableUtils.size;
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
@@ -704,18 +705,9 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
         visiblePhotoCells.clear();
         pendingThumbnailGenIds.clear();
         currentPhotos = photos;
-        photoIndexById = buildIndexMap(photos);
+        photoIndexById = getIdToIndexMap(photos);
         photoCountLabel.setText(photos.size() + " photo" + (photos.size() == 1 ? "" : "s"));
         recomputeGridMetrics(true); // force a regroup even if the column count is unchanged
-    }
-
-    private static Map<Long, Integer> buildIndexMap(List<PhotoRecord> photos) {
-        Map<Long, Integer> map = new HashMap<>(photos.size() * 2);
-        for (int i = 0; i < photos.size(); i++) {
-            map.put(photos.get(i)
-                          .getId(), i);
-        }
-        return map;
     }
 
     /**
@@ -724,6 +716,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
      * into {@link PhotoGridRow}s if the column count changed or {@code force} is set. Mirrors
      * {@code LibraryController#recomputeGridMetrics}.
      */
+    // FIXME: duplicate
     private void recomputeGridMetrics(boolean force) {
         double viewportWidth = photoGridListView.getWidth();
         if (viewportWidth <= 0) {
