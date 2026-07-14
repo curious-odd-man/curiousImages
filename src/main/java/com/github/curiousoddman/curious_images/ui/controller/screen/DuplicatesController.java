@@ -113,11 +113,13 @@ public class DuplicatesController implements Initializable {
     @FXML
     public void onKeepSelectedClicked(ActionEvent event) {
         resolveActivePane(true);
+        showNextDuplicate(event);
     }
 
     @FXML
     public void onDeleteSelectedClicked(ActionEvent event) {
         resolveActivePane(false);
+        showNextDuplicate(event);
     }
 
     public void activateDuplicatesView() {
