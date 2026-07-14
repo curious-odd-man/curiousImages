@@ -33,7 +33,7 @@ import static com.github.curiousoddman.curious_images.util.ImageUtils.loadImageO
 import static com.github.curiousoddman.curious_images.util.FileUtils.extensionOf;
 
 @Slf4j
-class RetinaFaceDetectorTest {
+public class RetinaFaceDetectorTest {
 
     @BeforeAll
     static void beforeAll() {
@@ -119,7 +119,7 @@ class RetinaFaceDetectorTest {
         return fileNameCounter;
     }
 
-    private static List<File> collectAllImages() throws IOException {
+    public static List<File> collectAllImages() throws IOException {
         List<File> files = new ArrayList<>();
         Files.walkFileTree(Path.of("D:\\Programming\\sample-data"), new SimpleFileVisitor<>() {
             @Override

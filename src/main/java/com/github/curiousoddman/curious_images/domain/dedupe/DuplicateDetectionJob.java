@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images.domain.dedupe;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoHashRecord;
+import com.github.curiousoddman.curious_images.domain.dedupe.hasher.PixelHasher;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.DuplicateJobRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoHashRepository;
@@ -11,7 +12,6 @@ import com.github.curiousoddman.curious_images.util.async.jobs.BackgroundJob;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
-import org.jooq.Query;
 import org.jooq.impl.DSL;
 
 import java.nio.file.Path;

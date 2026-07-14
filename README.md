@@ -87,3 +87,6 @@ Search:
 - Sunset
 - Mountain
 - Natural Language Search
+
+# Future features (maybe)
+- Several deduplication algorithms - to detect rotated/mirrored images - see [hasher](src/main/java/com/github/curiousoddman/curious_images/domain/dedupe/hasher)

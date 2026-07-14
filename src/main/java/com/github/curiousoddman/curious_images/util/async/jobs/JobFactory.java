@@ -13,7 +13,7 @@ import com.github.curiousoddman.curious_images.domain.common.thumbnail.Thumbnail
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator;
 import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateDetectionJob;
 import com.github.curiousoddman.curious_images.persistence.PhotoHashRepository;
-import com.github.curiousoddman.curious_images.domain.dedupe.PixelHasher;
+import com.github.curiousoddman.curious_images.domain.dedupe.hasher.PixelHasher;
 import com.github.curiousoddman.curious_images.domain.imports.AddFilesJob;
 import com.github.curiousoddman.curious_images.domain.imports.ImportJob;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;

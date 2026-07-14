@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableTransactionManagement
 public class Main {
     // FIXME: Duplicates screen - Maybe highlight similar/different parts?
-    // FIXME: Duplicates detection would fail if one photo is rotated, while another is not.
     public static void main(String[] args) {
         LauncherImpl.launchApplication(JavafxApplication.class, AnimatedPreloader.class, args);
     }

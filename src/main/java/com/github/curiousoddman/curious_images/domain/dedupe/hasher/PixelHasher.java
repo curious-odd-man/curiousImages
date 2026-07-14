@@ -1,4 +1,4 @@
-package com.github.curiousoddman.curious_images.domain.dedupe;
+package com.github.curiousoddman.curious_images.domain.dedupe.hasher;
 
 import com.github.curiousoddman.curious_images.util.ImageUtils;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +31,7 @@ public class PixelHasher {
                 .orElseGet(() -> new PhotoHashResult(photoId, extension, fileSize, file.toString(), null));
     }
 
-    private String hashPixels(Mat image) {
+    String hashPixels(Mat image) {
         int width    = image.cols();
         int height   = image.rows();
         int channels = image.channels();
@@ -43,10 +43,6 @@ public class PixelHasher {
               .putInt(height);
         digest.update(header.array());
 
-        // Mat data is BGR byte order (imread/imdecode) — this hash will NOT match the old
-        // getRGB()-based hash bit-for-bit, since getRGB() packs ARGB ints. If backward
-        // compatibility with previously-stored hashes matters, do NOT ship this as-is —
-        // either re-hash the whole photo library, or keep Option A instead.
         byte[] pixelBytes = new byte[width * height * channels];
         image.get(0, 0, pixelBytes);
         digest.update(pixelBytes);
@@ -55,7 +51,7 @@ public class PixelHasher {
                         .formatHex(digest.digest());
     }
 
-    private static MessageDigest sha256() {
+    static MessageDigest sha256() {
         try {
             return MessageDigest.getInstance("SHA-256");
         } catch (NoSuchAlgorithmException e) {
