@@ -97,6 +97,11 @@ public class DuplicateGroup extends TableImpl<DuplicateGroupRecord> {
      */
     public final TableField<DuplicateGroupRecord, LocalDateTime> CREATED_AT = createField(DSL.name("CREATED_AT"), SQLDataType.LOCALDATETIME(6), this, "");
 
+    /**
+     * The column <code>public.DUPLICATE_GROUP.ACCEPTED</code>.
+     */
+    public final TableField<DuplicateGroupRecord, Boolean> ACCEPTED = createField(DSL.name("ACCEPTED"), SQLDataType.BOOLEAN, this, "");
+
     private DuplicateGroup(Name alias, Table<DuplicateGroupRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }

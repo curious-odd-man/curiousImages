@@ -100,6 +100,20 @@ public class DuplicateGroupRecord extends UpdatableRecordImpl<DuplicateGroupReco
         return (LocalDateTime) get(4);
     }
 
+    /**
+     * Setter for <code>public.DUPLICATE_GROUP.ACCEPTED</code>.
+     */
+    public void setAccepted(Boolean value) {
+        set(5, value);
+    }
+
+    /**
+     * Getter for <code>public.DUPLICATE_GROUP.ACCEPTED</code>.
+     */
+    public Boolean getAccepted() {
+        return (Boolean) get(5);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -123,7 +137,7 @@ public class DuplicateGroupRecord extends UpdatableRecordImpl<DuplicateGroupReco
     /**
      * Create a detached, initialised DuplicateGroupRecord
      */
-    public DuplicateGroupRecord(Long id, Long duplicateJobId, String extension, String pixelHash, LocalDateTime createdAt) {
+    public DuplicateGroupRecord(Long id, Long duplicateJobId, String extension, String pixelHash, LocalDateTime createdAt, Boolean accepted) {
         super(DuplicateGroup.DUPLICATE_GROUP);
 
         setId(id);
@@ -131,6 +145,7 @@ public class DuplicateGroupRecord extends UpdatableRecordImpl<DuplicateGroupReco
         setExtension(extension);
         setPixelHash(pixelHash);
         setCreatedAt(createdAt);
+        setAccepted(accepted);
         resetChangedOnNotNull();
     }
 }

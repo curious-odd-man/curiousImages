@@ -112,14 +112,25 @@ public class DuplicatesController implements Initializable {
 
     @FXML
     public void onKeepSelectedClicked(ActionEvent event) {
-        resolveActivePane(true);
+        resolveActivePane(ResolveStrategy.KEEP_CHECKED);
         showNextDuplicate(event);
     }
 
     @FXML
     public void onDeleteSelectedClicked(ActionEvent event) {
-        resolveActivePane(false);
+        resolveActivePane(ResolveStrategy.REMOVE_CHECKED);
         showNextDuplicate(event);
+    }
+
+    @FXML
+    public void onKeepAll(ActionEvent event) {
+        resolveActivePane(ResolveStrategy.KEEP_ALL);
+        showNextDuplicate(event);
+    }
+
+    @FXML
+    public void onDeleteAll(ActionEvent event) {
+        resolveActivePane(ResolveStrategy.REMOVE_ALL);
     }
 
     public void activateDuplicatesView() {
@@ -281,29 +292,36 @@ public class DuplicatesController implements Initializable {
         });
     }
 
-
-    private void resolveActivePane(boolean keepChecked) {
+    private void resolveActivePane(ResolveStrategy strategy) {
+        // TODO: Mark current duplicates as resolved
         List<PhotoRecord> toDrop       = new ArrayList<>();
         DuplicateGroup    currentGroup = knownGroups.get(currentGroupIndex);
         for (PhotoWithThumbnail photoWithThumbnail : currentGroup.photos()) {
             PhotoRecord             photoRecord             = photoWithThumbnail.photo();
             DuplicateCellController duplicateCellController = visiblePhotoCells.get(photoRecord.getId());
-            boolean drop = duplicateCellController.checkBox()
-                                                  .isSelected() != keepChecked;
+            boolean currentImageSelected = duplicateCellController.checkBox()
+                                                      .isSelected();
+            boolean drop = switch (strategy) {
+                case KEEP_ALL -> false;
+                case KEEP_CHECKED -> currentImageSelected;
+                case REMOVE_CHECKED -> !currentImageSelected;
+                case REMOVE_ALL -> true;
+            };
+
             if (drop) {
                 toDrop.add(photoRecord);
             }
         }
 
         log.info("Ready to drop {} rows", toDrop.size());
-        if (toDrop.isEmpty()) {
+        if (toDrop.isEmpty() && strategy != ResolveStrategy.KEEP_ALL) {
             return;
         }
 
         keepSelectedButton.setDisable(true);
         deleteSelectedButton.setDisable(true);
         runOnDaemonThread("", () -> {
-            DuplicateResolutionService.Result result = duplicateResolutionService.resolve(currentGroup.groupId(), toDrop);
+            DuplicateResolutionService.Result result = duplicateResolutionService.resolve(currentGroup.groupId(), toDrop, strategy);
             if (!result.failures()
                        .isEmpty()) {
                 showResolutionFailures(result.failures());
@@ -404,5 +422,12 @@ public class DuplicatesController implements Initializable {
 
     private record DuplicateCell(PhotoWithThumbnail photoWithThumbnail, CheckBox checkBox,
                                  DuplicateCellController controller, Pane pane) {
+    }
+
+    public enum ResolveStrategy {
+        KEEP_CHECKED,
+        REMOVE_CHECKED,
+        KEEP_ALL,
+        REMOVE_ALL
     }
 }

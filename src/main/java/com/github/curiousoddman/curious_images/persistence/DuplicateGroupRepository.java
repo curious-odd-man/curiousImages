@@ -1,10 +1,13 @@
 package com.github.curiousoddman.curious_images.persistence;
 
+import com.github.curiousoddman.curious_images.dbobj.tables.records.DuplicateGroupMemberRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.model.DuplicateGroup;
 import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
+import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
+import org.jooq.InsertValuesStep2;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -23,6 +26,7 @@ import static com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGrou
  * conventions. Requires the DUPLICATE_GROUP / DUPLICATE_GROUP_MEMBER jOOQ classes, generated from
  * migration V004.
  */
+@Slf4j
 @Repository
 public class DuplicateGroupRepository {
     private final DSLContext dsl;
@@ -45,7 +49,7 @@ public class DuplicateGroupRepository {
     }
 
     public void insertMembers(DSLContext ctx, long groupId, List<Long> photoIds) {
-        var step = ctx.insertInto(DUPLICATE_GROUP_MEMBER,
+        InsertValuesStep2<DuplicateGroupMemberRecord, Long, Long> step = ctx.insertInto(DUPLICATE_GROUP_MEMBER,
                 DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID, DUPLICATE_GROUP_MEMBER.PHOTO_ID);
         for (Long photoId : photoIds) {
             step = step.values(groupId, photoId);
@@ -89,6 +93,8 @@ public class DuplicateGroupRepository {
                       .on(PHOTO.ID.eq(DUPLICATE_GROUP_MEMBER.PHOTO_ID))
                       .leftJoin(THUMBNAIL)
                       .on(THUMBNAIL.PHOTO_ID.eq(PHOTO.ID))
+                      .where(DUPLICATE_GROUP.ACCEPTED.isNull()
+                                                     .or(DUPLICATE_GROUP.ACCEPTED.eq(false)))
                       .orderBy(DUPLICATE_GROUP.ID, PHOTO.FILENAME)
                       .fetch();
 
@@ -137,6 +143,14 @@ public class DuplicateGroupRepository {
            .where(DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID.eq(groupId))
            .execute();
         ctx.deleteFrom(DUPLICATE_GROUP)
+           .where(DUPLICATE_GROUP.ID.eq(groupId))
+           .execute();
+    }
+
+    public void markGroupResolved(long groupId) {
+        log.info("Setting group as accepted {}", groupId);
+        dsl.update(DUPLICATE_GROUP)
+           .set(DUPLICATE_GROUP.ACCEPTED, true)
            .where(DUPLICATE_GROUP.ID.eq(groupId))
            .execute();
     }

@@ -4,7 +4,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.model.DuplicateGroup;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
-import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
+import com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
@@ -38,8 +38,13 @@ public class DuplicateResolutionService {
      * @param groupId      the group these photos belong to
      * @param photosToDrop the photos to trash + delete — passed in directly (already loaded by
      *                     the controller from {@link DuplicateGroup}) to avoid a redundant fetch
+     * @param strategy
      */
-    public Result resolve(long groupId, List<PhotoRecord> photosToDrop) {
+    public Result resolve(long groupId, List<PhotoRecord> photosToDrop, DuplicatesController.ResolveStrategy strategy) {
+        if (strategy == DuplicatesController.ResolveStrategy.KEEP_ALL) {
+            duplicateGroupRepository.markGroupResolved(groupId);
+            return new Result(List.of(), List.of());
+        }
         List<Long>    deletedPhotoIds = new ArrayList<>();
         List<Failure> failures        = new ArrayList<>();
 
