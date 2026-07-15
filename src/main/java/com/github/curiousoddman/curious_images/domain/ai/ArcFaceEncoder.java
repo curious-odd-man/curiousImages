@@ -53,7 +53,7 @@ public class ArcFaceEncoder {
      * @return float[512] L2-normalised embedding
      */
     public float[] encode(Mat alignedFace) throws OrtException, IrrecoverableIterationException {
-        OrtSession session = registry.getOrLoad("arcface", paths.arcFace(), List.of("output"));
+        OrtSession session = registry.getOrLoad("arcface", paths.arcFace(), List.of("683"));
 
         // blobFromImage does resize(no-op here, already 112x112) + mean-subtract + scale +
         // BGR->RGB swap + HWC->NCHW layout in one native call.
@@ -73,7 +73,7 @@ public class ArcFaceEncoder {
         blob.release();
 
         try (OnnxTensor tensor = OnnxTensor.createTensor(ENV, inputBuffer, INPUT_SHAPE);
-             OrtSession.Result result = session.run(Map.of("input", tensor))) {
+             OrtSession.Result result = session.run(Map.of("input.1", tensor))) {
 
             float[][] raw = (float[][]) result.get(0)
                                               .getValue();

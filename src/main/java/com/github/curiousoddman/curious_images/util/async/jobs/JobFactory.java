@@ -6,6 +6,8 @@ import com.github.curiousoddman.curious_images.domain.ai.AlbumGenerationJob;
 import com.github.curiousoddman.curious_images.domain.ai.ArcFaceEncoder;
 import com.github.curiousoddman.curious_images.domain.ai.ClipImageEncoder;
 import com.github.curiousoddman.curious_images.domain.ai.FaceAligner;
+import com.github.curiousoddman.curious_images.domain.ai.ModelDownloadJob;
+import com.github.curiousoddman.curious_images.domain.ai.ModelPaths;
 import com.github.curiousoddman.curious_images.domain.ai.PersonClusteringService;
 import com.github.curiousoddman.curious_images.domain.ai.RetinaFaceDetector;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.PersonService;
@@ -82,6 +84,7 @@ public class JobFactory {
     private final AiConfig                 aiConfig;
     private final ClusterRepository        clusterRepository;
     private final PersonService            personService;
+    private final ModelPaths               modelPaths;
 
     public ImportJob createImportJob(List<String> paths) {
         return new ImportJob(
@@ -166,6 +169,20 @@ public class JobFactory {
                 timeProvider,
                 personService,
                 photoRepository
+        );
+    }
+
+    /**
+     * @param onSuccess invoked once all missing models finish downloading. Pass
+     *                  {@code () -> {}} for a plain background download (e.g. the startup
+     *                  prompt) or {@code jobManager::submitAiPipelineJob} to auto-chain into the
+     *                  AI pipeline once models are ready.
+     */
+    public ModelDownloadJob createModelDownloadJob(Runnable onSuccess) {
+        return new ModelDownloadJob(
+                modelPaths,
+                aiConfig,
+                onSuccess
         );
     }
 }

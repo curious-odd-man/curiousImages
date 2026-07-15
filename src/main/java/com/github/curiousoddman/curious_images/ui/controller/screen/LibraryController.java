@@ -7,6 +7,8 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoPreviewRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
+import com.github.curiousoddman.curious_images.domain.ai.ModelDownloadJob;
+import com.github.curiousoddman.curious_images.domain.ai.ModelPaths;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.domain.search.SearchService;
 import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferencesService;
@@ -17,6 +19,7 @@ import com.github.curiousoddman.curious_images.event.model.PersonDeletedEvent;
 import com.github.curiousoddman.curious_images.event.model.PersonRenamedEvent;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.event.payload.BackgroundProcessPayload;
+import com.github.curiousoddman.curious_images.event.types.BackgroundProcessEventType;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.TimelineData;
 import com.github.curiousoddman.curious_images.model.bundle.AddFilesBundle;
@@ -45,6 +48,7 @@ import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.UndatedPaylo
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridCallbacks;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridRow;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoRowCell;
+import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
 import com.github.curiousoddman.curious_images.ui.util.StageUtils;
 import com.github.curiousoddman.curious_images.util.CollectionUtils;
 import com.github.curiousoddman.curious_images.util.HumanReadableUtils;
@@ -152,6 +156,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
     private final PersonRepository       personRepository;
     private final SearchService          searchService;
     private final JobManager             jobManager;
+    private final ModelPaths             modelPaths;
 
     // ── FXML nodes ────────────────────────────────────────────────────────────
 
@@ -246,6 +251,8 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
     private final DelayedAction thumbnailGenDebounce   = new DelayedAction(THUMBNAIL_GEN_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
     private final DelayedAction gridMetricsDebounce    = new DelayedAction(GRID_METRICS_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
 
+    private volatile boolean autoStartAiPipelineAfterModelDownload = false;
+
     /**
      * Lazily loaded on first PERSON selection.
      * The FXML + controller are created once and reused for every subsequent person.
@@ -304,6 +311,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
                            duplicatesController.activateDuplicatesView();
                        }
                    });
+        checkModelsAndPromptDownload();
     }
 
     // ── Window / split-pane preferences ──────────────────────────────────────
@@ -353,6 +361,18 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
             backgroundProgressLabel.setText(payload.hasProgress() ? payload.getProgressText() : "");
             backgroundProgressDescription.setText(payload.getProgressDetails());
         });
+
+        if (event.getEventType() != BackgroundProcessEventType.ENDED) {
+            return;
+        }
+        if (!ModelDownloadJob.PROCESS_NAME.equals(event.getPayload()
+                                                       .getProcessName())) {
+            return;
+        }
+        if (autoStartAiPipelineAfterModelDownload) {
+            autoStartAiPipelineAfterModelDownload = false;
+            jobManager.submitAiPipelineJob();
+        }
     }
 
     @FXML
@@ -1032,7 +1052,23 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
 
     @FXML
     public void onTriggerAiPipeline(ActionEvent event) {
-        jobManager.submitAiPipelineJob();
+        if (modelPaths.allModelsPresent()) {
+            jobManager.submitAiPipelineJob();
+            return;
+        }
+
+        boolean confirmation = AlertHelper.confirm(
+                null,
+                "Download AI models",
+                "AI features need model files (~1 GB)",
+                "Face recognition and semantic search require AI model files that "
+                        + "haven't been downloaded yet. Download them now in the background?"
+        );
+
+        if (confirmation) {
+            autoStartAiPipelineAfterModelDownload = true;
+            jobManager.submitModelDownloadJob(() -> {});
+        }
     }
 
     // ── Drag-and-drop onto the library TreeView ───────────────────────────────
@@ -1175,5 +1211,23 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
 
     private void openSlideshow(List<PhotoRecord> photos, int startIndex) {
         StageUtils.openSlideshow(photos, startIndex, photoGridListView.getScene(), fxmlLoader);
+    }
+
+    private void checkModelsAndPromptDownload() {
+        if (modelPaths.allModelsPresent()) {
+            return;
+        }
+
+        boolean confirmation = AlertHelper.confirm(
+                null,
+                "Download AI models",
+                "AI features need model files (~1 GB)",
+                "Face recognition and semantic search require AI model files that "
+                        + "haven't been downloaded yet. Download them now in the background?"
+        );
+
+        if (confirmation) {
+            jobManager.submitModelDownloadJob(() -> {});
+        }
     }
 }

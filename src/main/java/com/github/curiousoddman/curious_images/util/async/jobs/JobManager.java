@@ -234,4 +234,18 @@ public class JobManager {
     public Optional<JobDescriptor> submitAlbumGenerationJob() {
         return submit(jobFactory.createAlbumGenerationJob());
     }
+
+    /**
+     * Submits a download of whatever AI models are currently missing (see
+     * {@code ModelPaths#missingModels()}). Like other non-supersedable jobs, a second submission
+     * while one is already queued/running is silently discarded — the in-flight download will
+     * still complete and publish its {@code ENDED} event either way.
+     *
+     * @param onSuccess run once the download finishes successfully; pass {@code () -> {}} for a
+     *                  plain background download, or {@code this::submitAiPipelineJob} to chain
+     *                  into the AI pipeline afterward.
+     */
+    public Optional<JobDescriptor> submitModelDownloadJob(Runnable onSuccess) {
+        return submit(jobFactory.createModelDownloadJob(onSuccess));
+    }
 }

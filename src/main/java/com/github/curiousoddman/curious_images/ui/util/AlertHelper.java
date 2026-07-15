@@ -43,7 +43,12 @@ public final class AlertHelper {
      * OK (closing the dialog any other way, e.g. Escape/the window close button, counts as "no").
      */
     public static boolean confirm(Node ownerNode, String headerText, String contentText) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, contentText, ButtonType.OK, ButtonType.CANCEL);
+        return confirm(ownerNode, null, headerText, contentText);
+    }
+
+    public static boolean confirm(Node ownerNode, String title, String headerText, String message) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, message, ButtonType.OK, ButtonType.CANCEL);
+        alert.setTitle(title);
         alert.setHeaderText(headerText);
         applyOwner(alert, ownerNode);
         return alert.showAndWait()
