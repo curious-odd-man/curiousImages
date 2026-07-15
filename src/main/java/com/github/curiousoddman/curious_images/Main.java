@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableTransactionManagement
 public class Main {
     // FIXME: Duplicates screen - Maybe highlight similar/different parts?
+    // TODO: Bulk duplicates resolution - accept all from specific folder. Remove all from specific folder etc...
     public static void main(String[] args) {
         LauncherImpl.launchApplication(JavafxApplication.class, AnimatedPreloader.class, args);
     }
