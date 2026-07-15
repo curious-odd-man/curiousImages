@@ -12,6 +12,7 @@ import com.github.curiousoddman.curious_images.persistence.DuplicateGroupReposit
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
+import com.github.curiousoddman.curious_images.ui.controller.custom.DetailRow;
 import com.github.curiousoddman.curious_images.ui.controller.custom.DuplicateCellController;
 import com.github.curiousoddman.curious_images.ui.styles.CssClasses;
 import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
@@ -38,16 +39,26 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController.getImage;
 import static com.github.curiousoddman.curious_images.util.HumanReadableUtils.size;
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
+import static org.kordamp.ikonli.bootstrapicons.BootstrapIcons.ASPECT_RATIO;
+import static org.kordamp.ikonli.bootstrapicons.BootstrapIcons.CAMERA;
+import static org.kordamp.ikonli.bootstrapicons.BootstrapIcons.CLOCK_HISTORY;
+import static org.kordamp.ikonli.bootstrapicons.BootstrapIcons.DOWNLOAD;
+import static org.kordamp.ikonli.bootstrapicons.BootstrapIcons.FILE_EARMARK_FONT_FILL;
+import static org.kordamp.ikonli.bootstrapicons.BootstrapIcons.FOLDER2_OPEN;
+import static org.kordamp.ikonli.bootstrapicons.BootstrapIcons.SERVER;
+import static org.kordamp.ikonli.bootstrapicons.BootstrapIcons.TAG;
 
 @Lazy
 @Slf4j
@@ -75,6 +86,10 @@ public class DuplicatesController implements Initializable {
     public Label  duplicateCounterLabel;
     @FXML
     public Button nextDuplicateButton;
+    @FXML
+    public Button deleteAllButton;
+    @FXML
+    public Button keepAllButton;
 
     private final DelayedAction                      thumbnailGenDebounce   = new DelayedAction(THUMBNAIL_GEN_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
     private final Set<Long>                          pendingThumbnailGenIds = new HashSet<>();
@@ -82,13 +97,18 @@ public class DuplicatesController implements Initializable {
 
     private final List<DuplicateGroup> knownGroups = new ArrayList<>();
 
+
     private int currentGroupIndex = 0;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        keepSelectedButton.setOnMouseEntered(e -> previewAction(true));
+        keepAllButton.setOnMouseEntered(e -> previewAction(ResolveStrategy.KEEP_ALL));
+        keepAllButton.setOnMouseExited(e -> clearPreview());
+        deleteAllButton.setOnMouseEntered(e -> previewAction(ResolveStrategy.REMOVE_ALL));
+        deleteAllButton.setOnMouseExited(e -> clearPreview());
+        keepSelectedButton.setOnMouseEntered(e -> previewAction(ResolveStrategy.KEEP_CHECKED));
         keepSelectedButton.setOnMouseExited(e -> clearPreview());
-        deleteSelectedButton.setOnMouseEntered(e -> previewAction(false));
+        deleteSelectedButton.setOnMouseEntered(e -> previewAction(ResolveStrategy.REMOVE_CHECKED));
         deleteSelectedButton.setOnMouseExited(e -> clearPreview());
     }
 
@@ -161,13 +181,45 @@ public class DuplicatesController implements Initializable {
         runOnDaemonThread("LoadDuplicatesTab", () -> {
             DuplicateGroup currentGroup = knownGroups.get(currentGroupIndex);
 
+            Map<Long, Map<String, DetailRow>> allValues = currentGroup
+                    .photos()
+                    .stream()
+                    .map(PhotoWithThumbnail::photo)
+                    .collect(Collectors.toMap(
+                            PhotoRecord::getId,
+                            DuplicatesController::getPhotoDetails
+                    ));
+
+            Set<String> allKeys = allValues
+                    .values()
+                    .stream()
+                    .map(Map::keySet)
+                    .flatMap(Set::stream)
+                    .collect(Collectors.toSet());
+
+
+            for (String key : allKeys) {
+                List<DetailRow> detailRowStream = allValues.values()
+                                                           .stream()
+                                                           .map(m -> m.get(key))
+                                                           .toList();
+                Set<String> list = detailRowStream
+                        .stream()
+                        .map(DetailRow::getValue)
+                        .collect(Collectors.toSet());
+
+                if (list.size() != 1) {
+                    detailRowStream.forEach(dr -> dr.setDifferent(true));
+                }
+            }
+
             List<Long> ids = new ArrayList<>();
             currentGroup
                     .photos()
                     .forEach(pwt -> {
                         Long id = pwt.photo()
                                      .getId();
-                        DuplicateCell duplicateCell = createDuplicateCell(pwt);
+                        DuplicateCell duplicateCell = createDuplicateCell(pwt, allValues);
                         visiblePhotoCells.put(id, duplicateCell.controller());
                         cells.add(duplicateCell.pane());
                         duplicateCell.checkBox()
@@ -202,12 +254,14 @@ public class DuplicatesController implements Initializable {
         });
     }
 
-    private DuplicateCell createDuplicateCell(PhotoWithThumbnail pwt) {
+    private DuplicateCell createDuplicateCell(PhotoWithThumbnail pwt, Map<Long, Map<String, DetailRow>> allValues) {
         LoadedFxml<DuplicateCellController> loaded = fxmlLoader.load(FxmlView.DUPLICATE_CELL, null);
         DuplicateCellController             cell   = loaded.controller();
 
         cell.setThumbnail(getImage(pwt.thumbnail(), null));
-        cell.setInfoText(buildPhotoDetailsText(pwt.photo()));
+        Map<String, DetailRow> details = allValues.get(pwt.photo()
+                                                          .getId());
+        cell.setInfoText(details.values());
 
         return new DuplicateCell(pwt, cell.checkBox(), cell, (Pane) loaded.parent());
     }
@@ -272,11 +326,16 @@ public class DuplicatesController implements Initializable {
     // Action buttons
     // ----------------------------------------------------------------------------------------
 
-    private void previewAction(boolean keepButtonHovered) {
+    private void previewAction(ResolveStrategy strategy) {
         visiblePhotoCells.forEach((key, controller) -> {
             boolean checked = controller.checkBox()
                                         .isSelected();
-            boolean willBeKept = keepButtonHovered == checked;
+            boolean willBeKept = switch (strategy) {
+                case KEEP_CHECKED -> checked;
+                case REMOVE_CHECKED -> !checked;
+                case KEEP_ALL -> true;
+                case REMOVE_ALL -> false;
+            };
             ObservableList<String> styleClass = controller.container()
                                                           .getStyleClass();
             styleClass.add(willBeKept ? CssClasses.KEEP_PREVIEW : CssClasses.DROP_PREVIEW);
@@ -293,14 +352,13 @@ public class DuplicatesController implements Initializable {
     }
 
     private void resolveActivePane(ResolveStrategy strategy) {
-        // TODO: Mark current duplicates as resolved
         List<PhotoRecord> toDrop       = new ArrayList<>();
         DuplicateGroup    currentGroup = knownGroups.get(currentGroupIndex);
         for (PhotoWithThumbnail photoWithThumbnail : currentGroup.photos()) {
             PhotoRecord             photoRecord             = photoWithThumbnail.photo();
             DuplicateCellController duplicateCellController = visiblePhotoCells.get(photoRecord.getId());
             boolean currentImageSelected = duplicateCellController.checkBox()
-                                                      .isSelected();
+                                                                  .isSelected();
             boolean drop = switch (strategy) {
                 case KEEP_ALL -> false;
                 case KEEP_CHECKED -> currentImageSelected;
@@ -355,7 +413,7 @@ public class DuplicatesController implements Initializable {
     }
 
 // ----------------------------------------------------------------------------------------
-// Helpers shared with photoWithThumbnail details text
+// Helpers shared with photoWithThumbnail details value
 // ----------------------------------------------------------------------------------------
 
     private void updateActionButtonsState() {
@@ -367,50 +425,82 @@ public class DuplicatesController implements Initializable {
         deleteSelectedButton.setDisable(!anyChecked);
     }
 
-    private String buildPhotoDetailsText(PhotoRecord photo) {
-        return getPhotoDetailsText(photo, size(photo.getFileSize()));
+    static String getPhotoDetailsText(PhotoRecord photo) {
+        Map<String, DetailRow> photoDetailsText = getPhotoDetails(photo);
+        StringBuilder          sb               = new StringBuilder();
+
+        photoDetailsText.values()
+                        .forEach(dr -> {
+                            sb.append(dr.getLabel())
+                              .append(": ")
+                              .append(dr.getValue())
+                              .append('\n');
+                        });
+        return sb.toString();
     }
 
-    static String getPhotoDetailsText(PhotoRecord photo, String s) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(photo.getFilename())
-          .append('\n');
-        sb.append(photo.getAbsolutePath())
-          .append('\n');
-        sb.append("Extension:  ")
-          .append(photo.getExtension() == null ? "—" : photo.getExtension())
-          .append('\n');
-        sb.append("Size:       ")
-          .append(s)
-          .append('\n');
+    static Map<String, DetailRow> getPhotoDetails(PhotoRecord photo) {
+        Map<String, DetailRow> details = new LinkedHashMap<>();
+
+        details.put("filename",
+                new DetailRow(FILE_EARMARK_FONT_FILL, "Filename", photo.getFilename()));
+
+        details.put("path",
+                new DetailRow(FOLDER2_OPEN, "Path", photo.getAbsolutePath()));
+
+        details.put("extension",
+                new DetailRow(
+                        TAG,
+                        "Extension",
+                        photo.getExtension() == null ? "—" : photo.getExtension()));
+
+        details.put("size",
+                new DetailRow(
+                        SERVER,
+                        "Size",
+                        size(photo.getFileSize())));
+
         if (photo.getImageWidth() != null && photo.getImageHeight() != null) {
-            sb.append("Dimensions: ")
-              .append(photo.getImageWidth())
-              .append(" x ")
-              .append(photo.getImageHeight())
-              .append('\n');
+            details.put("dimensions",
+                    new DetailRow(
+                            ASPECT_RATIO,
+                            "Dimensions",
+                            photo.getImageWidth() + " × " + photo.getImageHeight()));
         }
+
         if (photo.getCaptureDate() != null) {
-            sb.append("Captured:    ")
-              .append(photo.getCaptureDate());
+            String value = photo.getCaptureDate()
+                                .toString();
             if (photo.getCaptureDateSource() != null) {
-                sb.append(" (")
-                  .append(photo.getCaptureDateSource())
-                  .append(')');
+                value += " (" + photo.getCaptureDateSource() + ")";
             }
-            sb.append('\n');
+
+            details.put("captured",
+                    new DetailRow(
+                            CAMERA,
+                            "Captured",
+                            value));
         }
+
         if (photo.getImportedAt() != null) {
-            sb.append("Imported:    ")
-              .append(photo.getImportedAt())
-              .append('\n');
+            details.put("imported",
+                    new DetailRow(
+                            DOWNLOAD,
+                            "Imported",
+                            photo.getImportedAt()
+                                 .toString()));
         }
+
         if (photo.getLastSeenAt() != null) {
-            sb.append("Last seen:    ")
-              .append(photo.getLastSeenAt());
+            details.put("lastSeen",
+                    new DetailRow(
+                            CLOCK_HISTORY,
+                            "Last seen",
+                            photo.getLastSeenAt()
+                                 .toString()));
         }
-        return sb.toString()
-                 .strip();
+
+        return details;
     }
 
 

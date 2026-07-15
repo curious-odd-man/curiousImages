@@ -20,7 +20,7 @@
                 <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
             </padding>
             <children>
-                <Button mnemonicParsing="false" onAction="#onKeepAll" text="Keep All">
+                <Button fx:id="keepAllButton" mnemonicParsing="false" onAction="#onKeepAll" text="Keep All">
                     <graphic>
                         <FontIcon iconColor="darkcyan" iconLiteral="bi-check-square-fill" iconSize="18" />
                     </graphic>
@@ -35,7 +35,7 @@
                         <FontIcon iconColor="red" iconLiteral="bi-file-x-fill" iconSize="18" />
                     </graphic>
                 </Button>
-                <Button mnemonicParsing="false" onAction="#onDeleteAll" text="Delete All">
+                <Button fx:id="deleteAllButton" mnemonicParsing="false" onAction="#onDeleteAll" text="Delete All">
                     <graphic>
                         <FontIcon iconColor="darkred" iconLiteral="bi-file-excel-fill" iconSize="18" />
                     </graphic>

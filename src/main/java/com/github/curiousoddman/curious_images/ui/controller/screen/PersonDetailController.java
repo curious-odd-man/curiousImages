@@ -76,7 +76,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.FacePickerCellController.loadImage;
 import static com.github.curiousoddman.curious_images.util.CollectionUtils.getIdToIndexMap;
-import static com.github.curiousoddman.curious_images.util.HumanReadableUtils.size;
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
@@ -761,7 +760,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
 
     @Override
     public String tooltipTextFor(PhotoRecord photo) {
-        return buildPhotoDetailsText(photo);
+        return getPhotoDetailsText(photo);
     }
 
     /**
@@ -891,10 +890,6 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
 
     private void openSlideshow(List<PhotoRecord> photos, int startIndex) {
         StageUtils.openSlideshow(photos, startIndex, photoGridListView.getScene(), fxmlLoader);
-    }
-
-    private String buildPhotoDetailsText(PhotoRecord photo) {
-        return getPhotoDetailsText(photo, size(photo.getFileSize()));
     }
 
 // ── Utilities ─────────────────────────────────────────────────────────────

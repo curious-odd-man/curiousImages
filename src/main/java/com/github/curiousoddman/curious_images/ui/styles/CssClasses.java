@@ -21,4 +21,8 @@ public class CssClasses {
     // Inline-editable Name/DoB/Notes fields (PersonDetailController)
     public static final String EDITABLE_FIELD        = "editable-field";
     public static final String EDITABLE_FIELD_ACTIVE = "editable-field-active";
+
+    public static final String GRID_CELL_UNDERLINE = "grid-cell-underline";
+    public static final String ERROR_TEXT = "error-text";
+
 }

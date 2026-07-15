@@ -51,7 +51,6 @@ import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoRowCell;
 import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
 import com.github.curiousoddman.curious_images.ui.util.StageUtils;
 import com.github.curiousoddman.curious_images.util.CollectionUtils;
-import com.github.curiousoddman.curious_images.util.HumanReadableUtils;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.beans.InvalidationListener;
@@ -901,7 +900,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
 
     @Override
     public String tooltipTextFor(PhotoRecord photo) {
-        return buildPhotoDetailsText(photo);
+        return getPhotoDetailsText(photo);
     }
 
     /**
@@ -989,14 +988,6 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
     }
 
     // ── Utilities ─────────────────────────────────────────────────────────────
-
-    private String buildPhotoDetailsText(PhotoRecord photo) {
-        return getPhotoDetailsText(photo, formatFileSize(photo.getFileSize()));
-    }
-
-    private static String formatFileSize(Long bytes) {
-        return HumanReadableUtils.size(bytes);
-    }
 
     private static TreeItem<LibraryTreeNode> treeItem(LibraryTreeNode node) {
         return new TreeItem<>(node);

@@ -103,3 +103,12 @@
 .progress-label-shadow {
     -fx-effect: dropshadow(gaussian, black, 2, 0.7, 0, 0);
 }
+
+.grid-cell-underline {
+    -fx-border-color: transparent transparent #000000 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.error-text {
+    -fx-text-fill: #e84242;
+}
