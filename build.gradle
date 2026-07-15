@@ -128,9 +128,8 @@ tasks.register('checkNoUncommittedChanges') {
                 .readLines()
                 .findAll { it.trim() }
                 .findAll { line ->
-                    // porcelain lines: "XY path" (or "XY old -> new" for renames).
                     def path = line.substring(3).trim()
-                    path != "version.txt"
+                    !path.contains("version.txt")
                 }
 
         if (dirty) {
