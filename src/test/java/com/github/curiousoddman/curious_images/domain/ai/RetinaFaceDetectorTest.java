@@ -44,7 +44,6 @@ public class RetinaFaceDetectorTest {
     void faceDetectionTest() throws IOException, OrtException, IrrecoverableIterationException {
         AiConfig   config = new AiConfig();
         ModelPaths paths  = new ModelPaths(config);
-        paths.verifyModelsExist();
         RetinaFaceDetector retinaFaceDetector = new RetinaFaceDetector(
                 new OnnxModelRegistry(config),
                 paths
