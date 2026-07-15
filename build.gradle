@@ -282,7 +282,7 @@ tasks.register('deploy') {
         }
 
         copy {
-            from "src/main/resources/icons/cImages.ico"
+            from "src/main/resources/icons/cImage.ico"
             into deployDir
         }
 
