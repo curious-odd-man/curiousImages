@@ -8,6 +8,7 @@ import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.model.DuplicateGroup;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
+import com.github.curiousoddman.curious_images.model.bundle.DuplicateCellData;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
@@ -151,6 +152,7 @@ public class DuplicatesController implements Initializable {
     @FXML
     public void onDeleteAll(ActionEvent event) {
         resolveActivePane(ResolveStrategy.REMOVE_ALL);
+        showNextDuplicate(event);
     }
 
     public void activateDuplicatesView() {
@@ -181,45 +183,22 @@ public class DuplicatesController implements Initializable {
         runOnDaemonThread("LoadDuplicatesTab", () -> {
             DuplicateGroup currentGroup = knownGroups.get(currentGroupIndex);
 
-            Map<Long, Map<String, DetailRow>> allValues = currentGroup
+            Map<Long, Map<String, DetailRow>> allValues = getPropertiesMarkedDifferent(currentGroup);
+
+            List<Long> ids = new ArrayList<>();
+
+            List<PhotoRecord> groupPhotos = currentGroup
                     .photos()
                     .stream()
                     .map(PhotoWithThumbnail::photo)
-                    .collect(Collectors.toMap(
-                            PhotoRecord::getId,
-                            DuplicatesController::getPhotoDetails
-                    ));
+                    .toList();
 
-            Set<String> allKeys = allValues
-                    .values()
-                    .stream()
-                    .map(Map::keySet)
-                    .flatMap(Set::stream)
-                    .collect(Collectors.toSet());
-
-
-            for (String key : allKeys) {
-                List<DetailRow> detailRowStream = allValues.values()
-                                                           .stream()
-                                                           .map(m -> m.get(key))
-                                                           .toList();
-                Set<String> list = detailRowStream
-                        .stream()
-                        .map(DetailRow::getValue)
-                        .collect(Collectors.toSet());
-
-                if (list.size() != 1) {
-                    detailRowStream.forEach(dr -> dr.setDifferent(true));
-                }
-            }
-
-            List<Long> ids = new ArrayList<>();
             currentGroup
                     .photos()
                     .forEach(pwt -> {
                         Long id = pwt.photo()
                                      .getId();
-                        DuplicateCell duplicateCell = createDuplicateCell(pwt, allValues);
+                        DuplicateCell duplicateCell = createDuplicateCell(pwt, allValues, groupPhotos, cells.size());
                         visiblePhotoCells.put(id, duplicateCell.controller());
                         cells.add(duplicateCell.pane());
                         duplicateCell.checkBox()
@@ -231,21 +210,6 @@ public class DuplicatesController implements Initializable {
                         }
                     });
 
-            List<PhotoRecord> groupPhotos = currentGroup
-                    .photos()
-                    .stream()
-                    .map(PhotoWithThumbnail::photo)
-                    .toList();
-            for (int i = 0; i < cells.size(); i++) {
-                final int idx = i;
-                cells.get(i)
-                     .setOnMouseClicked(e -> {
-                         if (e.getClickCount() == 1) {
-                             openSlideshow(groupPhotos, idx);
-                         }
-                     });
-            }
-
             runOnFxThread(() -> duplicateItems.setAll(cells));
 
             if (!ids.isEmpty()) {
@@ -254,14 +218,52 @@ public class DuplicatesController implements Initializable {
         });
     }
 
-    private DuplicateCell createDuplicateCell(PhotoWithThumbnail pwt, Map<Long, Map<String, DetailRow>> allValues) {
-        LoadedFxml<DuplicateCellController> loaded = fxmlLoader.load(FxmlView.DUPLICATE_CELL, null);
-        DuplicateCellController             cell   = loaded.controller();
+    private static Map<Long, Map<String, DetailRow>> getPropertiesMarkedDifferent(DuplicateGroup currentGroup) {
+        Map<Long, Map<String, DetailRow>> allValues = currentGroup
+                .photos()
+                .stream()
+                .map(PhotoWithThumbnail::photo)
+                .collect(Collectors.toMap(
+                        PhotoRecord::getId,
+                        DuplicatesController::getPhotoDetails
+                ));
 
-        cell.setThumbnail(getImage(pwt.thumbnail(), null));
+        Set<String> allKeys = allValues
+                .values()
+                .stream()
+                .map(Map::keySet)
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+
+
+        for (String key : allKeys) {
+            List<DetailRow> detailRowStream = allValues.values()
+                                                       .stream()
+                                                       .map(m -> m.get(key))
+                                                       .toList();
+            Set<String> list = detailRowStream
+                    .stream()
+                    .map(DetailRow::getValue)
+                    .collect(Collectors.toSet());
+
+            if (list.size() != 1) {
+                detailRowStream.forEach(dr -> dr.setDifferent(true));
+            }
+        }
+        return allValues;
+    }
+
+    private DuplicateCell createDuplicateCell(PhotoWithThumbnail pwt, Map<Long, Map<String, DetailRow>> allValues, List<PhotoRecord> groupPhotos, int index) {
         Map<String, DetailRow> details = allValues.get(pwt.photo()
                                                           .getId());
-        cell.setInfoText(details.values());
+        DuplicateCellData resourceBundle = new DuplicateCellData(
+                getImage(pwt.thumbnail(), null),
+                details.values(),
+                groupPhotos,
+                index
+        );
+        LoadedFxml<DuplicateCellController> loaded = fxmlLoader.load(FxmlView.DUPLICATE_CELL, resourceBundle);
+        DuplicateCellController             cell   = loaded.controller();
 
         return new DuplicateCell(pwt, cell.checkBox(), cell, (Pane) loaded.parent());
     }
@@ -402,14 +404,6 @@ public class DuplicatesController implements Initializable {
                 "Some photos couldn't be moved to the recycle bin and were left in place",
                 sb.toString()
                   .strip()));
-    }
-
-// ----------------------------------------------------------------------------------------
-// Slideshow
-// ----------------------------------------------------------------------------------------
-
-    private void openSlideshow(List<PhotoRecord> photos, int startIndex) {
-        StageUtils.openSlideshow(photos, startIndex, dupliacteItemsVbox.getScene(), fxmlLoader);
     }
 
 // ----------------------------------------------------------------------------------------

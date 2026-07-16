@@ -16,7 +16,7 @@
 <HBox maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" spacing="20.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.custom.DuplicateCellController">
    <children>
 
-          <StackPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
+          <StackPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" onMouseClicked="#onImageMouseClicked">
            <children>
                <Rectangle fx:id="placeholderRect" arcHeight="10.0" arcWidth="10.0" fill="#d8d8d8" />
                <Label fx:id="placeholderLabel" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" text="Loading..." StackPane.alignment="CENTER" />

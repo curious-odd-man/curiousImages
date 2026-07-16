@@ -1,28 +1,39 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
+import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.model.bundle.DuplicateCellData;
+import com.github.curiousoddman.curious_images.ui.FxmlLoader;
+import com.github.curiousoddman.curious_images.ui.util.StageUtils;
 import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import lombok.RequiredArgsConstructor;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.net.URL;
 import java.util.Collection;
+import java.util.List;
+import java.util.ResourceBundle;
 
 import static com.github.curiousoddman.curious_images.ui.styles.CssClasses.ERROR_TEXT;
 import static com.github.curiousoddman.curious_images.ui.styles.CssClasses.GRID_CELL_UNDERLINE;
 
 @Component
 @Scope("prototype")
-public class DuplicateCellController {
+@RequiredArgsConstructor
+public class DuplicateCellController implements Initializable {
     @FXML
     public  Label     placeholderLabel;
     @FXML
@@ -36,6 +47,21 @@ public class DuplicateCellController {
     @FXML
     private CheckBox  checkBox;
 
+    private List<PhotoRecord> groupPhotos;
+    private int               currentIndex;
+
+    private final FxmlLoader fxmlLoader;
+
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        if (resources instanceof DuplicateCellData bundle) {
+            setThumbnail(bundle.getImage());
+            setInfoText(bundle.getRows());
+            groupPhotos = bundle.getGroupPhotos();
+            currentIndex = bundle.getCurrentIndex();
+        }
+    }
+
     public void setThumbnail(Image image) {
         imageView.setVisible(image != null);
         placeholderLabel.setVisible(image == null);
@@ -45,20 +71,21 @@ public class DuplicateCellController {
         }
     }
 
-    private static final Color DIFFERENT = Color.RED;
-
-    public void setInfoText(Collection<DetailRow> rows) {
+    private void setInfoText(Collection<DetailRow> rows) {
         int rowIndx = 0;
         for (DetailRow detailRow : rows) {
             FontIcon icon = new FontIcon(detailRow.getIcon());
             icon.setIconSize(16);
-            icon.getStyleClass().add(GRID_CELL_UNDERLINE);
+            icon.getStyleClass()
+                .add(GRID_CELL_UNDERLINE);
             gridPane.add(icon, 0, rowIndx);
             Label labelLine = applyStyle(new Label(detailRow.getLabel()), detailRow);
-            labelLine.getStyleClass().add(GRID_CELL_UNDERLINE);
+            labelLine.getStyleClass()
+                     .add(GRID_CELL_UNDERLINE);
             gridPane.add(labelLine, 1, rowIndx);
             Label valueLine = applyStyle(new Label(detailRow.getValue()), detailRow);
-            valueLine.getStyleClass().add(GRID_CELL_UNDERLINE);
+            valueLine.getStyleClass()
+                     .add(GRID_CELL_UNDERLINE);
             gridPane.add(valueLine, 2, rowIndx);
             rowIndx++;
         }
@@ -72,7 +99,8 @@ public class DuplicateCellController {
                 16
         ));
         if (detailRow.isDifferent()) {
-            line.getStyleClass().add(ERROR_TEXT);
+            line.getStyleClass()
+                .add(ERROR_TEXT);
             line.setFont(Font.font(
                     line.getFont()
                         .getFamily(),
@@ -90,5 +118,16 @@ public class DuplicateCellController {
 
     public VBox container() {
         return cellRoot;
+    }
+
+    @FXML
+    public void onImageMouseClicked(MouseEvent mouseEvent) {
+        if (mouseEvent.getClickCount() == 1 && mouseEvent.getButton() == MouseButton.PRIMARY) {
+            openSlideshow(groupPhotos, currentIndex);
+        }
+    }
+
+    private void openSlideshow(List<PhotoRecord> photos, int startIndex) {
+        StageUtils.openSlideshow(photos, startIndex, imageView.getScene(), fxmlLoader);
     }
 }
