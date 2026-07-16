@@ -15,7 +15,9 @@ import org.kordamp.ikonli.materialdesign2.MaterialDesignM;
  * @param payload     what to load when this node is selected, or {@code null} for pure grouping
  *                    nodes (FOLDERS_ROOT, TIMELINE_ROOT, TIMELINE_YEAR, ALBUMS_ROOT,
  *                    ALBUM_EVENT_ROOT, ALBUM_LOCATION_ROOT, ALBUM_SIMILARITY_ROOT,
- *                    PERSONS_ROOT) that show nothing
+ *                    PERSONS_ROOT) that show nothing. DUPLICATES_ROOT also carries a
+ *                    {@code null} payload but is a special case: selecting it shows the
+ *                    duplicates-review view (see {@code LibraryController#onTreeSelectionChanged}).
  * @param type        kind of node — drives icon selection and selection behaviour
  */
 public record LibraryTreeNode(String displayName, NodePayload payload, NodeType type) {
@@ -41,7 +43,9 @@ public record LibraryTreeNode(String displayName, NodePayload payload, NodeType 
         ALBUM_SIMILARITY,
         // Persons (face-based)
         PERSONS_ROOT,
-        PERSON
+        PERSON,
+        // Duplicates review
+        DUPLICATES_ROOT
     }
 
     /**
@@ -63,6 +67,7 @@ public record LibraryTreeNode(String displayName, NodePayload payload, NodeType 
             case ALBUM_SIMILARITY_ROOT, ALBUM_SIMILARITY -> MaterialDesignG.GOOGLE_PHOTOS;
             case PERSONS_ROOT -> MaterialDesignA.ACCOUNT_GROUP;
             case PERSON -> MaterialDesignA.ACCOUNT;
+            case DUPLICATES_ROOT -> MaterialDesignC.CONTENT_DUPLICATE;
         };
     }
 

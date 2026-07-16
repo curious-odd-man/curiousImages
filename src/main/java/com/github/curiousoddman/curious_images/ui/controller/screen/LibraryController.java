@@ -68,8 +68,6 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Slider;
 import javafx.scene.control.SplitPane;
-import javafx.scene.control.Tab;
-import javafx.scene.control.TabPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
@@ -170,10 +168,6 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
     @FXML
     public Label                     photoCountLabel;
     @FXML
-    public TabPane                   mainTabPane;
-    @FXML
-    public Tab                       duplicatesTab;
-    @FXML
     public TextField                 searchField;
     @FXML
     public Button                    searchButton;
@@ -185,6 +179,8 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
     public BorderPane                photoGridView;
     @FXML
     public AnchorPane                personDetailContainer;
+    @FXML
+    public AnchorPane                duplicatesContainer;
 
     @FXML
     public HBox        backgroundProgressContainer;
@@ -300,16 +296,15 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
         onLibraryDataUpdated(null);
 
         LoadedFxml<DuplicatesController> loaded = fxmlLoader.load(FxmlView.DUPLICATES, null);
-        duplicatesTab.setContent(loaded.parent());
         duplicatesController = loaded.controller();
+        Parent duplicatesView = loaded.parent();
+        AnchorPane.setTopAnchor(duplicatesView, 0.0);
+        AnchorPane.setBottomAnchor(duplicatesView, 0.0);
+        AnchorPane.setLeftAnchor(duplicatesView, 0.0);
+        AnchorPane.setRightAnchor(duplicatesView, 0.0);
+        duplicatesContainer.getChildren()
+                           .setAll(duplicatesView);
 
-        mainTabPane.getSelectionModel()
-                   .selectedItemProperty()
-                   .addListener((obs, oldTab, newTab) -> {
-                       if (newTab == duplicatesTab) {
-                           duplicatesController.activateDuplicatesView();
-                       }
-                   });
         checkModelsAndPromptDownload();
     }
 
@@ -420,9 +415,14 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
                            .setAll(personItems);
                 personsRoot.setExpanded(false);
 
+                // Leaf-like grouping node: no children, but selectable — selecting it shows the
+                // duplicates-review view (see onTreeSelectionChanged).
+                TreeItem<LibraryTreeNode> duplicatesRoot = treeItem(
+                        new LibraryTreeNode("Duplicates", null, NodeType.DUPLICATES_ROOT));
+
                 TreeItem<LibraryTreeNode> invisibleRoot = new TreeItem<>();
                 invisibleRoot.getChildren()
-                             .setAll(foldersRoot, timelineRoot, albumsRoot, personsRoot);
+                             .setAll(foldersRoot, timelineRoot, albumsRoot, personsRoot, duplicatesRoot);
                 libraryTreeView.setRoot(invisibleRoot);
             });
         });
@@ -655,6 +655,12 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
             clearPhotoGrid();
             return;
         }
+        if (selectedItem.getValue()
+                        .type() == NodeType.DUPLICATES_ROOT) {
+            clearSearchState();
+            showDuplicatesView();
+            return;
+        }
         NodePayload payload = selectedItem.getValue()
                                           .payload();
         if (payload == null) {
@@ -704,6 +710,8 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
         }
         photoGridView.setVisible(false);
         photoGridView.setManaged(false);
+        duplicatesContainer.setVisible(false);
+        duplicatesContainer.setManaged(false);
         personDetailContainer.setVisible(true);
         personDetailContainer.setManaged(true);
         personDetailController.loadPerson(personId);
@@ -712,8 +720,25 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
     private void showPhotoGrid() {
         personDetailContainer.setVisible(false);
         personDetailContainer.setManaged(false);
+        duplicatesContainer.setVisible(false);
+        duplicatesContainer.setManaged(false);
         photoGridView.setVisible(true);
         photoGridView.setManaged(true);
+    }
+
+    /**
+     * Shows the duplicates-review panel (content loaded from duplicates.fxml into
+     * {@link #duplicatesContainer} in {@link #initialize}) and re-activates it so it picks up
+     * the current duplicate set, mirroring the old tab-selection listener's behaviour.
+     */
+    private void showDuplicatesView() {
+        personDetailContainer.setVisible(false);
+        personDetailContainer.setManaged(false);
+        photoGridView.setVisible(false);
+        photoGridView.setManaged(false);
+        duplicatesContainer.setVisible(true);
+        duplicatesContainer.setManaged(true);
+        duplicatesController.activateDuplicatesView();
     }
 
     // ── Photo loading ─────────────────────────────────────────────────────────

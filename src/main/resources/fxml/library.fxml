@@ -11,8 +11,6 @@
 <?import javafx.scene.control.SeparatorMenuItem?>
 <?import javafx.scene.control.Slider?>
 <?import javafx.scene.control.SplitPane?>
-<?import javafx.scene.control.Tab?>
-<?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TreeView?>
 <?import javafx.scene.layout.AnchorPane?>
@@ -26,14 +24,9 @@
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.LibraryController">
     <center>
-        <TabPane fx:id="mainTabPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
-                 tabClosingPolicy="UNAVAILABLE" BorderPane.alignment="CENTER">
-            <tabs>
-                <Tab text="Library">
-                    <content>
-                        <SplitPane fx:id="librarySplitPane" dividerPositions="0.2559" maxHeight="1.7976931348623157E308"
-                                   maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0">
-                            <items>
+        <SplitPane fx:id="librarySplitPane" dividerPositions="0.2559" maxHeight="1.7976931348623157E308"
+                   maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0" BorderPane.alignment="CENTER">
+            <items>
                                 <!-- Left: library tree -->
                                 <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
                                             minHeight="0.0" minWidth="0.0">
@@ -132,17 +125,17 @@
                                                         maxHeight="1.7976931348623157E308"
                                                         maxWidth="1.7976931348623157E308" visible="false"/>
 
+                                            <!-- ── Duplicates review panel (injected from duplicates.fxml at
+                                                 runtime in LibraryController#initialize) ── -->
+                                            <AnchorPane fx:id="duplicatesContainer" managed="false"
+                                                        maxHeight="1.7976931348623157E308"
+                                                        maxWidth="1.7976931348623157E308" visible="false"/>
+
                                         </StackPane>
                                     </children>
                                 </AnchorPane>
                             </items>
                         </SplitPane>
-                    </content>
-                </Tab>
-                <!-- Duplicates review: content loaded from duplicates.fxml in LibraryController#initialize -->
-                <Tab fx:id="duplicatesTab" text="Duplicates"/>
-            </tabs>
-        </TabPane>
     </center>
     <top>
         <MenuBar BorderPane.alignment="CENTER">
