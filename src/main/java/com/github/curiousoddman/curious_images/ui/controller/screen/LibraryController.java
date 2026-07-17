@@ -15,6 +15,7 @@ import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.services.LibraryViewManager;
 import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridManager;
+import com.github.curiousoddman.curious_images.ui.controller.services.SelectionModel;
 import com.github.curiousoddman.curious_images.ui.controller.services.TreeManager;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeCell;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeNode;
@@ -69,7 +70,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
@@ -81,6 +81,8 @@ import static javafx.scene.control.ProgressIndicator.INDETERMINATE_PROGRESS;
 @RequiredArgsConstructor
 public class LibraryController implements Initializable {
     private static final int SEARCH_TOP_K = 50;
+
+    private final SelectionModel selectionModel = new SelectionModel();
 
     private final FxmlLoader             fxmlLoader;
     private final UserPreferencesService userPreferencesService;
@@ -135,14 +137,6 @@ public class LibraryController implements Initializable {
     @FXML
     public Label                     backgroundProgressDescription;
 
-    /**
-     * Guards against a stale background page-load or full-selection-load callback overwriting a
-     * newer selection: every time the user switches selection (folder/timeline/album/search/
-     * undated) this is incremented, and any in-flight callback whose captured value no longer
-     * matches is discarded. Coarser than per-cell tracking — see implementation plan §4 ("only
-     * folder/selection-switch staleness matters, not per-cell reassignment").
-     */
-    private final AtomicLong selectionGeneration = new AtomicLong();
 
     private DuplicatesController       duplicatesController;
     private FolderDuplicatesController folderDuplicatesController;
@@ -167,7 +161,7 @@ public class LibraryController implements Initializable {
             }
         });
 
-        photoGridManager.initialize(photoCountLabel, photoGridListView, thumbnailSizeSlider, selectionGeneration);
+        photoGridManager.initialize(photoCountLabel, photoGridListView, thumbnailSizeSlider, selectionModel);
         treeManager.onLibraryDataUpdated(null);
 
         fxmlLoader.loadFxmlAndAttachToParent(duplicatesContainer, FxmlView.DUPLICATES, v -> duplicatesController = v);
@@ -308,7 +302,7 @@ public class LibraryController implements Initializable {
         libraryViewManager.showPhotoGrid();
         libraryTreeView.getSelectionModel()
                        .clearSelection();
-        long myGeneration = selectionGeneration.incrementAndGet();
+        long myGeneration = selectionModel.nextGeneration();
         runOnDaemonThread("Search", () -> {
             try {
                 List<Long> photoIds = searchService.semanticSearch(query, SEARCH_TOP_K);
@@ -318,7 +312,7 @@ public class LibraryController implements Initializable {
                                                    .filter(Objects::nonNull)
                                                    .toList();
                 runOnFxThread(() -> {
-                    if (myGeneration != selectionGeneration.get()) {
+                    if (myGeneration != selectionModel.generation()) {
                         return;
                     }
                     photoGridManager.populate(photos);
@@ -327,7 +321,7 @@ public class LibraryController implements Initializable {
             } catch (Exception e) {
                 log.error("Semantic search failed for query '{}'", query, e);
                 runOnFxThread(() -> {
-                    if (myGeneration == selectionGeneration.get()) {
+                    if (myGeneration == selectionModel.generation()) {
                         photoCountLabel.setText("Search error: " + e.getMessage());
                     }
                 });

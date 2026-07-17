@@ -38,7 +38,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.PersonDetailController.getRowInfo;
@@ -81,14 +80,6 @@ public class PhotoGridManager implements PhotoGridCallbacks {
     private final PhotoRepository                photoRepository;
     private final AlbumPhotoRepository           albumPhotoRepository;
 
-    /**
-     * The full, ordered photo set for the current selection — fetched once per selection change.
-     * The grid is now fully virtualized (see {@link PhotoRowCell}), so unlike the old paged
-     * {@code FlowPane} approach, all of it is "in" the grid immediately; only the rows actually
-     * scrolled into view ever get a live cell or a thumbnail/preview lookup.
-     */
-    private List<PhotoRecord>  currentPhotos  = List.of();
-    private Map<Long, Integer> photoIndexById = Map.of();
 
     /**
      * Current column count for the grid, so {@link #recomputeGridMetrics} can tell whether a
@@ -115,14 +106,13 @@ public class PhotoGridManager implements PhotoGridCallbacks {
     private Label                  photoCountLabel;
     private ListView<PhotoGridRow> photoGridListView;
     private Slider                 thumbnailSizeSlider;
-    private AtomicLong             selectionGeneration;
+    private SelectionModel         selectionModel;
 
-
-    public void initialize(Label photoCountLabel, ListView<PhotoGridRow> photoGridListView, Slider thumbnailSizeSlider, AtomicLong selectionGeneration) {
+    public void initialize(Label photoCountLabel, ListView<PhotoGridRow> photoGridListView, Slider thumbnailSizeSlider, SelectionModel selection) {
         this.photoCountLabel = photoCountLabel;
         this.photoGridListView = photoGridListView;
         this.thumbnailSizeSlider = thumbnailSizeSlider;
-        this.selectionGeneration = selectionGeneration;
+        this.selectionModel = selection;
 
         // Virtualized photo grid: ListView only ever instantiates enough PhotoRowCells to cover
         // the viewport plus a small buffer, recycling them on scroll — this replaces the old
@@ -155,31 +145,21 @@ public class PhotoGridManager implements PhotoGridCallbacks {
     public void populate(List<PhotoRecord> photos) {
         visiblePhotoCells.clear();
         pendingThumbnailGenIds.clear();
-        currentPhotos = photos;
-        photoIndexById = CollectionUtils.getIdToIndexMap(photos);
+        selectionModel.setPhotos(photos);
         photoCountLabel.setText(photos.size() + " photo" + (photos.size() == 1 ? "" : "s"));
         recomputeGridMetrics(true); // force a regroup even if the column count is unchanged
     }
 
     public void clear() {
-        selectionGeneration.incrementAndGet();
+        selectionModel.nextGeneration();
         visiblePhotoCells.clear();
         pendingThumbnailGenIds.clear();
-        currentPhotos = List.of();
-        photoIndexById = Map.of();
+        selectionModel.clear();
         photoGridListView.getItems()
                          .clear();
         photoCountLabel.setText("");
     }
 
-    /**
-     * Recomputes columns-per-row (from viewport width) and row height (from thumbnail size), and
-     * updates {@link ListView#setFixedCellSize} — telling the ListView every row is exactly that
-     * tall lets its virtual flow skip per-cell measurement, which matters a lot once there are
-     * thousands of rows. Only actually regroups {@link #currentPhotos} into {@link PhotoGridRow}s
-     * (an O(n) rebuild of the item list) if the column count changed or {@code force} is set —
-     * a resize that doesn't change the column count, or a slider drag, shouldn't re-trigger it.
-     */
     // FIXME: duplicate
     public void recomputeGridMetrics(boolean force) {
         double viewportWidth = photoGridListView.getWidth();
@@ -202,8 +182,8 @@ public class PhotoGridManager implements PhotoGridCallbacks {
     // FIXME: duplicate
     public void regroupIntoRows(int columns) {
         List<PhotoGridRow> rows = new ArrayList<>();
-        for (int i = 0; i < currentPhotos.size(); i += columns) {
-            rows.add(new PhotoGridRow(currentPhotos.subList(i, Math.min(i + columns, currentPhotos.size()))));
+        for (int i = 0; i < selectionModel.size(); i += columns) {
+            rows.add(new PhotoGridRow(selectionModel.photosSlice(i, i + columns)));
         }
         photoGridListView.getItems()
                          .setAll(rows);
@@ -221,9 +201,9 @@ public class PhotoGridManager implements PhotoGridCallbacks {
 
     @Override
     public void onPhotoClicked(PhotoRecord photo) {
-        Integer idx = photoIndexById.get(photo.getId());
+        Integer idx = selectionModel.indexById(photo.getId());
         if (idx != null) {
-            openSlideshow(currentPhotos, idx, photoGridListView.getScene(), fxmlLoader);
+            openSlideshow(selectionModel.photos(), idx, photoGridListView.getScene(), fxmlLoader);
         }
     }
 
@@ -234,14 +214,14 @@ public class PhotoGridManager implements PhotoGridCallbacks {
 
     @Override
     public void onRowShown(PhotoGridRowController row, List<PhotoRecord> photos) {
-        PersonDetailController.RowInfo rowInfo = getRowInfo(row, photos, visiblePhotoCells, selectionGeneration);
+        PersonDetailController.RowInfo rowInfo = getRowInfo(row, photos, visiblePhotoCells, selectionModel.generation());
 
 
         runOnDaemonThread("Thumbnails", () -> {
             Map<Long, ThumbnailRecord>    thumbs   = thumbnailRepository.findByPhotoIds(rowInfo.ids());
             Map<Long, PhotoPreviewRecord> previews = photoPreviewRepository.findByPhotoIds(rowInfo.ids());
             runOnFxThread(() -> {
-                if (rowInfo.myGeneration() != selectionGeneration.get() || rowInfo.myShowToken() != row.getShowToken()) {
+                if (rowInfo.myGeneration() != selectionModel.generation() || rowInfo.myShowToken() != row.getShowToken()) {
                     return; // selection changed, or this row now shows different photos — discard
                 }
                 List<Long> missing = new ArrayList<>();
@@ -272,7 +252,7 @@ public class PhotoGridManager implements PhotoGridCallbacks {
     }
 
     public void loadPhotosForFolder(long folderId) {
-        long myGeneration = selectionGeneration.incrementAndGet();
+        long myGeneration = selectionModel.nextGeneration();
         runOnDaemonThread("LoadFolder", () -> {
             List<PhotoRecord> photos = photoRepository.findByFolderId(folderId);
             loadSelectionResult(myGeneration, photos);
@@ -280,7 +260,7 @@ public class PhotoGridManager implements PhotoGridCallbacks {
     }
 
     public void loadPhotosForTimeline(int year, int month, Integer day) {
-        long myGeneration = selectionGeneration.incrementAndGet();
+        long myGeneration = selectionModel.nextGeneration();
         runOnDaemonThread("LoadTimeline", () -> {
             List<PhotoRecord> photos = photoRepository.findByCaptureDate(year, month, day);
             loadSelectionResult(myGeneration, photos);
@@ -288,7 +268,7 @@ public class PhotoGridManager implements PhotoGridCallbacks {
     }
 
     public void loadPhotosUndated() {
-        long myGeneration = selectionGeneration.incrementAndGet();
+        long myGeneration = selectionModel.nextGeneration();
         runOnDaemonThread("LoadUndated", () -> {
             List<PhotoRecord> photos = photoRepository.findByNullCaptureDate();
             loadSelectionResult(myGeneration, photos);
@@ -296,7 +276,7 @@ public class PhotoGridManager implements PhotoGridCallbacks {
     }
 
     public void loadPhotosForAlbum(long albumId) {
-        long myGeneration = selectionGeneration.incrementAndGet();
+        long myGeneration = selectionModel.nextGeneration();
         runOnDaemonThread("LoadAlbum", () -> {
             List<Long> photoIds = albumPhotoRepository.findPhotoIdsByAlbumId(albumId);
             List<PhotoRecord> photos = photoIds.stream()
@@ -326,7 +306,7 @@ public class PhotoGridManager implements PhotoGridCallbacks {
 
     private void loadSelectionResult(long myGeneration, List<PhotoRecord> photos) {
         runOnFxThread(() -> {
-            if (myGeneration == selectionGeneration.get()) {
+            if (myGeneration == selectionModel.generation()) {
                 populate(photos);
             }
         });

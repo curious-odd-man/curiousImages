@@ -773,7 +773,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
      */
     @Override
     public void onRowShown(PhotoGridRowController row, List<PhotoRecord> photos) {
-        RowInfo rowInfo = getRowInfo(row, photos, visiblePhotoCells, selectionGeneration);
+        RowInfo rowInfo = getRowInfo(row, photos, visiblePhotoCells, selectionGeneration.get());
 
         runOnDaemonThread("Row Shown", () -> {
             Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(rowInfo.ids());
@@ -797,7 +797,10 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
         });
     }
 
-    public static RowInfo getRowInfo(PhotoGridRowController row, List<PhotoRecord> photos, Map<Long, PhotoCellController> visiblePhotoCells, AtomicLong selectionGeneration) {
+    public static RowInfo getRowInfo(PhotoGridRowController row,
+                                     List<PhotoRecord> photos,
+                                     Map<Long, PhotoCellController> visiblePhotoCells,
+                                     long selectionGeneration) {
         for (PhotoCellController cell : row.getCellControllers()) {
             PhotoRecord shown = cell.getCurrentPhoto();
             if (shown != null) {
@@ -805,12 +808,11 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
             }
         }
 
-        long myGeneration = selectionGeneration.get();
-        long myShowToken  = row.getShowToken();
+        long myShowToken = row.getShowToken();
         List<Long> ids = photos.stream()
                                .map(PhotoRecord::getId)
                                .toList();
-        return new RowInfo(myGeneration, myShowToken, ids);
+        return new RowInfo(selectionGeneration, myShowToken, ids);
     }
 
     public record RowInfo(long myGeneration, long myShowToken, List<Long> ids) {}
