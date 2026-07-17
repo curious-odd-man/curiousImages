@@ -4,7 +4,8 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.ClusterRecor
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 import com.github.curiousoddman.curious_images.domain.ai.PersonCorrectionService;
-import com.github.curiousoddman.curious_images.event.model.PersonDeletedEvent;
+import com.github.curiousoddman.curious_images.event.model.TreeViewUpdateEvent;
+import com.github.curiousoddman.curious_images.event.payload.TreeViewUpdatePayload;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.persistence.ClusterRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
@@ -590,7 +591,7 @@ public class FacePickerController implements Initializable {
             Optional<ButtonType> result = alert.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.OK) {
                 personCorrectionService.deleteOrphanedPerson(personId);
-                eventPublisher.publishEvent(new PersonDeletedEvent(this, personId));
+                eventPublisher.publishEvent(new TreeViewUpdateEvent(this, new TreeViewUpdatePayload.PersonDelete(personId)));
             }
         }
     }

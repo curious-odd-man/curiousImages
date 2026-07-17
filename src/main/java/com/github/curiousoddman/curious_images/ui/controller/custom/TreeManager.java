@@ -6,8 +6,8 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRe
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 import com.github.curiousoddman.curious_images.event.model.AiPipelineCompleteEvent;
 import com.github.curiousoddman.curious_images.event.model.LibraryUpdatedEvent;
-import com.github.curiousoddman.curious_images.event.model.PersonDeletedEvent;
-import com.github.curiousoddman.curious_images.event.model.PersonRenamedEvent;
+import com.github.curiousoddman.curious_images.event.model.TreeViewUpdateEvent;
+import com.github.curiousoddman.curious_images.event.payload.TreeViewUpdatePayload;
 import com.github.curiousoddman.curious_images.model.TimelineData;
 import com.github.curiousoddman.curious_images.persistence.AlbumRepository;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
@@ -32,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
@@ -260,9 +261,8 @@ public class TreeManager {
         });
     }
 
-    // FIXME: this and the next probably should be united and extended for further cases
     @EventListener
-    public void onPersonRenamed(PersonRenamedEvent event) {
+    public void onTreeUpdateEvent(TreeViewUpdateEvent event) {
         TreeItem<LibraryTreeNode> root = libraryTreeView.getRoot();
         if (root == null) {
             return;
@@ -272,38 +272,31 @@ public class TreeManager {
                                                      .type() != LibraryTreeNode.NodeType.PERSONS_ROOT) {
                 continue;
             }
-            for (TreeItem<LibraryTreeNode> personItem : section.getChildren()) {
-                LibraryTreeNode node = personItem.getValue();
-                if (node != null && node.payload() instanceof NodePayload.PersonPayload(long personId)
-                        && personId == event.getPersonId()) {
-                    runOnFxThread(() -> personItem.setValue(new LibraryTreeNode(event.getNewName(), node.payload(), node.type())));
-                    return;
-                }
+            switch (event.getPayload()) {
+                case TreeViewUpdatePayload.PersonRename(long personId, String newName) ->
+                        findPersonNode(section, personId)
+                                .ifPresent(personItem -> runOnFxThread(() -> {
+                                    LibraryTreeNode value = personItem.getValue();
+                                    personItem.setValue(new LibraryTreeNode(newName, value.payload(), value.type()));
+                                }));
+                case TreeViewUpdatePayload.PersonDelete(long personId) ->
+                        findPersonNode(section, personId).ifPresent(personItem ->
+                                runOnFxThread(() -> section.getChildren()
+                                                           .remove(personItem)));
+                default -> throw new UnsupportedOperationException();
             }
         }
     }
 
-    @EventListener
-    public void onPersonDeleted(PersonDeletedEvent event) {
-        TreeItem<LibraryTreeNode> root = libraryTreeView.getRoot();
-        if (root == null) {
-            return;
-        }
-        for (TreeItem<LibraryTreeNode> section : root.getChildren()) {
-            if (section.getValue() == null || section.getValue()
-                                                     .type() != LibraryTreeNode.NodeType.PERSONS_ROOT) {
-                continue;
-            }
-            for (TreeItem<LibraryTreeNode> personItem : section.getChildren()) {
-                LibraryTreeNode node = personItem.getValue();
-                if (node != null && node.payload() instanceof NodePayload.PersonPayload(long personId)
-                        && personId == event.getPersonId()) {
-                    runOnFxThread(() -> section.getChildren()
-                                               .remove(personItem));
-                    return;
-                }
+    private Optional<TreeItem<LibraryTreeNode>> findPersonNode(TreeItem<LibraryTreeNode> section, long lookupId) {
+        for (TreeItem<LibraryTreeNode> personItem : section.getChildren()) {
+            LibraryTreeNode node = personItem.getValue();
+            if (node != null && node.payload() instanceof NodePayload.PersonPayload(long personId)
+                    && personId == lookupId) {
+                return Optional.of(personItem);
             }
         }
+        return Optional.empty();
     }
 
     private List<TreeItem<LibraryTreeNode>> buildFolderItems(long parentFolderId) {

@@ -6,8 +6,9 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.ai.PersonCorrectionService;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
-import com.github.curiousoddman.curious_images.event.model.PersonRenamedEvent;
+import com.github.curiousoddman.curious_images.event.model.TreeViewUpdateEvent;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
+import com.github.curiousoddman.curious_images.event.payload.TreeViewUpdatePayload;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
@@ -398,7 +399,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
                 personRepository.updateNameQuery(currentPerson.getId(), value, LocalDateTime.now())
                                 .execute();
                 currentPerson.setName(value);
-                applicationEventPublisher.publishEvent(new PersonRenamedEvent(this, currentPerson.getId(), value));
+                applicationEventPublisher.publishEvent(new TreeViewUpdateEvent(this, new TreeViewUpdatePayload.PersonRename(currentPerson.getId(), value)));
             } catch (Exception ex) {
                 log.error("Failed to save name for person {}", currentPerson.getId(), ex);
             }
