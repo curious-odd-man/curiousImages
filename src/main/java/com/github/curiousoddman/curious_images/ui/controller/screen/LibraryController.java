@@ -10,7 +10,6 @@ import com.github.curiousoddman.curious_images.event.payload.BackgroundProcessPa
 import com.github.curiousoddman.curious_images.event.types.BackgroundProcessEventType;
 import com.github.curiousoddman.curious_images.model.bundle.AddFilesBundle;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
-import com.github.curiousoddman.curious_images.persistence.AlbumPhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
@@ -86,7 +85,6 @@ public class LibraryController implements Initializable {
     private final FxmlLoader             fxmlLoader;
     private final UserPreferencesService userPreferencesService;
     private final PhotoRepository        photoRepository;
-    private final AlbumPhotoRepository   albumPhotoRepository;
     private final SearchService          searchService;
     private final JobManager             jobManager;
     private final ModelPaths             modelPaths;
@@ -275,11 +273,11 @@ public class LibraryController implements Initializable {
         switch (payload) {
             case FolderPayload fp -> {
                 libraryViewManager.showPhotoGrid();
-                loadPhotosForFolder(fp.folderId());
+                photoGridManager.loadPhotosForFolder(fp.folderId());
             }
             case TimelinePayload tp when tp.month() != null -> {
                 libraryViewManager.showPhotoGrid();
-                loadPhotosForTimeline(tp.year(), tp.month(), tp.day());
+                photoGridManager.loadPhotosForTimeline(tp.year(), tp.month(), tp.day());
             }
             case TimelinePayload ignored -> {
                 libraryViewManager.showPhotoGrid();
@@ -287,66 +285,15 @@ public class LibraryController implements Initializable {
             }
             case UndatedPayload ignored -> {
                 libraryViewManager.showPhotoGrid();
-                loadPhotosUndated();
+                photoGridManager.loadPhotosUndated();
             }
             case AlbumPayload ap -> {
                 libraryViewManager.showPhotoGrid();
-                loadPhotosForAlbum(ap.albumId());
+                photoGridManager.loadPhotosForAlbum(ap.albumId());
             }
             case PersonPayload pp ->
                     personDetailController = libraryViewManager.showPersonDetail(pp.personId(), personDetailController);
         }
-    }
-
-    // ── Photo loading ─────────────────────────────────────────────────────────
-
-    private void loadPhotosForFolder(long folderId) {
-        long myGeneration = selectionGeneration.incrementAndGet();
-        runOnDaemonThread("LoadFolder", () -> {
-            List<PhotoRecord> photos = photoRepository.findByFolderId(folderId);
-            loadSelectionResult(myGeneration, photos);
-        });
-    }
-
-    private void loadPhotosForTimeline(int year, int month, Integer day) {
-        long myGeneration = selectionGeneration.incrementAndGet();
-        runOnDaemonThread("LoadTimeline", () -> {
-            List<PhotoRecord> photos = photoRepository.findByCaptureDate(year, month, day);
-            loadSelectionResult(myGeneration, photos);
-        });
-    }
-
-    private void loadPhotosUndated() {
-        long myGeneration = selectionGeneration.incrementAndGet();
-        runOnDaemonThread("LoadUndated", () -> {
-            List<PhotoRecord> photos = photoRepository.findByNullCaptureDate();
-            loadSelectionResult(myGeneration, photos);
-        });
-    }
-
-    private void loadPhotosForAlbum(long albumId) {
-        long myGeneration = selectionGeneration.incrementAndGet();
-        runOnDaemonThread("LoadAlbum", () -> {
-            List<Long> photoIds = albumPhotoRepository.findPhotoIdsByAlbumId(albumId);
-            List<PhotoRecord> photos = photoIds.stream()
-                                               .map(id -> photoRepository.findById(id)
-                                                                         .orElse(null))
-                                               .filter(Objects::nonNull)
-                                               .toList();
-            loadSelectionResult(myGeneration, photos);
-        });
-    }
-
-    /**
-     * Applies a freshly-loaded photo set to the grid, unless the user has since switched to a
-     * different selection (see {@link #selectionGeneration}), in which case it's silently dropped.
-     */
-    private void loadSelectionResult(long myGeneration, List<PhotoRecord> photos) {
-        runOnFxThread(() -> {
-            if (myGeneration == selectionGeneration.get()) {
-                photoGridManager.populate(photos);
-            }
-        });
     }
 
     // ── Search ────────────────────────────────────────────────────────────────
@@ -402,9 +349,6 @@ public class LibraryController implements Initializable {
 
     // ── Menu actions ──────────────────────────────────────────────────────────
 
-    /**
-     * Existing: single-root rescan via the path-entry modal.
-     */
     @FXML
     @SneakyThrows
     public void onRescanMenuClicked(ActionEvent actionEvent) {

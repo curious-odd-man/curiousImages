@@ -5,7 +5,9 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
+import com.github.curiousoddman.curious_images.persistence.AlbumPhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoPreviewRepository;
+import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoCellController;
@@ -33,6 +35,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -75,6 +78,8 @@ public class PhotoGridManager implements PhotoGridCallbacks {
      */
     private final Map<Long, PhotoCellController> visiblePhotoCells = new HashMap<>();
     private final FxmlLoader                     fxmlLoader;
+    private final PhotoRepository                photoRepository;
+    private final AlbumPhotoRepository           albumPhotoRepository;
 
     /**
      * The full, ordered photo set for the current selection — fetched once per selection change.
@@ -204,6 +209,11 @@ public class PhotoGridManager implements PhotoGridCallbacks {
                          .setAll(rows);
     }
 
+    @EventListener
+    public void onThumbnailsReady(ThumbnailsReadyEvent event) {
+        ThumbnailUtils.updateThumbnailImage(thumbnailRepository, visiblePhotoCells, event);
+    }
+
     @Override
     public ObservableValue<Number> thumbnailSizeProperty() {
         return thumbnailSizeSlider.valueProperty();
@@ -261,13 +271,43 @@ public class PhotoGridManager implements PhotoGridCallbacks {
         }
     }
 
-    /**
-     * Batches up photo IDs missing a real thumbnail and flushes them as a single
-     * {@code submitThumbnailGenerationJob} call after a short debounce, instead of firing one call
-     * per row shown — {@code ThumbnailGenerationJob} is supersedable, so one call per row during a
-     * fast scroll would otherwise mean each newly-visible row cancels the previous row's
-     * still-useful (still on-screen) request.
-     */
+    public void loadPhotosForFolder(long folderId) {
+        long myGeneration = selectionGeneration.incrementAndGet();
+        runOnDaemonThread("LoadFolder", () -> {
+            List<PhotoRecord> photos = photoRepository.findByFolderId(folderId);
+            loadSelectionResult(myGeneration, photos);
+        });
+    }
+
+    public void loadPhotosForTimeline(int year, int month, Integer day) {
+        long myGeneration = selectionGeneration.incrementAndGet();
+        runOnDaemonThread("LoadTimeline", () -> {
+            List<PhotoRecord> photos = photoRepository.findByCaptureDate(year, month, day);
+            loadSelectionResult(myGeneration, photos);
+        });
+    }
+
+    public void loadPhotosUndated() {
+        long myGeneration = selectionGeneration.incrementAndGet();
+        runOnDaemonThread("LoadUndated", () -> {
+            List<PhotoRecord> photos = photoRepository.findByNullCaptureDate();
+            loadSelectionResult(myGeneration, photos);
+        });
+    }
+
+    public void loadPhotosForAlbum(long albumId) {
+        long myGeneration = selectionGeneration.incrementAndGet();
+        runOnDaemonThread("LoadAlbum", () -> {
+            List<Long> photoIds = albumPhotoRepository.findPhotoIdsByAlbumId(albumId);
+            List<PhotoRecord> photos = photoIds.stream()
+                                               .map(id -> photoRepository.findById(id)
+                                                                         .orElse(null))
+                                               .filter(Objects::nonNull)
+                                               .toList();
+            loadSelectionResult(myGeneration, photos);
+        });
+    }
+
     private void queueThumbnailGeneration(List<Long> ids) {
         pendingThumbnailGenIds.addAll(ids);
         thumbnailGenDebounce.reSchedule(() -> {
@@ -280,19 +320,15 @@ public class PhotoGridManager implements PhotoGridCallbacks {
         });
     }
 
-    /**
-     * Swaps the placeholder/quick-preview image of any still-*visible* cell for the real
-     * thumbnail, once {@code ThumbnailGenerationJob} has generated it. Photo IDs not currently in
-     * {@link #visiblePhotoCells} (scrolled out of view since the request was made) are simply
-     * skipped — not an error under virtualization, since that row will do a fresh, correct lookup
-     * the next time it's shown (see {@link #onRowShown}).
-     */
-    @EventListener
-    public void onThumbnailsReady(ThumbnailsReadyEvent event) {
-        ThumbnailUtils.updateThumbnailImage(thumbnailRepository, visiblePhotoCells, event);
-    }
-
     private Image loadPreviewImage(byte[] previewBytes) {
         return new Image(new ByteArrayInputStream(previewBytes), MAX_THUMBNAIL_DECODE_SIZE, MAX_THUMBNAIL_DECODE_SIZE, true, true);
+    }
+
+    private void loadSelectionResult(long myGeneration, List<PhotoRecord> photos) {
+        runOnFxThread(() -> {
+            if (myGeneration == selectionGeneration.get()) {
+                populate(photos);
+            }
+        });
     }
 }
