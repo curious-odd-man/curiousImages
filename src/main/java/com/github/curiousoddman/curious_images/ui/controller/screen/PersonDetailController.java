@@ -23,7 +23,7 @@ import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridRow;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoRowCell;
 import com.github.curiousoddman.curious_images.ui.styles.CssClasses;
 import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
-import com.github.curiousoddman.curious_images.ui.util.StageUtils;
+import com.github.curiousoddman.curious_images.ui.util.UiUtils;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.beans.value.ObservableValue;
@@ -892,7 +892,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
     }
 
     private void openSlideshow(List<PhotoRecord> photos, int startIndex) {
-        StageUtils.openSlideshow(photos, startIndex, photoGridListView.getScene(), fxmlLoader);
+        UiUtils.openSlideshow(photos, startIndex, photoGridListView.getScene(), fxmlLoader);
     }
 
 // ── Utilities ─────────────────────────────────────────────────────────────

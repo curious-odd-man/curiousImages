@@ -4,7 +4,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRe
 import com.github.curiousoddman.curious_images.domain.imports.ImportJob;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
 import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
-import com.github.curiousoddman.curious_images.ui.util.StageUtils;
+import com.github.curiousoddman.curious_images.ui.util.UiUtils;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobDescriptor;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.fxml.FXML;
@@ -105,7 +105,7 @@ public class RescanRootsController implements Initializable {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void close() {
-        StageUtils.closeWindowOf(rootsContainer);
+        UiUtils.closeWindowOf(rootsContainer);
     }
 
     private void showError(String title, String message) {

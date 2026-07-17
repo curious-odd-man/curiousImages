@@ -4,6 +4,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.model.DupResolveStrategy;
 import com.github.curiousoddman.curious_images.model.DuplicateGroup;
 import com.github.curiousoddman.curious_images.model.FolderDuplicatePair;
+import com.github.curiousoddman.curious_images.model.PhotoFailure;
 import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
@@ -48,15 +49,15 @@ public class DuplicateResolutionService {
             duplicateGroupRepository.markGroupResolved(groupId);
             return new Result(List.of(), List.of());
         }
-        List<Long>    deletedPhotoIds = new ArrayList<>();
-        List<Failure> failures        = new ArrayList<>();
+        List<Long>         deletedPhotoIds = new ArrayList<>();
+        List<PhotoFailure> failures        = new ArrayList<>();
 
         boolean trashSupported = Desktop.isDesktopSupported()
                 && Desktop.getDesktop()
                           .isSupported(Desktop.Action.MOVE_TO_TRASH);
         if (!trashSupported) {
             for (PhotoRecord photo : photosToDrop) {
-                failures.add(new Failure(photo, "Recycle bin is not supported on this system"));
+                failures.add(new PhotoFailure(photo, "Recycle bin is not supported on this system"));
             }
             return new Result(deletedPhotoIds, failures);
         }
@@ -71,11 +72,11 @@ public class DuplicateResolutionService {
                 trashed = !file.isFile() || desktop.moveToTrash(file);
             } catch (Exception e) {
                 log.warn("Failed to move {} to the recycle bin", photo.getAbsolutePath(), e);
-                failures.add(new Failure(photo, e.getMessage() == null ? e.toString() : e.getMessage()));
+                failures.add(new PhotoFailure(photo, e.getMessage() == null ? e.toString() : e.getMessage()));
                 continue;
             }
             if (!trashed) {
-                failures.add(new Failure(photo, "The OS declined to move the file to the recycle bin"));
+                failures.add(new PhotoFailure(photo, "The OS declined to move the file to the recycle bin"));
                 continue;
             }
 
@@ -120,8 +121,8 @@ public class DuplicateResolutionService {
     public FolderPairResult resolveFolderPair(FolderDuplicatePair pair,
                                                DupResolveStrategy strategy,
                                                Set<Long> keptFolderIds) {
-        List<Long>    deletedPhotoIds = new ArrayList<>();
-        List<Failure> failures        = new ArrayList<>();
+        List<Long>         deletedPhotoIds = new ArrayList<>();
+        List<PhotoFailure> failures        = new ArrayList<>();
 
         for (DuplicateGroup group : pair.groups()) {
             if (strategy == DupResolveStrategy.KEEP_ALL) {
@@ -141,12 +142,9 @@ public class DuplicateResolutionService {
         return new FolderPairResult(deletedPhotoIds, failures);
     }
 
-    public record Result(List<Long> deletedPhotoIds, List<Failure> failures) {
+    public record Result(List<Long> deletedPhotoIds, List<PhotoFailure> failures) {
     }
 
-    public record FolderPairResult(List<Long> deletedPhotoIds, List<Failure> failures) {
-    }
-
-    public record Failure(PhotoRecord photo, String reason) {
+    public record FolderPairResult(List<Long> deletedPhotoIds, List<PhotoFailure> failures) {
     }
 }

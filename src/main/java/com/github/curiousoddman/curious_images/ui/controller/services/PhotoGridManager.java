@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.PersonDetailController.getRowInfo;
-import static com.github.curiousoddman.curious_images.ui.util.StageUtils.openSlideshow;
+import static com.github.curiousoddman.curious_images.ui.util.UiUtils.openSlideshow;
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 

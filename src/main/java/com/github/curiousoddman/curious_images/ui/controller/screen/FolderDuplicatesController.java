@@ -9,6 +9,7 @@ import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.model.DupResolveStrategy;
 import com.github.curiousoddman.curious_images.model.FolderDuplicatePair;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
+import com.github.curiousoddman.curious_images.model.PhotoFailure;
 import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import com.github.curiousoddman.curious_images.model.bundle.FolderDuplicateCellBundle;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
@@ -16,8 +17,7 @@ import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.custom.FolderDuplicateCellController;
 import com.github.curiousoddman.curious_images.ui.styles.CssClasses;
-import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
-import com.github.curiousoddman.curious_images.ui.util.StageUtils;
+import com.github.curiousoddman.curious_images.ui.util.UiUtils;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.event.ActionEvent;
@@ -52,6 +52,7 @@ import java.util.concurrent.TimeUnit;
 
 import static com.github.curiousoddman.curious_images.model.DupResolveStrategy.isDropped;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController.getImage;
+import static com.github.curiousoddman.curious_images.ui.util.UiUtils.setupDuplicateButtonHover;
 import static com.github.curiousoddman.curious_images.util.HumanReadableUtils.size;
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
@@ -134,14 +135,14 @@ public class FolderDuplicatesController implements Initializable {
             }
         });
 
-        keepAllButton.setOnMouseEntered(e -> previewAction(DupResolveStrategy.KEEP_ALL));
-        keepAllButton.setOnMouseExited(e -> clearPreview());
-        deleteAllButton.setOnMouseEntered(e -> previewAction(DupResolveStrategy.REMOVE_ALL));
-        deleteAllButton.setOnMouseExited(e -> clearPreview());
-        keepSelectedButton.setOnMouseEntered(e -> previewAction(DupResolveStrategy.KEEP_CHECKED));
-        keepSelectedButton.setOnMouseExited(e -> clearPreview());
-        deleteSelectedButton.setOnMouseEntered(e -> previewAction(DupResolveStrategy.REMOVE_CHECKED));
-        deleteSelectedButton.setOnMouseExited(e -> clearPreview());
+        setupDuplicateButtonHover(
+                keepAllButton,
+                deleteAllButton,
+                keepSelectedButton,
+                deleteSelectedButton,
+                this::previewAction,
+                this::clearPreview
+        );
     }
 
     /**
@@ -277,7 +278,7 @@ public class FolderDuplicatesController implements Initializable {
         Tooltip.install(imageView, new Tooltip(photo.getFilename() + "\n" + size(photo.getFileSize())));
         imageView.setOnMouseClicked(e -> {
             if (e.getClickCount() == 1 && e.getButton() == MouseButton.PRIMARY) {
-                StageUtils.openSlideshow(orderedFolderPhotos, index, imageView.getScene(), fxmlLoader);
+                UiUtils.openSlideshow(orderedFolderPhotos, index, imageView.getScene(), fxmlLoader);
             }
         });
         visiblePhotoTiles.put(photo.getId(), imageView);
@@ -416,25 +417,9 @@ public class FolderDuplicatesController implements Initializable {
                     duplicateResolutionService.resolveFolderPair(pairToResolve, strategy, keptFolderIds);
             if (!result.failures()
                        .isEmpty()) {
-                showResolutionFailures(result.failures());
+                PhotoFailure.displayAlert(result.failures(), detailPane);
             }
             runOnFxThread(this::showList);
         });
-    }
-
-    private void showResolutionFailures(List<DuplicateResolutionService.Failure> failures) {
-        StringBuilder sb = new StringBuilder();
-        for (DuplicateResolutionService.Failure failure : failures) {
-            sb.append("• ")
-              .append(failure.photo()
-                             .getFilename())
-              .append(" — ")
-              .append(failure.reason())
-              .append('\n');
-        }
-        runOnFxThread(() -> AlertHelper.showWarning(detailPane,
-                "Some photos couldn't be moved to the recycle bin and were left in place",
-                sb.toString()
-                  .strip()));
     }
 }

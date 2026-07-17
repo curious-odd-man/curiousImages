@@ -3,7 +3,7 @@ package com.github.curiousoddman.curious_images.ui.controller.custom;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.model.bundle.DuplicateCellDataBundle;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
-import com.github.curiousoddman.curious_images.ui.util.StageUtils;
+import com.github.curiousoddman.curious_images.ui.util.UiUtils;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.CheckBox;
@@ -128,6 +128,6 @@ public class DuplicateCellController implements Initializable {
     }
 
     private void openSlideshow(List<PhotoRecord> photos, int startIndex) {
-        StageUtils.openSlideshow(photos, startIndex, imageView.getScene(), fxmlLoader);
+        UiUtils.openSlideshow(photos, startIndex, imageView.getScene(), fxmlLoader);
     }
 }

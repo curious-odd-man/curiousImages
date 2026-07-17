@@ -8,6 +8,7 @@ import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.model.DupResolveStrategy;
 import com.github.curiousoddman.curious_images.model.DuplicateGroup;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
+import com.github.curiousoddman.curious_images.model.PhotoFailure;
 import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import com.github.curiousoddman.curious_images.model.bundle.DuplicateCellDataBundle;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
@@ -50,6 +51,7 @@ import java.util.stream.Collectors;
 
 import static com.github.curiousoddman.curious_images.model.DupResolveStrategy.isDropped;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController.getImage;
+import static com.github.curiousoddman.curious_images.ui.util.UiUtils.setupDuplicateButtonHover;
 import static com.github.curiousoddman.curious_images.util.HumanReadableUtils.size;
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
@@ -104,14 +106,14 @@ public class DuplicatesController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        keepAllButton.setOnMouseEntered(e -> previewAction(DupResolveStrategy.KEEP_ALL));
-        keepAllButton.setOnMouseExited(e -> clearPreview());
-        deleteAllButton.setOnMouseEntered(e -> previewAction(DupResolveStrategy.REMOVE_ALL));
-        deleteAllButton.setOnMouseExited(e -> clearPreview());
-        keepSelectedButton.setOnMouseEntered(e -> previewAction(DupResolveStrategy.KEEP_CHECKED));
-        keepSelectedButton.setOnMouseExited(e -> clearPreview());
-        deleteSelectedButton.setOnMouseEntered(e -> previewAction(DupResolveStrategy.REMOVE_CHECKED));
-        deleteSelectedButton.setOnMouseExited(e -> clearPreview());
+        setupDuplicateButtonHover(
+                keepAllButton,
+                deleteAllButton,
+                keepSelectedButton,
+                deleteSelectedButton,
+                this::previewAction,
+                this::clearPreview
+        );
     }
 
     @FXML
@@ -374,26 +376,10 @@ public class DuplicatesController implements Initializable {
             DuplicateResolutionService.Result result = duplicateResolutionService.resolve(currentGroup.groupId(), toDrop, strategy);
             if (!result.failures()
                        .isEmpty()) {
-                showResolutionFailures(result.failures());
+                PhotoFailure.displayAlert(result.failures(), dupliacteItemsVbox);
             }
             loadCurrentDuplicatesView();
         });
-    }
-
-    private void showResolutionFailures(List<DuplicateResolutionService.Failure> failures) {
-        StringBuilder sb = new StringBuilder();
-        for (DuplicateResolutionService.Failure failure : failures) {
-            sb.append("• ")
-              .append(failure.photo()
-                             .getFilename())
-              .append(" — ")
-              .append(failure.reason())
-              .append('\n');
-        }
-        runOnFxThread(() -> AlertHelper.showWarning(dupliacteItemsVbox,
-                "Some photos couldn't be moved to the recycle bin and were left in place",
-                sb.toString()
-                  .strip()));
     }
 
 // ----------------------------------------------------------------------------------------

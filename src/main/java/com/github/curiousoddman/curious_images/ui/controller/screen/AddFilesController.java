@@ -3,7 +3,7 @@ package com.github.curiousoddman.curious_images.ui.controller.screen;
 import com.github.curiousoddman.curious_images.model.AddFilesRequest;
 import com.github.curiousoddman.curious_images.model.bundle.AddFilesBundle;
 import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
-import com.github.curiousoddman.curious_images.ui.util.StageUtils;
+import com.github.curiousoddman.curious_images.ui.util.UiUtils;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobDescriptor;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.collections.FXCollections;
@@ -190,7 +190,7 @@ public class AddFilesController implements Initializable {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void close() {
-        StageUtils.closeWindowOf(sourcePathsList);
+        UiUtils.closeWindowOf(sourcePathsList);
     }
 
     private void showError(String title, String message) {

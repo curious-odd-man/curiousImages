@@ -285,16 +285,7 @@ public class PersonClusteringService {
             }
             vectors[i] = getFloats(embRec.getEmbedding());
 
-            int   bestCluster = -1;
-            float bestSim     = SIMILARITY_THRESHOLD;
-            for (int c = 0; c < centroids.size(); c++) {
-                float sim = EmbeddingMath.dot(vectors[i], centroids.get(c));
-                if (sim > bestSim) {
-                    bestSim = sim;
-                    bestCluster = c;
-                }
-            }
-
+            int bestCluster = bestCluster(vectors, centroids, i);
             if (bestCluster == -1) {
                 centroids.add(vectors[i].clone());
                 clusterSizes.add(1);
@@ -320,16 +311,8 @@ public class PersonClusteringService {
                     continue; // no embedding — never participates in reassignment
                 }
 
-                int   bestCluster = -1;
-                float bestSim     = SIMILARITY_THRESHOLD;
-                for (int c = 0; c < centroids.size(); c++) {
-                    float sim = EmbeddingMath.dot(vectors[i], centroids.get(c));
-                    if (sim > bestSim) {
-                        bestSim = sim;
-                        bestCluster = c;
-                    }
-                }
-                int newCluster = (bestCluster == -1) ? clusterOf[i] : bestCluster;
+                int bestCluster = bestCluster(vectors, centroids, i);
+                int newCluster  = (bestCluster == -1) ? clusterOf[i] : bestCluster;
                 if (newCluster != clusterOf[i]) {
                     clusterOf[i] = newCluster;
                     changes++;
@@ -423,6 +406,19 @@ public class PersonClusteringService {
                 personsCreated, clustersUpdated, singletonsCount, n);
 
         publisher.publishEvent(new PersonsUpdatedEvent(this));
+    }
+
+    private int bestCluster(float[][] vectors, List<float[]> centroids, int i) {
+        int   bestCluster = -1;
+        float bestSim     = SIMILARITY_THRESHOLD;
+        for (int c = 0; c < centroids.size(); c++) {
+            float sim = EmbeddingMath.dot(vectors[i], centroids.get(c));
+            if (sim > bestSim) {
+                bestSim = sim;
+                bestCluster = c;
+            }
+        }
+        return bestCluster;
     }
 
     /**
