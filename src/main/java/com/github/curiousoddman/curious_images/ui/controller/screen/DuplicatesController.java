@@ -5,10 +5,11 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRec
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateResolutionService;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
+import com.github.curiousoddman.curious_images.model.DupResolveStrategy;
 import com.github.curiousoddman.curious_images.model.DuplicateGroup;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
-import com.github.curiousoddman.curious_images.model.bundle.DuplicateCellData;
+import com.github.curiousoddman.curious_images.model.bundle.DuplicateCellDataBundle;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
@@ -17,7 +18,6 @@ import com.github.curiousoddman.curious_images.ui.controller.custom.DetailRow;
 import com.github.curiousoddman.curious_images.ui.controller.custom.DuplicateCellController;
 import com.github.curiousoddman.curious_images.ui.styles.CssClasses;
 import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
-import com.github.curiousoddman.curious_images.ui.util.StageUtils;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.collections.ObservableList;
@@ -48,6 +48,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static com.github.curiousoddman.curious_images.model.DupResolveStrategy.isDropped;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController.getImage;
 import static com.github.curiousoddman.curious_images.util.HumanReadableUtils.size;
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
@@ -103,13 +104,13 @@ public class DuplicatesController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        keepAllButton.setOnMouseEntered(e -> previewAction(ResolveStrategy.KEEP_ALL));
+        keepAllButton.setOnMouseEntered(e -> previewAction(DupResolveStrategy.KEEP_ALL));
         keepAllButton.setOnMouseExited(e -> clearPreview());
-        deleteAllButton.setOnMouseEntered(e -> previewAction(ResolveStrategy.REMOVE_ALL));
+        deleteAllButton.setOnMouseEntered(e -> previewAction(DupResolveStrategy.REMOVE_ALL));
         deleteAllButton.setOnMouseExited(e -> clearPreview());
-        keepSelectedButton.setOnMouseEntered(e -> previewAction(ResolveStrategy.KEEP_CHECKED));
+        keepSelectedButton.setOnMouseEntered(e -> previewAction(DupResolveStrategy.KEEP_CHECKED));
         keepSelectedButton.setOnMouseExited(e -> clearPreview());
-        deleteSelectedButton.setOnMouseEntered(e -> previewAction(ResolveStrategy.REMOVE_CHECKED));
+        deleteSelectedButton.setOnMouseEntered(e -> previewAction(DupResolveStrategy.REMOVE_CHECKED));
         deleteSelectedButton.setOnMouseExited(e -> clearPreview());
     }
 
@@ -133,25 +134,25 @@ public class DuplicatesController implements Initializable {
 
     @FXML
     public void onKeepSelectedClicked(ActionEvent event) {
-        resolveActivePane(ResolveStrategy.KEEP_CHECKED);
+        resolveActivePane(DupResolveStrategy.KEEP_CHECKED);
         showNextDuplicate(event);
     }
 
     @FXML
     public void onDeleteSelectedClicked(ActionEvent event) {
-        resolveActivePane(ResolveStrategy.REMOVE_CHECKED);
+        resolveActivePane(DupResolveStrategy.REMOVE_CHECKED);
         showNextDuplicate(event);
     }
 
     @FXML
     public void onKeepAll(ActionEvent event) {
-        resolveActivePane(ResolveStrategy.KEEP_ALL);
+        resolveActivePane(DupResolveStrategy.KEEP_ALL);
         showNextDuplicate(event);
     }
 
     @FXML
     public void onDeleteAll(ActionEvent event) {
-        resolveActivePane(ResolveStrategy.REMOVE_ALL);
+        resolveActivePane(DupResolveStrategy.REMOVE_ALL);
         showNextDuplicate(event);
     }
 
@@ -256,7 +257,7 @@ public class DuplicatesController implements Initializable {
     private DuplicateCell createDuplicateCell(PhotoWithThumbnail pwt, Map<Long, Map<String, DetailRow>> allValues, List<PhotoRecord> groupPhotos, int index) {
         Map<String, DetailRow> details = allValues.get(pwt.photo()
                                                           .getId());
-        DuplicateCellData resourceBundle = new DuplicateCellData(
+        DuplicateCellDataBundle resourceBundle = new DuplicateCellDataBundle(
                 getImage(pwt.thumbnail(), null),
                 details.values(),
                 groupPhotos,
@@ -328,16 +329,11 @@ public class DuplicatesController implements Initializable {
     // Action buttons
     // ----------------------------------------------------------------------------------------
 
-    private void previewAction(ResolveStrategy strategy) {
+    private void previewAction(DupResolveStrategy strategy) {
         visiblePhotoCells.forEach((key, controller) -> {
             boolean checked = controller.checkBox()
                                         .isSelected();
-            boolean willBeKept = switch (strategy) {
-                case KEEP_CHECKED -> checked;
-                case REMOVE_CHECKED -> !checked;
-                case KEEP_ALL -> true;
-                case REMOVE_ALL -> false;
-            };
+            boolean willBeKept = !isDropped(strategy, checked);
             ObservableList<String> styleClass = controller.container()
                                                           .getStyleClass();
             styleClass.add(willBeKept ? CssClasses.KEEP_PREVIEW : CssClasses.DROP_PREVIEW);
@@ -353,7 +349,7 @@ public class DuplicatesController implements Initializable {
         });
     }
 
-    private void resolveActivePane(ResolveStrategy strategy) {
+    private void resolveActivePane(DupResolveStrategy strategy) {
         List<PhotoRecord> toDrop       = new ArrayList<>();
         DuplicateGroup    currentGroup = knownGroups.get(currentGroupIndex);
         for (PhotoWithThumbnail photoWithThumbnail : currentGroup.photos()) {
@@ -361,20 +357,14 @@ public class DuplicatesController implements Initializable {
             DuplicateCellController duplicateCellController = visiblePhotoCells.get(photoRecord.getId());
             boolean currentImageSelected = duplicateCellController.checkBox()
                                                                   .isSelected();
-            boolean drop = switch (strategy) {
-                case KEEP_ALL -> false;
-                case KEEP_CHECKED -> currentImageSelected;
-                case REMOVE_CHECKED -> !currentImageSelected;
-                case REMOVE_ALL -> true;
-            };
 
-            if (drop) {
+            if (isDropped(strategy, currentImageSelected)) {
                 toDrop.add(photoRecord);
             }
         }
 
         log.info("Ready to drop {} rows", toDrop.size());
-        if (toDrop.isEmpty() && strategy != ResolveStrategy.KEEP_ALL) {
+        if (toDrop.isEmpty() && strategy != DupResolveStrategy.KEEP_ALL) {
             return;
         }
 
@@ -506,12 +496,5 @@ public class DuplicatesController implements Initializable {
 
     private record DuplicateCell(PhotoWithThumbnail photoWithThumbnail, CheckBox checkBox,
                                  DuplicateCellController controller, Pane pane) {
-    }
-
-    public enum ResolveStrategy {
-        KEEP_CHECKED,
-        REMOVE_CHECKED,
-        KEEP_ALL,
-        REMOVE_ALL
     }
 }

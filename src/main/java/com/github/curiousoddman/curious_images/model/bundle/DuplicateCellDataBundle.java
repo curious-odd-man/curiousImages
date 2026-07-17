@@ -9,11 +9,10 @@ import lombok.RequiredArgsConstructor;
 import java.util.Collection;
 import java.util.List;
 import java.util.ListResourceBundle;
-import java.util.Objects;
 
 @Getter
 @RequiredArgsConstructor
-public final class DuplicateCellData extends ListResourceBundle {
+public final class DuplicateCellDataBundle extends ListResourceBundle {
     private final Image                 image;
     private final Collection<DetailRow> rows;
     private final List<PhotoRecord>     groupPhotos;

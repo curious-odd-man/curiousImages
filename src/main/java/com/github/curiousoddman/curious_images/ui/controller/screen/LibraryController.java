@@ -80,6 +80,7 @@ import javafx.scene.input.TransferMode;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -107,6 +108,7 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.PersonDetailController.getRowInfo;
@@ -181,6 +183,8 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
     public AnchorPane                personDetailContainer;
     @FXML
     public AnchorPane                duplicatesContainer;
+    @FXML
+    public AnchorPane                folderDuplicatesContainer;
 
     @FXML
     public HBox        backgroundProgressContainer;
@@ -199,8 +203,8 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
 
     // ── Runtime state ─────────────────────────────────────────────────────────
 
-    private Image                noImageAvailable;
-    private DuplicatesController duplicatesController;
+    private DuplicatesController       duplicatesController;
+    private FolderDuplicatesController folderDuplicatesController;
 
     /**
      * Guards against a stale background page-load or full-selection-load callback overwriting a
@@ -259,8 +263,6 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
     @Override
     @SneakyThrows
     public void initialize(URL location, ResourceBundle resources) {
-        noImageAvailable = new Image(getClass().getResourceAsStream("/img/noimage.png"));
-
         libraryTreeView.setCellFactory(tv -> new LibraryTreeCell());
         libraryTreeView.getSelectionModel()
                        .selectedItemProperty()
@@ -295,16 +297,8 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
 
         onLibraryDataUpdated(null);
 
-        LoadedFxml<DuplicatesController> loaded = fxmlLoader.load(FxmlView.DUPLICATES, null);
-        duplicatesController = loaded.controller();
-        Parent duplicatesView = loaded.parent();
-        AnchorPane.setTopAnchor(duplicatesView, 0.0);
-        AnchorPane.setBottomAnchor(duplicatesView, 0.0);
-        AnchorPane.setLeftAnchor(duplicatesView, 0.0);
-        AnchorPane.setRightAnchor(duplicatesView, 0.0);
-        duplicatesContainer.getChildren()
-                           .setAll(duplicatesView);
-
+        loadFxmlAndAttachToParent(duplicatesContainer, FxmlView.DUPLICATES, v -> duplicatesController = v);
+        loadFxmlAndAttachToParent(folderDuplicatesContainer, FxmlView.FOLDER_DUPLICATES, v -> folderDuplicatesController = v);
         checkModelsAndPromptDownload();
     }
 
@@ -415,10 +409,18 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
                            .setAll(personItems);
                 personsRoot.setExpanded(false);
 
-                // Leaf-like grouping node: no children, but selectable — selecting it shows the
-                // duplicates-review view (see onTreeSelectionChanged).
+                // Pure grouping node (like albumsRoot above) with two selectable children: the
+                // original per-photo resolution view, and the new per-folder-pair one. Selecting
+                // either child shows its duplicates-review view (see onTreeSelectionChanged).
+                TreeItem<LibraryTreeNode> duplicatesFileItem = treeItem(
+                        new LibraryTreeNode("Files", null, NodeType.DUPLICATES_FILE_ROOT));
+                TreeItem<LibraryTreeNode> duplicatesFolderItem = treeItem(
+                        new LibraryTreeNode("Folders", null, NodeType.DUPLICATES_FOLDER_ROOT));
                 TreeItem<LibraryTreeNode> duplicatesRoot = treeItem(
                         new LibraryTreeNode("Duplicates", null, NodeType.DUPLICATES_ROOT));
+                duplicatesRoot.getChildren()
+                              .setAll(duplicatesFileItem, duplicatesFolderItem);
+                duplicatesRoot.setExpanded(false);
 
                 TreeItem<LibraryTreeNode> invisibleRoot = new TreeItem<>();
                 invisibleRoot.getChildren()
@@ -457,6 +459,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
         });
     }
 
+    // FIXME: this and the next probably should be united and extended for further cases
     @EventListener
     public void onPersonRenamed(PersonRenamedEvent event) {
         TreeItem<LibraryTreeNode> root = libraryTreeView.getRoot();
@@ -656,9 +659,15 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
             return;
         }
         if (selectedItem.getValue()
-                        .type() == NodeType.DUPLICATES_ROOT) {
+                        .type() == NodeType.DUPLICATES_FILE_ROOT) {
             clearSearchState();
             showDuplicatesView();
+            return;
+        }
+        if (selectedItem.getValue()
+                        .type() == NodeType.DUPLICATES_FOLDER_ROOT) {
+            clearSearchState();
+            showFolderDuplicatesView();
             return;
         }
         NodePayload payload = selectedItem.getValue()
@@ -712,6 +721,8 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
         photoGridView.setManaged(false);
         duplicatesContainer.setVisible(false);
         duplicatesContainer.setManaged(false);
+        folderDuplicatesContainer.setVisible(false);
+        folderDuplicatesContainer.setManaged(false);
         personDetailContainer.setVisible(true);
         personDetailContainer.setManaged(true);
         personDetailController.loadPerson(personId);
@@ -722,12 +733,14 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
         personDetailContainer.setManaged(false);
         duplicatesContainer.setVisible(false);
         duplicatesContainer.setManaged(false);
+        folderDuplicatesContainer.setVisible(false);
+        folderDuplicatesContainer.setManaged(false);
         photoGridView.setVisible(true);
         photoGridView.setManaged(true);
     }
 
     /**
-     * Shows the duplicates-review panel (content loaded from duplicates.fxml into
+     * Shows the file-level duplicates-review panel (content loaded from duplicates.fxml into
      * {@link #duplicatesContainer} in {@link #initialize}) and re-activates it so it picks up
      * the current duplicate set, mirroring the old tab-selection listener's behaviour.
      */
@@ -736,9 +749,28 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
         personDetailContainer.setManaged(false);
         photoGridView.setVisible(false);
         photoGridView.setManaged(false);
+        folderDuplicatesContainer.setVisible(false);
+        folderDuplicatesContainer.setManaged(false);
         duplicatesContainer.setVisible(true);
         duplicatesContainer.setManaged(true);
         duplicatesController.activateDuplicatesView();
+    }
+
+    /**
+     * Shows the folder-level duplicates-review panel (content loaded from folder_duplicates.fxml
+     * into {@link #folderDuplicatesContainer} in {@link #initialize}) and re-activates it so it
+     * picks up the current set of folder pairs.
+     */
+    private void showFolderDuplicatesView() {
+        personDetailContainer.setVisible(false);
+        personDetailContainer.setManaged(false);
+        photoGridView.setVisible(false);
+        photoGridView.setManaged(false);
+        duplicatesContainer.setVisible(false);
+        duplicatesContainer.setManaged(false);
+        folderDuplicatesContainer.setVisible(true);
+        folderDuplicatesContainer.setManaged(true);
+        folderDuplicatesController.activateFolderDuplicatesView();
     }
 
     // ── Photo loading ─────────────────────────────────────────────────────────
@@ -1245,5 +1277,18 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
         if (confirmation) {
             jobManager.submitModelDownloadJob(() -> {});
         }
+    }
+
+
+    private <T> void loadFxmlAndAttachToParent(Pane parent, FxmlView<T> view, Consumer<T> controllerConsumer) {
+        LoadedFxml<T> loadedFolderDuplicates = fxmlLoader.load(view, null);
+        controllerConsumer.accept(loadedFolderDuplicates.controller());
+        Parent viewPane = loadedFolderDuplicates.parent();
+        AnchorPane.setTopAnchor(viewPane, 0.0);
+        AnchorPane.setBottomAnchor(viewPane, 0.0);
+        AnchorPane.setLeftAnchor(viewPane, 0.0);
+        AnchorPane.setRightAnchor(viewPane, 0.0);
+        parent.getChildren()
+              .setAll(viewPane);
     }
 }

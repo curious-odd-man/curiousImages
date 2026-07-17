@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<!--
+    One side (one folder) of a folder-level duplicate pair: a "keep this folder" checkbox, a
+    summary of what's in it, and a wrapping grid of thumbnails for every photo in this folder that
+    belongs to the pair's duplicate groups. Thumbnails themselves are built and loaded by
+    FolderDuplicatesController (same debounced-loading pattern as the file-level Duplicates tab) —
+    this FXML only provides the FlowPane they get dropped into. See FolderDuplicateCellController.
+-->
+
+<VBox fx:id="cellRoot" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" spacing="10.0"
+      xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.github.curiousoddman.curious_images.ui.controller.custom.FolderDuplicateCellController">
+    <padding>
+        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+    </padding>
+    <children>
+        <CheckBox fx:id="checkBox" text="Keep this folder">
+            <font>
+                <Font name="Consolas Bold" size="16.0" />
+            </font>
+        </CheckBox>
+        <Label fx:id="folderPathLabel" wrapText="true" style="-fx-font-weight: bold;" />
+        <Label fx:id="summaryLabel" />
+        <ScrollPane fx:id="thumbnailScrollPane" fitToWidth="true" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" VBox.vgrow="ALWAYS">
+            <content>
+                <FlowPane fx:id="thumbnailFlowPane" hgap="8.0" vgap="8.0">
+                    <padding>
+                        <Insets bottom="4.0" left="4.0" right="4.0" top="4.0" />
+                    </padding>
+                </FlowPane>
+            </content>
+        </ScrollPane>
+    </children>
+</VBox>

@@ -1,10 +1,12 @@
 package com.github.curiousoddman.curious_images.domain.dedupe;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.model.DupResolveStrategy;
 import com.github.curiousoddman.curious_images.model.DuplicateGroup;
+import com.github.curiousoddman.curious_images.model.FolderDuplicatePair;
+import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
-import com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
@@ -14,6 +16,7 @@ import java.awt.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Resolves a duplicate group from the Duplicates tab: for each photo being dropped, moves its
@@ -40,8 +43,8 @@ public class DuplicateResolutionService {
      *                     the controller from {@link DuplicateGroup}) to avoid a redundant fetch
      * @param strategy
      */
-    public Result resolve(long groupId, List<PhotoRecord> photosToDrop, DuplicatesController.ResolveStrategy strategy) {
-        if (strategy == DuplicatesController.ResolveStrategy.KEEP_ALL) {
+    public Result resolve(long groupId, List<PhotoRecord> photosToDrop, DupResolveStrategy strategy) {
+        if (strategy == DupResolveStrategy.KEEP_ALL) {
             duplicateGroupRepository.markGroupResolved(groupId);
             return new Result(List.of(), List.of());
         }
@@ -96,7 +99,52 @@ public class DuplicateResolutionService {
         return new Result(deletedPhotoIds, failures);
     }
 
+    /**
+     * Folder-level resolution: applies the exact same per-photo trash + DB-delete logic as
+     * {@link #resolve} to every group in a {@link FolderDuplicatePair} in one pass.
+     * <p>
+     * For {@code KEEP_ALL}, every group in the pair is marked resolved with nothing deleted,
+     * matching {@link #resolve}'s KEEP_ALL semantics. For every other strategy, the caller has
+     * already turned the folder checkbox state into {@code keptFolderIds} — this method just
+     * derives, per group, which of its member photos live outside that set and drops them:
+     * <ul>
+     *   <li>KEEP_CHECKED → caller passes the checked folder id(s)</li>
+     *   <li>REMOVE_CHECKED → caller passes the unchecked folder id(s)</li>
+     *   <li>REMOVE_ALL → caller passes an empty set</li>
+     * </ul>
+     * Because a group here always spans exactly two folders (see
+     * {@link FolderDuplicateGroupingService}), this never has to guess which member to keep
+     * within a folder — every photo in a dropped folder is dropped, every photo in a kept folder
+     * survives.
+     */
+    public FolderPairResult resolveFolderPair(FolderDuplicatePair pair,
+                                               DupResolveStrategy strategy,
+                                               Set<Long> keptFolderIds) {
+        List<Long>    deletedPhotoIds = new ArrayList<>();
+        List<Failure> failures        = new ArrayList<>();
+
+        for (DuplicateGroup group : pair.groups()) {
+            if (strategy == DupResolveStrategy.KEEP_ALL) {
+                duplicateGroupRepository.markGroupResolved(group.groupId());
+                continue;
+            }
+            List<PhotoRecord> toDrop = group.photos()
+                                             .stream()
+                                             .map(PhotoWithThumbnail::photo)
+                                             .filter(p -> !keptFolderIds.contains(p.getFolderId()))
+                                             .toList();
+            Result result = resolve(group.groupId(), toDrop, strategy);
+            deletedPhotoIds.addAll(result.deletedPhotoIds());
+            failures.addAll(result.failures());
+        }
+
+        return new FolderPairResult(deletedPhotoIds, failures);
+    }
+
     public record Result(List<Long> deletedPhotoIds, List<Failure> failures) {
+    }
+
+    public record FolderPairResult(List<Long> deletedPhotoIds, List<Failure> failures) {
     }
 
     public record Failure(PhotoRecord photo, String reason) {

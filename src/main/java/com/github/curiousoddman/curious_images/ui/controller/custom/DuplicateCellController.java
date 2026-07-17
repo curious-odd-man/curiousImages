@@ -1,7 +1,7 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.model.bundle.DuplicateCellData;
+import com.github.curiousoddman.curious_images.model.bundle.DuplicateCellDataBundle;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.util.StageUtils;
 import javafx.fxml.FXML;
@@ -54,7 +54,7 @@ public class DuplicateCellController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        if (resources instanceof DuplicateCellData bundle) {
+        if (resources instanceof DuplicateCellDataBundle bundle) {
             setThumbnail(bundle.getImage());
             setInfoText(bundle.getRows());
             groupPhotos = bundle.getGroupPhotos();

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.*?>
+
+<!--
+    Folder-level Duplicates tab: a list of folder pairs that share duplicate groups (see
+    FolderDuplicateGroupingService), and a detail panel to resolve one pair at a time. Only one of
+    listPane / detailPane is visible+managed at a time, same visible/managed toggling convention
+    LibraryController already uses for photoGridView / personDetailContainer / duplicatesContainer.
+    See FolderDuplicatesController.
+-->
+
+<StackPane xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.FolderDuplicatesController">
+    <children>
+        <VBox fx:id="listPane" spacing="10.0">
+            <padding>
+                <Insets bottom="16.0" left="16.0" right="16.0" top="16.0" />
+            </padding>
+            <children>
+                <Label style="-fx-font-size: 18px; -fx-font-weight: bold;" text="Folder-level duplicates" />
+                <Label fx:id="listEmptyLabel" managed="false" text="No folder-level duplicate pairs found." visible="false" />
+                <ListView fx:id="pairListView" VBox.vgrow="ALWAYS" />
+            </children>
+        </VBox>
+
+        <VBox fx:id="detailPane" managed="false" spacing="10.0" visible="false">
+            <padding>
+                <Insets bottom="16.0" left="16.0" right="16.0" top="16.0" />
+            </padding>
+            <children>
+                <HBox alignment="CENTER" spacing="10.0">
+                    <children>
+                        <Button fx:id="keepAllButton" mnemonicParsing="false" onAction="#onKeepAll" text="Keep All">
+                            <graphic>
+                                <FontIcon iconColor="darkcyan" iconLiteral="bi-check-square-fill" iconSize="18" />
+                            </graphic>
+                        </Button>
+                        <Button fx:id="keepSelectedButton" disable="true" mnemonicParsing="false" onAction="#onKeepSelectedClicked" text="Keep Marked">
+                            <graphic>
+                                <FontIcon iconColor="green" iconLiteral="bi-check2-square" iconSize="18" />
+                            </graphic>
+                        </Button>
+                        <Button fx:id="deleteSelectedButton" disable="true" mnemonicParsing="false" onAction="#onDeleteSelectedClicked" text="Delete Marked">
+                            <graphic>
+                                <FontIcon iconColor="red" iconLiteral="bi-file-x-fill" iconSize="18" />
+                            </graphic>
+                        </Button>
+                        <Button fx:id="deleteAllButton" mnemonicParsing="false" onAction="#onDeleteAll" text="Delete All">
+                            <graphic>
+                                <FontIcon iconColor="darkred" iconLiteral="bi-file-excel-fill" iconSize="18" />
+                            </graphic>
+                        </Button>
+                    </children>
+                </HBox>
+                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                    <children>
+                        <Button fx:id="backButton" onAction="#onBackClicked" text="&lt; Back to list" />
+                        <Label fx:id="pairTitleLabel" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+                    </children>
+                </HBox>
+                <HBox spacing="16.0" VBox.vgrow="ALWAYS">
+                    <children>
+                        <AnchorPane fx:id="folderACellContainer" HBox.hgrow="ALWAYS" />
+                        <Separator orientation="VERTICAL" />
+                        <AnchorPane fx:id="folderBCellContainer" HBox.hgrow="ALWAYS" />
+                    </children>
+                </HBox>
+            </children>
+        </VBox>
+    </children>
+</StackPane>

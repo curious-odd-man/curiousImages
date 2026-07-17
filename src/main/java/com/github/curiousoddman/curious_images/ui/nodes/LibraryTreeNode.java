@@ -15,9 +15,13 @@ import org.kordamp.ikonli.materialdesign2.MaterialDesignM;
  * @param payload     what to load when this node is selected, or {@code null} for pure grouping
  *                    nodes (FOLDERS_ROOT, TIMELINE_ROOT, TIMELINE_YEAR, ALBUMS_ROOT,
  *                    ALBUM_EVENT_ROOT, ALBUM_LOCATION_ROOT, ALBUM_SIMILARITY_ROOT,
- *                    PERSONS_ROOT) that show nothing. DUPLICATES_ROOT also carries a
- *                    {@code null} payload but is a special case: selecting it shows the
- *                    duplicates-review view (see {@code LibraryController#onTreeSelectionChanged}).
+ *                    PERSONS_ROOT, DUPLICATES_ROOT) that show nothing. DUPLICATES_FILE_ROOT and
+ *                    DUPLICATES_FOLDER_ROOT also carry a {@code null} payload but are a special
+ *                    case, same as the old DUPLICATES_ROOT was: selecting either shows a
+ *                    duplicates-review view (see {@code LibraryController#onTreeSelectionChanged}) —
+ *                    the file-level one for DUPLICATES_FILE_ROOT, the folder-level one for
+ *                    DUPLICATES_FOLDER_ROOT. DUPLICATES_ROOT itself is just the grouping parent of
+ *                    those two, exactly like ALBUMS_ROOT groups the album kinds.
  * @param type        kind of node — drives icon selection and selection behaviour
  */
 public record LibraryTreeNode(String displayName, NodePayload payload, NodeType type) {
@@ -44,8 +48,11 @@ public record LibraryTreeNode(String displayName, NodePayload payload, NodeType 
         // Persons (face-based)
         PERSONS_ROOT,
         PERSON,
-        // Duplicates review
-        DUPLICATES_ROOT
+        // Duplicates review — a pure grouping parent (DUPLICATES_ROOT) with two selectable
+        // children: file-level (per-photo) and folder-level (per-folder-pair) resolution.
+        DUPLICATES_ROOT,
+        DUPLICATES_FILE_ROOT,
+        DUPLICATES_FOLDER_ROOT
     }
 
     /**
@@ -68,6 +75,8 @@ public record LibraryTreeNode(String displayName, NodePayload payload, NodeType 
             case PERSONS_ROOT -> MaterialDesignA.ACCOUNT_GROUP;
             case PERSON -> MaterialDesignA.ACCOUNT;
             case DUPLICATES_ROOT -> MaterialDesignC.CONTENT_DUPLICATE;
+            case DUPLICATES_FILE_ROOT -> MaterialDesignF.FILE_IMAGE;
+            case DUPLICATES_FOLDER_ROOT -> MaterialDesignF.FOLDER_MULTIPLE_IMAGE;
         };
     }
 
