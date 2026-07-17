@@ -4,7 +4,6 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRec
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoCellController;
-import com.github.curiousoddman.curious_images.ui.controller.screen.LibraryController;
 import javafx.scene.image.Image;
 import lombok.experimental.UtilityClass;
 
@@ -12,6 +11,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 
+import static com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridManager.MAX_THUMBNAIL_DECODE_SIZE;
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
@@ -31,17 +31,10 @@ public class ThumbnailUtils {
         });
     }
 
-    /**
-     * Loads a cached thumbnail file, capped to {@link #MAX_THUMBNAIL_DECODE_SIZE} rather than its
-     * native on-disk resolution — the grid never displays it any larger than that, so there's no
-     * reason to decode (and hold in memory) more pixels than that regardless of how the thumbnail
-     * cache file itself was generated. Background-loading (last arg) keeps decoding off the FX
-     * thread.
-     */
     public static Image loadThumbnailImage(ThumbnailRecord thumbnail) {
         File file = new File(thumbnail.getCachePath());
         return new Image(file.toURI()
-                             .toString(), LibraryController.MAX_THUMBNAIL_DECODE_SIZE, LibraryController.MAX_THUMBNAIL_DECODE_SIZE, true, true, true);
+                             .toString(), MAX_THUMBNAIL_DECODE_SIZE, MAX_THUMBNAIL_DECODE_SIZE, true, true, true);
     }
 
     public static boolean hasCachedFile(ThumbnailRecord thumbnail) {

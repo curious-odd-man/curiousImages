@@ -1,4 +1,4 @@
-package com.github.curiousoddman.curious_images.ui.controller.custom;
+package com.github.curiousoddman.curious_images.ui.controller.services;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.AlbumRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FolderRecord;

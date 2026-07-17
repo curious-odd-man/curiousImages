@@ -409,7 +409,7 @@ public class DuplicatesController implements Initializable {
         deleteSelectedButton.setDisable(!anyChecked);
     }
 
-    static String getPhotoDetailsText(PhotoRecord photo) {
+    public static String getPhotoDetailsText(PhotoRecord photo) {
         Map<String, DetailRow> photoDetailsText = getPhotoDetails(photo);
         StringBuilder          sb               = new StringBuilder();
 
