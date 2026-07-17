@@ -8,13 +8,13 @@ import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferences
 import com.github.curiousoddman.curious_images.event.model.BackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.payload.BackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.event.types.BackgroundProcessEventType;
-import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.bundle.AddFilesBundle;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
 import com.github.curiousoddman.curious_images.persistence.AlbumPhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
+import com.github.curiousoddman.curious_images.ui.controller.services.LibraryViewManager;
 import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridManager;
 import com.github.curiousoddman.curious_images.ui.controller.services.TreeManager;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeCell;
@@ -54,7 +54,6 @@ import javafx.scene.input.TransferMode;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -72,7 +71,6 @@ import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
@@ -94,6 +92,7 @@ public class LibraryController implements Initializable {
     private final ModelPaths             modelPaths;
     private final TreeManager            treeManager;
     private final PhotoGridManager       photoGridManager;
+    private final LibraryViewManager     libraryViewManager;
 
     // ── FXML nodes ────────────────────────────────────────────────────────────
 
@@ -147,21 +146,11 @@ public class LibraryController implements Initializable {
      */
     private final AtomicLong selectionGeneration = new AtomicLong();
 
-
-    // ── Runtime state ─────────────────────────────────────────────────────────
-
     private DuplicatesController       duplicatesController;
     private FolderDuplicatesController folderDuplicatesController;
+    private PersonDetailController     personDetailController;
 
     private volatile boolean autoStartAiPipelineAfterModelDownload = false;
-
-    /**
-     * Lazily loaded on first PERSON selection.
-     * The FXML + controller are created once and reused for every subsequent person.
-     */
-    private PersonDetailController personDetailController;
-
-    // ── Initialisation ────────────────────────────────────────────────────────
 
     @Override
     @SneakyThrows
@@ -183,9 +172,11 @@ public class LibraryController implements Initializable {
         photoGridManager.initialize(photoCountLabel, photoGridListView, thumbnailSizeSlider, selectionGeneration);
         treeManager.onLibraryDataUpdated(null);
 
-        loadFxmlAndAttachToParent(duplicatesContainer, FxmlView.DUPLICATES, v -> duplicatesController = v);
-        loadFxmlAndAttachToParent(folderDuplicatesContainer, FxmlView.FOLDER_DUPLICATES, v -> folderDuplicatesController = v);
+        fxmlLoader.loadFxmlAndAttachToParent(duplicatesContainer, FxmlView.DUPLICATES, v -> duplicatesController = v);
+        fxmlLoader.loadFxmlAndAttachToParent(folderDuplicatesContainer, FxmlView.FOLDER_DUPLICATES, v -> folderDuplicatesController = v);
         checkModelsAndPromptDownload();
+
+        libraryViewManager.initialize(photoGridView, duplicatesContainer, folderDuplicatesContainer, personDetailContainer, duplicatesController, folderDuplicatesController);
     }
 
     // ── Window / split-pane preferences ──────────────────────────────────────
@@ -257,123 +248,54 @@ public class LibraryController implements Initializable {
     // ── Tree selection ────────────────────────────────────────────────────────
     private void onTreeSelectionChanged(TreeItem<LibraryTreeNode> selectedItem) {
         if (selectedItem == null || selectedItem.getValue() == null) {
-            showPhotoGrid();
+            libraryViewManager.showPhotoGrid();
             photoGridManager.clear();
             return;
         }
         if (selectedItem.getValue()
                         .type() == NodeType.DUPLICATES_FILE_ROOT) {
             clearSearchState();
-            showDuplicatesView();
+            libraryViewManager.showDuplicatesView();
             return;
         }
         if (selectedItem.getValue()
                         .type() == NodeType.DUPLICATES_FOLDER_ROOT) {
             clearSearchState();
-            showFolderDuplicatesView();
+            libraryViewManager.showFolderDuplicatesView();
             return;
         }
         NodePayload payload = selectedItem.getValue()
                                           .payload();
         if (payload == null) {
-            showPhotoGrid();
+            libraryViewManager.showPhotoGrid();
             photoGridManager.clear();
             return;
         }
         clearSearchState();
         switch (payload) {
             case FolderPayload fp -> {
-                showPhotoGrid();
+                libraryViewManager.showPhotoGrid();
                 loadPhotosForFolder(fp.folderId());
             }
             case TimelinePayload tp when tp.month() != null -> {
-                showPhotoGrid();
+                libraryViewManager.showPhotoGrid();
                 loadPhotosForTimeline(tp.year(), tp.month(), tp.day());
             }
             case TimelinePayload ignored -> {
-                showPhotoGrid();
+                libraryViewManager.showPhotoGrid();
                 photoGridManager.clear();
             }
             case UndatedPayload ignored -> {
-                showPhotoGrid();
+                libraryViewManager.showPhotoGrid();
                 loadPhotosUndated();
             }
             case AlbumPayload ap -> {
-                showPhotoGrid();
+                libraryViewManager.showPhotoGrid();
                 loadPhotosForAlbum(ap.albumId());
             }
-            case PersonPayload pp -> showPersonDetail(pp.personId());
+            case PersonPayload pp ->
+                    personDetailController = libraryViewManager.showPersonDetail(pp.personId(), personDetailController);
         }
-    }
-
-    // ── Person detail panel ───────────────────────────────────────────────────
-
-    private void showPersonDetail(long personId) {
-        if (personDetailController == null) {
-            LoadedFxml<PersonDetailController> loaded = fxmlLoader.load(FxmlView.PERSON_DETAIL, null);
-            personDetailController = loaded.controller();
-            Parent view = loaded.parent();
-            AnchorPane.setTopAnchor(view, 0.0);
-            AnchorPane.setBottomAnchor(view, 0.0);
-            AnchorPane.setLeftAnchor(view, 0.0);
-            AnchorPane.setRightAnchor(view, 0.0);
-            personDetailContainer.getChildren()
-                                 .setAll(view);
-        }
-        photoGridView.setVisible(false);
-        photoGridView.setManaged(false);
-        duplicatesContainer.setVisible(false);
-        duplicatesContainer.setManaged(false);
-        folderDuplicatesContainer.setVisible(false);
-        folderDuplicatesContainer.setManaged(false);
-        personDetailContainer.setVisible(true);
-        personDetailContainer.setManaged(true);
-        personDetailController.loadPerson(personId);
-    }
-
-    private void showPhotoGrid() {
-        personDetailContainer.setVisible(false);
-        personDetailContainer.setManaged(false);
-        duplicatesContainer.setVisible(false);
-        duplicatesContainer.setManaged(false);
-        folderDuplicatesContainer.setVisible(false);
-        folderDuplicatesContainer.setManaged(false);
-        photoGridView.setVisible(true);
-        photoGridView.setManaged(true);
-    }
-
-    /**
-     * Shows the file-level duplicates-review panel (content loaded from duplicates.fxml into
-     * {@link #duplicatesContainer} in {@link #initialize}) and re-activates it so it picks up
-     * the current duplicate set, mirroring the old tab-selection listener's behaviour.
-     */
-    private void showDuplicatesView() {
-        personDetailContainer.setVisible(false);
-        personDetailContainer.setManaged(false);
-        photoGridView.setVisible(false);
-        photoGridView.setManaged(false);
-        folderDuplicatesContainer.setVisible(false);
-        folderDuplicatesContainer.setManaged(false);
-        duplicatesContainer.setVisible(true);
-        duplicatesContainer.setManaged(true);
-        duplicatesController.activateDuplicatesView();
-    }
-
-    /**
-     * Shows the folder-level duplicates-review panel (content loaded from folder_duplicates.fxml
-     * into {@link #folderDuplicatesContainer} in {@link #initialize}) and re-activates it so it
-     * picks up the current set of folder pairs.
-     */
-    private void showFolderDuplicatesView() {
-        personDetailContainer.setVisible(false);
-        personDetailContainer.setManaged(false);
-        photoGridView.setVisible(false);
-        photoGridView.setManaged(false);
-        duplicatesContainer.setVisible(false);
-        duplicatesContainer.setManaged(false);
-        folderDuplicatesContainer.setVisible(true);
-        folderDuplicatesContainer.setManaged(true);
-        folderDuplicatesController.activateFolderDuplicatesView();
     }
 
     // ── Photo loading ─────────────────────────────────────────────────────────
@@ -436,7 +358,7 @@ public class LibraryController implements Initializable {
             return;
         }
         clearSearchButton.setVisible(true);
-        showPhotoGrid();
+        libraryViewManager.showPhotoGrid();
         libraryTreeView.getSelectionModel()
                        .clearSelection();
         long myGeneration = selectionGeneration.incrementAndGet();
@@ -701,18 +623,5 @@ public class LibraryController implements Initializable {
         if (confirmation) {
             jobManager.submitModelDownloadJob(() -> {});
         }
-    }
-
-
-    private <T> void loadFxmlAndAttachToParent(Pane parent, FxmlView<T> view, Consumer<T> controllerConsumer) {
-        LoadedFxml<T> loadedFolderDuplicates = fxmlLoader.load(view, null);
-        controllerConsumer.accept(loadedFolderDuplicates.controller());
-        Parent viewPane = loadedFolderDuplicates.parent();
-        AnchorPane.setTopAnchor(viewPane, 0.0);
-        AnchorPane.setBottomAnchor(viewPane, 0.0);
-        AnchorPane.setLeftAnchor(viewPane, 0.0);
-        AnchorPane.setRightAnchor(viewPane, 0.0);
-        parent.getChildren()
-              .setAll(viewPane);
     }
 }
