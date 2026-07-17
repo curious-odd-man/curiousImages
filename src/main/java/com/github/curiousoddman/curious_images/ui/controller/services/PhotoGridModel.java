@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class SelectionModel {
+public class PhotoGridModel {
     private final AtomicLong generation = new AtomicLong();
 
     private List<PhotoRecord>  photos     = List.of();

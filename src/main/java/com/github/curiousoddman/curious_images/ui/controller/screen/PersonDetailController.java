@@ -18,6 +18,7 @@ import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoCellController;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridRowController;
+import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridModel;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridCallbacks;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridRow;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoRowCell;
@@ -72,11 +73,9 @@ import java.util.Random;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.FacePickerCellController.loadImage;
-import static com.github.curiousoddman.curious_images.util.CollectionUtils.getIdToIndexMap;
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
@@ -123,6 +122,8 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
 
     private static final int GRID_METRICS_DEBOUNCE_MS  = 150;
     private static final int THUMBNAIL_GEN_DEBOUNCE_MS = 150;
+
+    private final PhotoGridModel photoGridModel = new PhotoGridModel();
 
     // ── Injected services ─────────────────────────────────────────────────────
 
@@ -189,21 +190,6 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
     private Map<Integer, List<PhotoRecord>> photosByYear = new LinkedHashMap<>();
 
     /**
-     * Guards against a stale background lookup (person load, or a row's thumbnail lookup)
-     * overwriting state from a newer person load or age-album selection. Mirrors
-     * {@code LibraryController#selectionGeneration}.
-     */
-    private final AtomicLong selectionGeneration = new AtomicLong();
-
-    /**
-     * The full, ordered photo set for the currently-selected age-album leaf. The grid is fully
-     * virtualized (see {@link PhotoRowCell}), so all of it is "in" the grid immediately; only the
-     * rows actually scrolled into view ever get a live cell or a thumbnail lookup.
-     */
-    private List<PhotoRecord>  currentPhotos  = List.of();
-    private Map<Long, Integer> photoIndexById = Map.of();
-
-    /**
      * Current column count for the grid, so {@link #recomputeGridMetrics} can tell whether a
      * resize/slider change actually needs the rows regrouping.
      */
@@ -261,7 +247,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
      * (kicks off background work internally).
      */
     public void loadPerson(long personId) {
-        long myGeneration = selectionGeneration.incrementAndGet();
+        long myGeneration = photoGridModel.nextGeneration();
         runOnDaemonThread("LoadPerson", () -> {
             Optional<PersonRecord> opt = personRepository.findById(personId);
             if (opt.isEmpty()) {
@@ -290,7 +276,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
             Map<Integer, List<PhotoRecord>> byYear = groupByYear(photos);
 
             runOnFxThread(() -> {
-                if (myGeneration != selectionGeneration.get()) {
+                if (myGeneration != photoGridModel.generation()) {
                     return; // a newer loadPerson() call has since superseded this one
                 }
                 currentPerson = person;
@@ -701,21 +687,14 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
      * {@link #onRowShown}).
      */
     private void populatePhotoGrid(List<PhotoRecord> photos) {
-        selectionGeneration.incrementAndGet();
+        photoGridModel.nextGeneration();
         visiblePhotoCells.clear();
         pendingThumbnailGenIds.clear();
-        currentPhotos = photos;
-        photoIndexById = getIdToIndexMap(photos);
+        photoGridModel.setPhotos(photos);
         photoCountLabel.setText(photos.size() + " photo" + (photos.size() == 1 ? "" : "s"));
         recomputeGridMetrics(true); // force a regroup even if the column count is unchanged
     }
 
-    /**
-     * Recomputes columns-per-row (from viewport width) and row height (from thumbnail size), and
-     * updates {@link ListView#setFixedCellSize}. Only actually regroups {@link #currentPhotos}
-     * into {@link PhotoGridRow}s if the column count changed or {@code force} is set. Mirrors
-     * {@code LibraryController#recomputeGridMetrics}.
-     */
     // FIXME: duplicate
     private void recomputeGridMetrics(boolean force) {
         double viewportWidth = photoGridListView.getWidth();
@@ -737,8 +716,8 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
 
     private void regroupIntoRows(int columns) {
         List<PhotoGridRow> rows = new ArrayList<>();
-        for (int i = 0; i < currentPhotos.size(); i += columns) {
-            rows.add(new PhotoGridRow(currentPhotos.subList(i, Math.min(i + columns, currentPhotos.size()))));
+        for (int i = 0; i < photoGridModel.size(); i += columns) {
+            rows.add(new PhotoGridRow(photoGridModel.photosSlice(i, i + columns)));
         }
         photoGridListView.getItems()
                          .setAll(rows);
@@ -753,9 +732,9 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
 
     @Override
     public void onPhotoClicked(PhotoRecord photo) {
-        Integer idx = photoIndexById.get(photo.getId());
+        Integer idx = photoGridModel.indexById(photo.getId());
         if (idx != null) {
-            openSlideshow(currentPhotos, idx);
+            openSlideshow(photoGridModel.photos(), idx);
         }
     }
 
@@ -773,12 +752,12 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
      */
     @Override
     public void onRowShown(PhotoGridRowController row, List<PhotoRecord> photos) {
-        RowInfo rowInfo = getRowInfo(row, photos, visiblePhotoCells, selectionGeneration.get());
+        RowInfo rowInfo = getRowInfo(row, photos, visiblePhotoCells, photoGridModel.generation());
 
         runOnDaemonThread("Row Shown", () -> {
             Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(rowInfo.ids());
             runOnFxThread(() -> {
-                if (rowInfo.myGeneration() != selectionGeneration.get() || rowInfo.myShowToken() != row.getShowToken()) {
+                if (rowInfo.myGeneration() != photoGridModel.generation() || rowInfo.myShowToken() != row.getShowToken()) {
                     return; // selection changed, or this row now shows different photos — discard
                 }
                 List<Long> missing = new ArrayList<>();

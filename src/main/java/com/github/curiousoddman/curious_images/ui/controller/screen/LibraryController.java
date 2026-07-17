@@ -15,7 +15,7 @@ import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.services.LibraryViewManager;
 import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridManager;
-import com.github.curiousoddman.curious_images.ui.controller.services.SelectionModel;
+import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridModel;
 import com.github.curiousoddman.curious_images.ui.controller.services.TreeManager;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeCell;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeNode;
@@ -82,7 +82,7 @@ import static javafx.scene.control.ProgressIndicator.INDETERMINATE_PROGRESS;
 public class LibraryController implements Initializable {
     private static final int SEARCH_TOP_K = 50;
 
-    private final SelectionModel selectionModel = new SelectionModel();
+    private final PhotoGridModel photoGridModel = new PhotoGridModel();
 
     private final FxmlLoader             fxmlLoader;
     private final UserPreferencesService userPreferencesService;
@@ -161,7 +161,7 @@ public class LibraryController implements Initializable {
             }
         });
 
-        photoGridManager.initialize(photoCountLabel, photoGridListView, thumbnailSizeSlider, selectionModel);
+        photoGridManager.initialize(photoCountLabel, photoGridListView, thumbnailSizeSlider, photoGridModel);
         treeManager.onLibraryDataUpdated(null);
 
         fxmlLoader.loadFxmlAndAttachToParent(duplicatesContainer, FxmlView.DUPLICATES, v -> duplicatesController = v);
@@ -302,7 +302,7 @@ public class LibraryController implements Initializable {
         libraryViewManager.showPhotoGrid();
         libraryTreeView.getSelectionModel()
                        .clearSelection();
-        long myGeneration = selectionModel.nextGeneration();
+        long myGeneration = photoGridModel.nextGeneration();
         runOnDaemonThread("Search", () -> {
             try {
                 List<Long> photoIds = searchService.semanticSearch(query, SEARCH_TOP_K);
@@ -312,7 +312,7 @@ public class LibraryController implements Initializable {
                                                    .filter(Objects::nonNull)
                                                    .toList();
                 runOnFxThread(() -> {
-                    if (myGeneration != selectionModel.generation()) {
+                    if (myGeneration != photoGridModel.generation()) {
                         return;
                     }
                     photoGridManager.populate(photos);
@@ -321,7 +321,7 @@ public class LibraryController implements Initializable {
             } catch (Exception e) {
                 log.error("Semantic search failed for query '{}'", query, e);
                 runOnFxThread(() -> {
-                    if (myGeneration == selectionModel.generation()) {
+                    if (myGeneration == photoGridModel.generation()) {
                         photoCountLabel.setText("Search error: " + e.getMessage());
                     }
                 });
