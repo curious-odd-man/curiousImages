@@ -1,9 +1,5 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.AlbumRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.FolderRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoPreviewRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
@@ -12,23 +8,14 @@ import com.github.curiousoddman.curious_images.domain.ai.ModelPaths;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.domain.search.SearchService;
 import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferencesService;
-import com.github.curiousoddman.curious_images.event.model.AiPipelineCompleteEvent;
 import com.github.curiousoddman.curious_images.event.model.BackgroundProcessEvent;
-import com.github.curiousoddman.curious_images.event.model.LibraryUpdatedEvent;
-import com.github.curiousoddman.curious_images.event.model.PersonDeletedEvent;
-import com.github.curiousoddman.curious_images.event.model.PersonRenamedEvent;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.event.payload.BackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.event.types.BackgroundProcessEventType;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
-import com.github.curiousoddman.curious_images.model.TimelineData;
 import com.github.curiousoddman.curious_images.model.bundle.AddFilesBundle;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
 import com.github.curiousoddman.curious_images.persistence.AlbumPhotoRepository;
-import com.github.curiousoddman.curious_images.persistence.AlbumRepository;
-import com.github.curiousoddman.curious_images.persistence.FolderRepository;
-import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
-import com.github.curiousoddman.curious_images.persistence.PersonRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoPreviewRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
@@ -36,6 +23,7 @@ import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoCellController;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridRowController;
+import com.github.curiousoddman.curious_images.ui.controller.custom.TreeManager;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeCell;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeNode;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeNode.NodeType;
@@ -55,7 +43,6 @@ import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.beans.InvalidationListener;
 import javafx.beans.value.ObservableValue;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -94,14 +81,10 @@ import org.springframework.stereotype.Component;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.net.URL;
-import java.time.Month;
-import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.ResourceBundle;
@@ -145,17 +128,14 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
 
     private final FxmlLoader             fxmlLoader;
     private final UserPreferencesService userPreferencesService;
-    private final ImportRootRepository   importRootRepository;
-    private final FolderRepository       folderRepository;
     private final PhotoRepository        photoRepository;
     private final ThumbnailRepository    thumbnailRepository;
     private final PhotoPreviewRepository photoPreviewRepository;
-    private final AlbumRepository        albumRepository;
     private final AlbumPhotoRepository   albumPhotoRepository;
-    private final PersonRepository       personRepository;
     private final SearchService          searchService;
     private final JobManager             jobManager;
     private final ModelPaths             modelPaths;
+    private final TreeManager            treeManager;
 
     // ── FXML nodes ────────────────────────────────────────────────────────────
 
@@ -268,6 +248,8 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
                        .selectedItemProperty()
                        .addListener((obs, oldItem, newItem) -> onTreeSelectionChanged(newItem));
 
+        treeManager.initialize(libraryTreeView);
+
         // Allow pressing Enter in the search field to trigger search
         searchField.setOnKeyPressed(e -> {
             if (e.getCode() == KeyCode.ENTER) {
@@ -295,7 +277,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
                            .addListener((obs, oldValue, newValue) ->
                                    gridMetricsDebounce.reSchedule(() -> recomputeGridMetrics(false)));
 
-        onLibraryDataUpdated(null);
+        treeManager.onLibraryDataUpdated(null);
 
         loadFxmlAndAttachToParent(duplicatesContainer, FxmlView.DUPLICATES, v -> duplicatesController = v);
         loadFxmlAndAttachToParent(folderDuplicatesContainer, FxmlView.FOLDER_DUPLICATES, v -> folderDuplicatesController = v);
@@ -368,290 +350,7 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
         jobManager.interruptCurrentJob();
     }
 
-    // ── Tree building ─────────────────────────────────────────────────────────
-
-    /**
-     * Full tree rebuild. Called on startup and after each {@link LibraryUpdatedEvent}.
-     * Albums / persons sections are included if data exists (gracefully empty otherwise).
-     */
-    @SneakyThrows
-    @EventListener
-    public void onLibraryDataUpdated(LibraryUpdatedEvent event) {
-        log.info("Rebuilding library tree");
-        runOnDaemonThread("UpdateLibraryData", () -> {
-            List<TreeItem<LibraryTreeNode>> folderItems   = buildImportRootItems();
-            List<TreeItem<LibraryTreeNode>> timelineItems = buildTimelineItems();
-            List<TreeItem<LibraryTreeNode>> albumItems    = buildAlbumItems();
-            List<TreeItem<LibraryTreeNode>> personItems   = buildPersonItems();
-
-            runOnFxThread(() -> {
-                TreeItem<LibraryTreeNode> foldersRoot = treeItem(
-                        new LibraryTreeNode("Folders", null, NodeType.FOLDERS_ROOT));
-                foldersRoot.getChildren()
-                           .setAll(folderItems);
-                foldersRoot.setExpanded(true);
-
-                TreeItem<LibraryTreeNode> timelineRoot = treeItem(
-                        new LibraryTreeNode("Timeline", null, NodeType.TIMELINE_ROOT));
-                timelineRoot.getChildren()
-                            .setAll(timelineItems);
-                timelineRoot.setExpanded(false);
-
-                TreeItem<LibraryTreeNode> albumsRoot = treeItem(
-                        new LibraryTreeNode("Albums", null, NodeType.ALBUMS_ROOT));
-                albumsRoot.getChildren()
-                          .setAll(albumItems);
-                albumsRoot.setExpanded(false);
-
-                TreeItem<LibraryTreeNode> personsRoot = treeItem(
-                        new LibraryTreeNode("People", null, NodeType.PERSONS_ROOT));
-                personsRoot.getChildren()
-                           .setAll(personItems);
-                personsRoot.setExpanded(false);
-
-                // Pure grouping node (like albumsRoot above) with two selectable children: the
-                // original per-photo resolution view, and the new per-folder-pair one. Selecting
-                // either child shows its duplicates-review view (see onTreeSelectionChanged).
-                TreeItem<LibraryTreeNode> duplicatesFileItem = treeItem(
-                        new LibraryTreeNode("Files", null, NodeType.DUPLICATES_FILE_ROOT));
-                TreeItem<LibraryTreeNode> duplicatesFolderItem = treeItem(
-                        new LibraryTreeNode("Folders", null, NodeType.DUPLICATES_FOLDER_ROOT));
-                TreeItem<LibraryTreeNode> duplicatesRoot = treeItem(
-                        new LibraryTreeNode("Duplicates", null, NodeType.DUPLICATES_ROOT));
-                duplicatesRoot.getChildren()
-                              .setAll(duplicatesFileItem, duplicatesFolderItem);
-                duplicatesRoot.setExpanded(false);
-
-                TreeItem<LibraryTreeNode> invisibleRoot = new TreeItem<>();
-                invisibleRoot.getChildren()
-                             .setAll(foldersRoot, timelineRoot, albumsRoot, personsRoot, duplicatesRoot);
-                libraryTreeView.setRoot(invisibleRoot);
-            });
-        });
-    }
-
-    /**
-     * Refreshes the Albums and People sections of the tree when the AI pipeline completes.
-     * Cheaper than a full rebuild: leaves the Folders and Timeline sections untouched.
-     */
-    @EventListener
-    public void onAiPipelineComplete(AiPipelineCompleteEvent event) {
-        log.info("AI pipeline complete — refreshing Albums and People tree sections");
-        runOnDaemonThread("Refresh Albums", () -> {
-            List<TreeItem<LibraryTreeNode>> albumItems  = buildAlbumItems();
-            List<TreeItem<LibraryTreeNode>> personItems = buildPersonItems();
-            runOnFxThread(() -> {
-                TreeItem<LibraryTreeNode> root = libraryTreeView.getRoot();
-                if (root == null) {
-                    return;
-                }
-                ObservableList<TreeItem<LibraryTreeNode>> children = root.getChildren();
-                if (children.size() < 4) {
-                    return;
-                }
-                children.get(2)
-                        .getChildren()
-                        .setAll(albumItems);
-                children.get(3)
-                        .getChildren()
-                        .setAll(personItems);
-            });
-        });
-    }
-
-    // FIXME: this and the next probably should be united and extended for further cases
-    @EventListener
-    public void onPersonRenamed(PersonRenamedEvent event) {
-        TreeItem<LibraryTreeNode> root = libraryTreeView.getRoot();
-        if (root == null) {
-            return;
-        }
-        for (TreeItem<LibraryTreeNode> section : root.getChildren()) {
-            if (section.getValue() == null || section.getValue()
-                                                     .type() != NodeType.PERSONS_ROOT) {
-                continue;
-            }
-            for (TreeItem<LibraryTreeNode> personItem : section.getChildren()) {
-                LibraryTreeNode node = personItem.getValue();
-                if (node != null && node.payload() instanceof PersonPayload(long personId)
-                        && personId == event.getPersonId()) {
-                    runOnFxThread(() -> personItem.setValue(new LibraryTreeNode(event.getNewName(), node.payload(), node.type())));
-                    return;
-                }
-            }
-        }
-    }
-
-    @EventListener
-    public void onPersonDeleted(PersonDeletedEvent event) {
-        TreeItem<LibraryTreeNode> root = libraryTreeView.getRoot();
-        if (root == null) {
-            return;
-        }
-        for (TreeItem<LibraryTreeNode> section : root.getChildren()) {
-            if (section.getValue() == null || section.getValue()
-                                                     .type() != NodeType.PERSONS_ROOT) {
-                continue;
-            }
-            for (TreeItem<LibraryTreeNode> personItem : section.getChildren()) {
-                LibraryTreeNode node = personItem.getValue();
-                if (node != null && node.payload() instanceof PersonPayload(long personId)
-                        && personId == event.getPersonId()) {
-                    runOnFxThread(() -> section.getChildren()
-                                               .remove(personItem));
-                    return;
-                }
-            }
-        }
-    }
-
-    // ── Tree builders ─────────────────────────────────────────────────────────
-
-    private List<TreeItem<LibraryTreeNode>> buildImportRootItems() {
-        List<TreeItem<LibraryTreeNode>> rootItems = new ArrayList<>();
-        for (ImportRootRecord importRoot : importRootRepository.findAll()) {
-            FolderRecord rootFolder = folderRepository.findRootFolder(importRoot.getId())
-                                                      .orElse(null);
-            Long        rootFolderId = rootFolder == null ? null : rootFolder.getId();
-            NodePayload payload      = rootFolderId == null ? null : new FolderPayload(rootFolderId);
-            TreeItem<LibraryTreeNode> folderRootItem = treeItem(
-                    new LibraryTreeNode(importRoot.getPath(), payload, NodeType.IMPORT_ROOT));
-            if (rootFolderId != null) {
-                folderRootItem.getChildren()
-                              .addAll(buildFolderItems(rootFolderId));
-            }
-            rootItems.add(folderRootItem);
-        }
-        return rootItems;
-    }
-
-    private List<TreeItem<LibraryTreeNode>> buildFolderItems(long parentFolderId) {
-        List<TreeItem<LibraryTreeNode>> items = new ArrayList<>();
-        for (FolderRecord folder : folderRepository.findChildren(parentFolderId)) {
-            TreeItem<LibraryTreeNode> item = treeItem(
-                    new LibraryTreeNode(folder.getName(),
-                            new FolderPayload(folder.getId()),
-                            NodeType.FOLDER));
-            item.getChildren()
-                .addAll(buildFolderItems(folder.getId()));
-            items.add(item);
-        }
-        return items;
-    }
-
-    private List<TreeItem<LibraryTreeNode>> buildTimelineItems() {
-        TimelineData data = photoRepository.findTimelineData();
-
-        Map<Integer, Map<Integer, List<TimelineData.TimelineDay>>> byYearMonth = new LinkedHashMap<>();
-        for (TimelineData.TimelineDay day : data.days()) {
-            byYearMonth.computeIfAbsent(day.year(), y -> new LinkedHashMap<>())
-                       .computeIfAbsent(day.month(), m -> new ArrayList<>())
-                       .add(day);
-        }
-
-        List<TreeItem<LibraryTreeNode>> items = new ArrayList<>();
-
-        for (var yearEntry : byYearMonth.entrySet()) {
-            int year = yearEntry.getKey();
-            int yearCount = yearEntry.getValue()
-                                     .values()
-                                     .stream()
-                                     .flatMap(List::stream)
-                                     .mapToInt(TimelineData.TimelineDay::count)
-                                     .sum();
-
-            TreeItem<LibraryTreeNode> yearItem = treeItem(new LibraryTreeNode(
-                    year + " (" + yearCount + ")",
-                    new TimelinePayload(year, null, null),
-                    NodeType.TIMELINE_YEAR));
-
-            for (var monthEntry : yearEntry.getValue()
-                                           .entrySet()) {
-                int month = monthEntry.getKey();
-                int monthCount = monthEntry.getValue()
-                                           .stream()
-                                           .mapToInt(TimelineData.TimelineDay::count)
-                                           .sum();
-                String monthName = Month.of(month)
-                                        .getDisplayName(TextStyle.FULL, Locale.getDefault());
-
-                TreeItem<LibraryTreeNode> monthItem = treeItem(new LibraryTreeNode(
-                        monthName + " (" + monthCount + ")",
-                        new TimelinePayload(year, month, null),
-                        NodeType.TIMELINE_MONTH));
-
-                for (TimelineData.TimelineDay day : monthEntry.getValue()) {
-                    monthItem.getChildren()
-                             .add(treeItem(new LibraryTreeNode(
-                                     day.day() + " (" + day.count() + ")",
-                                     new TimelinePayload(year, month, day.day()),
-                                     NodeType.TIMELINE_DAY)));
-                }
-                yearItem.getChildren()
-                        .add(monthItem);
-            }
-            items.add(yearItem);
-        }
-
-        if (data.undatedCount() > 0) {
-            items.add(treeItem(new LibraryTreeNode(
-                    "Undated (" + data.undatedCount() + ")",
-                    new UndatedPayload(),
-                    NodeType.TIMELINE_UNDATED)));
-        }
-        return items;
-    }
-
-    /**
-     * Album type subfolders shown under the Albums root, always present regardless of
-     * whether any albums of that type currently exist. Order here is the display order.
-     */
-    private static final List<AlbumTypeGroup> ALBUM_TYPE_GROUPS = List.of(
-            new AlbumTypeGroup("EVENT", "Event", NodeType.ALBUM_EVENT_ROOT, NodeType.ALBUM_EVENT),
-            new AlbumTypeGroup("LOCATION", "Location", NodeType.ALBUM_LOCATION_ROOT, NodeType.ALBUM_LOCATION),
-            new AlbumTypeGroup("SIMILARITY", "Similarity", NodeType.ALBUM_SIMILARITY_ROOT, NodeType.ALBUM_SIMILARITY));
-
-    private record AlbumTypeGroup(String albumType, String label, NodeType rootType, NodeType leafType) {}
-
-    private List<TreeItem<LibraryTreeNode>> buildAlbumItems() {
-        Map<String, List<AlbumRecord>> byType = new LinkedHashMap<>();
-        for (AlbumRecord album : albumRepository.findAll()) {
-            byType.computeIfAbsent(album.getType(), k -> new ArrayList<>())
-                  .add(album);
-        }
-
-        List<TreeItem<LibraryTreeNode>> items = new ArrayList<>();
-        for (AlbumTypeGroup group : ALBUM_TYPE_GROUPS) {
-            List<AlbumRecord> albums = byType.getOrDefault(group.albumType(), List.of());
-
-            TreeItem<LibraryTreeNode> groupRoot = treeItem(
-                    new LibraryTreeNode(group.label(), null, group.rootType()));
-            List<TreeItem<LibraryTreeNode>> children = new ArrayList<>();
-            for (AlbumRecord album : albums) {
-                children.add(treeItem(new LibraryTreeNode(
-                        album.getName(), new AlbumPayload(album.getId()), group.leafType())));
-            }
-            groupRoot.getChildren()
-                     .setAll(children);
-            groupRoot.setExpanded(false);
-
-            items.add(groupRoot);
-        }
-        return items;
-    }
-
-    private List<TreeItem<LibraryTreeNode>> buildPersonItems() {
-        List<TreeItem<LibraryTreeNode>> items = new ArrayList<>();
-        for (PersonRecord person : personRepository.findAll()) {
-            String label = person.getName() != null ? person.getName() : "Person #" + person.getId();
-            items.add(treeItem(new LibraryTreeNode(
-                    label, new PersonPayload(person.getId()), NodeType.PERSON)));
-        }
-        return items;
-    }
-
     // ── Tree selection ────────────────────────────────────────────────────────
-
     private void onTreeSelectionChanged(TreeItem<LibraryTreeNode> selectedItem) {
         if (selectedItem == null || selectedItem.getValue() == null) {
             showPhotoGrid();
@@ -1045,10 +744,6 @@ public class LibraryController implements Initializable, PhotoGridCallbacks {
     }
 
     // ── Utilities ─────────────────────────────────────────────────────────────
-
-    private static TreeItem<LibraryTreeNode> treeItem(LibraryTreeNode node) {
-        return new TreeItem<>(node);
-    }
 
     // ── Menu actions ──────────────────────────────────────────────────────────
 
