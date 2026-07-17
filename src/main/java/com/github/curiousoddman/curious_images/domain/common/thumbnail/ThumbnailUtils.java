@@ -11,7 +11,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridManager.MAX_THUMBNAIL_DECODE_SIZE;
+import static com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridController.MAX_THUMBNAIL_DECODE_SIZE;
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 

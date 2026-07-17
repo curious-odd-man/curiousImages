@@ -8,14 +8,15 @@ import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferences
 import com.github.curiousoddman.curious_images.event.model.BackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.payload.BackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.event.types.BackgroundProcessEventType;
+import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.bundle.AddFilesBundle;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
+import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridController;
 import com.github.curiousoddman.curious_images.ui.controller.services.LibraryViewManager;
 import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridManager;
-import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridModel;
 import com.github.curiousoddman.curious_images.ui.controller.services.TreeManager;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeCell;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeNode;
@@ -26,7 +27,6 @@ import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.FolderPayloa
 import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.PersonPayload;
 import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.TimelinePayload;
 import com.github.curiousoddman.curious_images.ui.nodes.NodePayload.UndatedPayload;
-import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridRow;
 import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
@@ -39,9 +39,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
-import javafx.scene.control.Slider;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TreeCell;
@@ -82,8 +80,6 @@ import static javafx.scene.control.ProgressIndicator.INDETERMINATE_PROGRESS;
 public class LibraryController implements Initializable {
     private static final int SEARCH_TOP_K = 50;
 
-    private final PhotoGridModel photoGridModel = new PhotoGridModel();
-
     private final FxmlLoader             fxmlLoader;
     private final UserPreferencesService userPreferencesService;
     private final PhotoRepository        photoRepository;
@@ -100,12 +96,6 @@ public class LibraryController implements Initializable {
     public SplitPane                 librarySplitPane;
     @FXML
     public TreeView<LibraryTreeNode> libraryTreeView;
-    @FXML
-    public ListView<PhotoGridRow>    photoGridListView;
-    @FXML
-    public Slider                    thumbnailSizeSlider;
-    @FXML
-    public Label                     photoCountLabel;
     @FXML
     public TextField                 searchField;
     @FXML
@@ -141,6 +131,7 @@ public class LibraryController implements Initializable {
     private DuplicatesController       duplicatesController;
     private FolderDuplicatesController folderDuplicatesController;
     private PersonDetailController     personDetailController;
+    private PhotoGridController        photoGridController;
 
     private volatile boolean autoStartAiPipelineAfterModelDownload = false;
 
@@ -161,7 +152,11 @@ public class LibraryController implements Initializable {
             }
         });
 
-        photoGridManager.initialize(photoCountLabel, photoGridListView, thumbnailSizeSlider, photoGridModel);
+        LoadedFxml<PhotoGridController> loaded = fxmlLoader.load(FxmlView.PHOTO_GRID, null);
+        photoGridController = loaded.controller();
+        photoGridView.setCenter(loaded.parent());
+
+        photoGridManager.initialize(photoGridController);
         treeManager.onLibraryDataUpdated(null);
 
         fxmlLoader.loadFxmlAndAttachToParent(duplicatesContainer, FxmlView.DUPLICATES, v -> duplicatesController = v);
@@ -302,7 +297,7 @@ public class LibraryController implements Initializable {
         libraryViewManager.showPhotoGrid();
         libraryTreeView.getSelectionModel()
                        .clearSelection();
-        long myGeneration = photoGridModel.nextGeneration();
+        long myGeneration = photoGridController.initiateChange();
         runOnDaemonThread("Search", () -> {
             try {
                 List<Long> photoIds = searchService.semanticSearch(query, SEARCH_TOP_K);
@@ -312,17 +307,16 @@ public class LibraryController implements Initializable {
                                                    .filter(Objects::nonNull)
                                                    .toList();
                 runOnFxThread(() -> {
-                    if (myGeneration != photoGridModel.generation()) {
+                    if (myGeneration != photoGridController.currentChange()) {
                         return;
                     }
                     photoGridManager.populate(photos);
-                    photoCountLabel.setText("Search: " + photos.size() + " results");
                 });
             } catch (Exception e) {
                 log.error("Semantic search failed for query '{}'", query, e);
                 runOnFxThread(() -> {
-                    if (myGeneration == photoGridModel.generation()) {
-                        photoCountLabel.setText("Search error: " + e.getMessage());
+                    if (myGeneration == photoGridController.currentChange()) {
+                        photoGridController.displayError(e.getMessage());
                     }
                 });
             }
@@ -338,7 +332,6 @@ public class LibraryController implements Initializable {
     private void clearSearchState() {
         searchField.clear();
         clearSearchButton.setVisible(false);
-        photoCountLabel.setText("");
     }
 
     // ── Menu actions ──────────────────────────────────────────────────────────

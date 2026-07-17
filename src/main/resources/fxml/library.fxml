@@ -48,31 +48,8 @@
                                                             <Button fx:id="searchButton" mnemonicParsing="false" onAction="#onSearchClicked" text="Search" />
                                                             <Button fx:id="clearSearchButton" mnemonicParsing="false" onAction="#onClearSearchClicked" text="✕" visible="false" />
                                                         </HBox>
-                                                        <!-- Thumbnail-size row -->
-                                                        <HBox alignment="CENTER_LEFT" spacing="8.0">
-                                                            <padding>
-                                                                <Insets bottom="6.0" left="10.0" right="10.0" top="4.0" />
-                                                            </padding>
-                                                            <Label text="Thumbnail size:" />
-                                                            <Slider fx:id="thumbnailSizeSlider" blockIncrement="16.0" max="320.0" min="64.0" prefWidth="200.0" value="128.0" />
-                                                            <Label fx:id="photoCountLabel" text="" />
-                                                        </HBox>
                                                     </VBox>
                                                 </top>
-                                                <center>
-                                                    <!-- Virtualized photo grid: each ListView cell is one row of
-                                                         photo_cell.fxml instances (see PhotoRowCell /
-                                                         PhotoGridRowController). ListView's own virtual flow only
-                                                         ever instantiates enough rows to cover the viewport plus a
-                                                         small buffer, and recycles them on scroll, so the number of
-                                                         live nodes stays bounded no matter how many thousands of
-                                                         photos are in the selection. -->
-                                                    <ListView fx:id="photoGridListView" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" BorderPane.alignment="CENTER">
-                                                        <padding>
-                                                            <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                                                        </padding>
-                                                    </ListView>
-                                                </center>
                                             </BorderPane>
 
                                             <!-- ── Person detail panel (injected at runtime) ── -->

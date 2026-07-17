@@ -5,7 +5,9 @@
 <?import javafx.scene.image.*?>
 <?import javafx.scene.layout.*?>
 
-<BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.PersonDetailController">
+<BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308"
+            xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.PersonDetailController">
 
     <top>
         <!--
@@ -14,19 +16,27 @@
             Face thumbnail on the left, editable fields on the right
             ═══════════════════════════════════════════════════════
         -->
-        <TitledPane fx:id="profilePane" collapsible="true" expanded="true" maxWidth="1.7976931348623157E308" text="Person Profile" BorderPane.alignment="CENTER">
+        <TitledPane fx:id="profilePane" collapsible="true" expanded="true" maxWidth="1.7976931348623157E308"
+                    text="Person Profile" BorderPane.alignment="CENTER">
             <content>
                 <HBox spacing="16.0">
-                    <padding><Insets bottom="12.0" left="12.0" right="12.0" top="8.0" /></padding>
+                    <padding>
+                        <Insets bottom="12.0" left="12.0" right="12.0" top="8.0"/>
+                    </padding>
 
                     <!-- ── Face thumbnail + picker buttons ── -->
                     <VBox alignment="TOP_CENTER" maxWidth="140.0" minWidth="140.0" spacing="6.0">
-                        <StackPane fx:id="faceImageStack" maxHeight="128.0" maxWidth="128.0" minHeight="128.0" minWidth="128.0" styleClass="thumbnail-frame">
-                            <ImageView fx:id="faceImageView" fitHeight="128.0" fitWidth="128.0" onMouseClicked="#onBrowseFaces" preserveRatio="true" />
-                            <ProgressIndicator fx:id="faceLoadIndicator" maxHeight="48.0" maxWidth="48.0" visible="false" />
+                        <StackPane fx:id="faceImageStack" maxHeight="128.0" maxWidth="128.0" minHeight="128.0"
+                                   minWidth="128.0" styleClass="thumbnail-frame">
+                            <ImageView fx:id="faceImageView" fitHeight="128.0" fitWidth="128.0"
+                                       onMouseClicked="#onBrowseFaces" preserveRatio="true"/>
+                            <ProgressIndicator fx:id="faceLoadIndicator" maxHeight="48.0" maxWidth="48.0"
+                                               visible="false"/>
                         </StackPane>
-                        <Button fx:id="browseFacesButton" disable="true" maxWidth="1.7976931348623157E308" onAction="#onBrowseFaces" text="Browse faces…" />
-                        <Button fx:id="mergeIntoButton" disable="true" maxWidth="1.7976931348623157E308" onAction="#onMergeInto" text="Merge into…" />
+                        <Button fx:id="browseFacesButton" disable="true" maxWidth="1.7976931348623157E308"
+                                onAction="#onBrowseFaces" text="Browse faces…"/>
+                        <Button fx:id="mergeIntoButton" disable="true" maxWidth="1.7976931348623157E308"
+                                onAction="#onMergeInto" text="Merge into…"/>
                     </VBox>
 
                     <!-- ── Editable info fields ── -->
@@ -34,26 +44,30 @@
 
                         <!-- Name -->
                         <HBox alignment="CENTER_LEFT" spacing="8.0">
-                            <Label minWidth="100.0" styleClass="bold-label" text="Name:" />
-                            <TextField fx:id="nameField" editable="false" promptText="Double-click to edit" HBox.hgrow="ALWAYS" />
+                            <Label minWidth="100.0" styleClass="bold-label" text="Name:"/>
+                            <TextField fx:id="nameField" editable="false" promptText="Double-click to edit"
+                                       HBox.hgrow="ALWAYS"/>
                         </HBox>
 
                         <!-- Date of Birth -->
                         <HBox alignment="CENTER_LEFT" spacing="8.0">
-                            <Label minWidth="100.0" styleClass="bold-label" text="Date of Birth:" />
-                            <TextField fx:id="dobField" editable="false" promptText="Double-click to edit (YYYY-MM-DD)" HBox.hgrow="ALWAYS" />
+                            <Label minWidth="100.0" styleClass="bold-label" text="Date of Birth:"/>
+                            <TextField fx:id="dobField" editable="false" promptText="Double-click to edit (YYYY-MM-DD)"
+                                       HBox.hgrow="ALWAYS"/>
                         </HBox>
 
-                        <Separator />
+                        <Separator/>
 
                         <!-- Notes -->
                         <VBox spacing="4.0">
-                            <Label styleClass="bold-label" text="Notes:" />
-                            <TextArea fx:id="notesArea" editable="false" prefRowCount="3" promptText="Double-click to edit notes…" wrapText="true" />
+                            <Label styleClass="bold-label" text="Notes:"/>
+                            <TextArea fx:id="notesArea" editable="false" prefRowCount="3"
+                                      promptText="Double-click to edit notes…" wrapText="true"/>
                         </VBox>
 
                         <!-- Editing hint -->
-                        <Label fx:id="editHintLabel" styleClass="hint-text" text="Double-click any field to edit  ·  Press Enter (or Tab out) to save  ·  Esc to cancel" />
+                        <Label fx:id="editHintLabel" styleClass="hint-text"
+                               text="Double-click any field to edit  ·  Press Enter (or Tab out) to save  ·  Esc to cancel"/>
                     </VBox>
                 </HBox>
             </content>
@@ -67,38 +81,17 @@
             Left: per-year sub-albums.  Right: photos for selection.
             ═══════════════════════════════════════════════════════
         -->
-        <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
-
-            <!-- Toolbar: thumbnail size + photo count -->
-            <top>
-                <HBox alignment="CENTER_LEFT" spacing="8.0">
-                    <padding><Insets bottom="4.0" left="10.0" right="10.0" top="4.0" /></padding>
-                    <Label text="Thumbnail size:" />
-                    <Slider fx:id="thumbnailSizeSlider" blockIncrement="16.0" max="320.0" min="64.0" prefWidth="180.0" value="128.0" />
-                    <Label fx:id="photoCountLabel" text="" />
-                </HBox>
-            </top>
-
+        <BorderPane fx:id="gridBorderPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
             <left>
                 <!--
                     Age-album tree: shows years (age) as collapsible groups,
                     plus an "Undated" leaf at the bottom.
                 -->
                 <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="200.0" minWidth="160.0">
-                    <TreeView fx:id="ageAlbumTree" showRoot="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+                    <TreeView fx:id="ageAlbumTree" showRoot="false" AnchorPane.bottomAnchor="0.0"
+                              AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0"/>
                 </AnchorPane>
             </left>
-
-            <center>
-                <!-- Virtualized photo grid: each ListView cell is one row of
-                     photo_cell.fxml instances (see PhotoRowCell / PhotoGridRowController) —
-                     same approach as LibraryController's photoGridListView. -->
-                <ListView fx:id="photoGridListView" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" BorderPane.alignment="CENTER">
-                    <padding>
-                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                    </padding>
-                </ListView>
-            </center>
 
         </BorderPane>
     </center>

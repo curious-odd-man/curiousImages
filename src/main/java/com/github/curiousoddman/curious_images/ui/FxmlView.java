@@ -2,6 +2,7 @@ package com.github.curiousoddman.curious_images.ui;
 
 import com.github.curiousoddman.curious_images.ui.controller.custom.DuplicateCellController;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoCellController;
+import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridController;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridRowController;
 import com.github.curiousoddman.curious_images.ui.controller.screen.AddFilesController;
 import com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController;
@@ -30,4 +31,5 @@ public record FxmlView<T>(String fxmlPath, Class<T> controllerClass) {
     public static final FxmlView<PhotoGridRowController>        PHOTO_GRID_ROW        = new FxmlView<>("/fxml/photo_grid_row.fxml", PhotoGridRowController.class);
     public static final FxmlView<FolderDuplicatesController>    FOLDER_DUPLICATES     = new FxmlView<>("/fxml/folder_duplicates.fxml", FolderDuplicatesController.class);
     public static final FxmlView<FolderDuplicateCellController> FOLDER_DUPLICATE_CELL = new FxmlView<>("/fxml/folder_duplicate_cell.fxml", FolderDuplicateCellController.class);
+    public static final FxmlView<PhotoGridController>           PHOTO_GRID            = new FxmlView<>("/fxml/photo_grid.fxml", PhotoGridController.class);
 }

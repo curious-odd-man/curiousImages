@@ -3,40 +3,25 @@ package com.github.curiousoddman.curious_images.ui.controller.screen;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.ai.PersonCorrectionService;
-import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.event.model.TreeViewUpdateEvent;
-import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.event.payload.TreeViewUpdatePayload;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
-import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
-import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoCellController;
-import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridRowController;
-import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridModel;
-import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridCallbacks;
-import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridRow;
-import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoRowCell;
+import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridController;
 import com.github.curiousoddman.curious_images.ui.styles.CssClasses;
 import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
-import com.github.curiousoddman.curious_images.ui.util.UiUtils;
-import com.github.curiousoddman.curious_images.util.async.DelayedAction;
-import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
-import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressIndicator;
-import javafx.scene.control.Slider;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputControl;
@@ -46,23 +31,20 @@ import javafx.scene.control.TreeView;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.BorderPane;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
 import java.net.URL;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -71,104 +53,52 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import java.util.ResourceBundle;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
-import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
 import static com.github.curiousoddman.curious_images.ui.controller.screen.FacePickerCellController.loadImage;
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
-/**
- * Controller for {@code person_detail.fxml}.
- * <p>
- * Responsibilities:
- * <ul>
- *   <li>Display and let the user pick a representative face thumbnail.</li>
- *   <li>Show / inline-edit Name, Date of Birth, and free-form Notes.</li>
- *   <li>Build an age-album tree (one leaf per year the person appeared in photos,
- *       plus an "Undated" leaf) and populate the photo grid for the selected leaf.</li>
- * </ul>
- *
- * <h3>Editing UX</h3>
- * Every field (Name, DoB, Notes) starts read-only with a transparent border so it
- * looks like plain text.  Double-clicking activates edit mode: the border becomes
- * visible and the field gains focus.  Pressing Enter (or Tab-out for the TextArea)
- * commits the value; Escape cancels.
- */
 @Lazy
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class PersonDetailController implements Initializable, PhotoGridCallbacks {
-
-    /**
-     * Thumbnail files are decoded at most at this size regardless of the slider's actual value —
-     * matches {@code thumbnailSizeSlider}'s max (see person_detail.fxml) so JavaFX never decodes
-     * more pixels than the grid could ever display. Mirrors {@code LibraryController}'s constant
-     * of the same name.
-     */
-    private static final int MAX_THUMBNAIL_DECODE_SIZE = 320;
-
-    // Heuristics used to turn "viewport width" + "thumbnail size" into "columns per row" / "row
-    // height" for the virtualized grid — see recomputeGridMetrics(). Same values/roles as
-    // LibraryController's identically-named constants.
-    private static final double CELL_HPADDING         = 12.0; // photo_cell.fxml left+right padding
-    private static final double ROW_HGAP              = 8.0;  // photo_grid_row.fxml HBox spacing
-    private static final double GRID_HPADDING         = 20.0; // ListView left+right padding
-    private static final double SCROLLBAR_ALLOWANCE   = 16.0; // room for the ListView's own scrollbar
-    private static final double LABEL_HEIGHT_ESTIMATE = 40.0; // wrapped filename label, ~2 lines
-    private static final double ROW_VGAP              = 8.0;  // vertical gap between grid rows
-
-    private static final int GRID_METRICS_DEBOUNCE_MS  = 150;
-    private static final int THUMBNAIL_GEN_DEBOUNCE_MS = 150;
-
-    private final PhotoGridModel photoGridModel = new PhotoGridModel();
-
-    // ── Injected services ─────────────────────────────────────────────────────
+public class PersonDetailController implements Initializable {
 
     private final PersonRepository          personRepository;
     private final FaceRepository            faceRepository;
     private final PhotoRepository           photoRepository;
-    private final ThumbnailRepository       thumbnailRepository;
-    private final JobManager                jobManager;
     private final FxmlLoader                fxmlLoader;
     private final PersonCorrectionService   personCorrectionService;
     private final ApplicationEventPublisher applicationEventPublisher;
 
-    // ── FXML nodes ────────────────────────────────────────────────────────────
-
     @FXML
-    public TitledPane             profilePane;
+    public TitledPane        profilePane;
     @FXML
-    public ImageView              faceImageView;
+    public ImageView         faceImageView;
     @FXML
-    public ProgressIndicator      faceLoadIndicator;
+    public ProgressIndicator faceLoadIndicator;
     @FXML
-    public Button                 browseFacesButton;
+    public Button            browseFacesButton;
     @FXML
-    public Button                 mergeIntoButton;
+    public Button            mergeIntoButton;
     @FXML
-    public TextField              nameField;
+    public TextField         nameField;
     @FXML
-    public TextField              dobField;
+    public TextField         dobField;
     @FXML
-    public TextArea               notesArea;
+    public TextArea          notesArea;
     @FXML
-    public Label                  editHintLabel;
+    public Label             editHintLabel;
     @FXML
-    public Slider                 thumbnailSizeSlider;
+    public BorderPane        gridBorderPane;
     @FXML
-    public Label                  photoCountLabel;
-    @FXML
-    public TreeView<String>       ageAlbumTree;
-    @FXML
-    public ListView<PhotoGridRow> photoGridListView;
+    public TreeView<String>  ageAlbumTree;
 
     // ── State ─────────────────────────────────────────────────────────────────
 
-    private Image        noImageAvailable;
-    private PersonRecord currentPerson;
+    private Image               noImageAvailable;
+    private PersonRecord        currentPerson;
+    private PhotoGridController photoGridController;
 
     /**
      * All face records for the current person, in stable order.
@@ -189,29 +119,6 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
      */
     private Map<Integer, List<PhotoRecord>> photosByYear = new LinkedHashMap<>();
 
-    /**
-     * Current column count for the grid, so {@link #recomputeGridMetrics} can tell whether a
-     * resize/slider change actually needs the rows regrouping.
-     */
-    private int lastColumns = -1;
-
-    /**
-     * Photo-id → cell controller for every currently *visible* cell — populated/cleared by
-     * {@link #onRowShown}/{@link #onRowHidden} as rows scroll in and out of view. Used by
-     * {@link #onThumbnailsReady} to swap a placeholder for the real thumbnail on any cell that's
-     * still on-screen.
-     */
-    private final Map<Long, PhotoCellController> visiblePhotoCells = new HashMap<>();
-
-    /**
-     * Photo IDs collected from visible rows that turned out to have no cached thumbnail yet,
-     * batched up and flushed as a single {@code submitThumbnailGenerationJob} call after a short
-     * debounce — see {@link #queueThumbnailGeneration}.
-     */
-    private final Set<Long>     pendingThumbnailGenIds = new HashSet<>();
-    private final DelayedAction thumbnailGenDebounce   = new DelayedAction(THUMBNAIL_GEN_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
-    private final DelayedAction gridMetricsDebounce    = new DelayedAction(GRID_METRICS_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
-
     // ── Initialisation ────────────────────────────────────────────────────────
 
     @Override
@@ -227,17 +134,9 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
                     .selectedItemProperty()
                     .addListener((obs, oldItem, newItem) -> onAgeAlbumSelected(newItem));
 
-        // Virtualized photo grid — same approach as LibraryController's photoGridListView: only
-        // enough PhotoRowCells to cover the viewport (plus a small buffer) are ever live.
-        photoGridListView.setCellFactory(lv -> new PhotoRowCell(this, fxmlLoader));
-        photoGridListView.setFocusTraversable(false);
-
-        photoGridListView.widthProperty()
-                         .addListener((obs, oldValue, newValue) ->
-                                 gridMetricsDebounce.reSchedule(() -> recomputeGridMetrics(false)));
-        thumbnailSizeSlider.valueProperty()
-                           .addListener((obs, oldValue, newValue) ->
-                                   gridMetricsDebounce.reSchedule(() -> recomputeGridMetrics(false)));
+        LoadedFxml<PhotoGridController> loaded = fxmlLoader.load(FxmlView.PHOTO_GRID, null);
+        photoGridController = loaded.controller();
+        gridBorderPane.setCenter(loaded.parent());
     }
 
     // ── Public API called by LibraryController ────────────────────────────────
@@ -247,7 +146,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
      * (kicks off background work internally).
      */
     public void loadPerson(long personId) {
-        long myGeneration = photoGridModel.nextGeneration();
+        long myGeneration = photoGridController.initiateChange();
         runOnDaemonThread("LoadPerson", () -> {
             Optional<PersonRecord> opt = personRepository.findById(personId);
             if (opt.isEmpty()) {
@@ -276,7 +175,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
             Map<Integer, List<PhotoRecord>> byYear = groupByYear(photos);
 
             runOnFxThread(() -> {
-                if (myGeneration != photoGridModel.generation()) {
+                if (myGeneration != photoGridController.currentChange()) {
                     return; // a newer loadPerson() call has since superseded this one
                 }
                 currentPerson = person;
@@ -673,151 +572,7 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
             toShow = photosByYear.getOrDefault(year, List.of());
         }
 
-        populatePhotoGrid(toShow);
-    }
-
-// ── Photo grid (virtualized) ────────────────────────────────────────────────
-
-    /**
-     * Applies a freshly-selected, fully-ordered photo set to the grid — mirrors
-     * {@code LibraryController#populatePhotoGrid}. The entire set is handed to the (virtualized)
-     * {@code ListView} right away; only {@link #recomputeGridMetrics} decides how it's chunked
-     * into rows, and only rows that actually scroll into view ever get a live cell or a
-     * thumbnail lookup (which also triggers on-demand generation for anything missing — see
-     * {@link #onRowShown}).
-     */
-    private void populatePhotoGrid(List<PhotoRecord> photos) {
-        photoGridModel.nextGeneration();
-        visiblePhotoCells.clear();
-        pendingThumbnailGenIds.clear();
-        photoGridModel.setPhotos(photos);
-        photoCountLabel.setText(photos.size() + " photo" + (photos.size() == 1 ? "" : "s"));
-        recomputeGridMetrics(true); // force a regroup even if the column count is unchanged
-    }
-
-    // FIXME: duplicate
-    private void recomputeGridMetrics(boolean force) {
-        double viewportWidth = photoGridListView.getWidth();
-        if (viewportWidth <= 0) {
-            return; // not laid out yet; the width listener will fire again once it is
-        }
-        double thumbSize = thumbnailSizeSlider.getValue();
-        double cellWidth = thumbSize + CELL_HPADDING + ROW_HGAP;
-        int    columns   = Math.max(1, (int) Math.floor((viewportWidth - GRID_HPADDING - SCROLLBAR_ALLOWANCE) / cellWidth));
-        double rowHeight = thumbSize + LABEL_HEIGHT_ESTIMATE + ROW_VGAP;
-
-        photoGridListView.setFixedCellSize(rowHeight);
-
-        if (force || columns != lastColumns) {
-            lastColumns = columns;
-            regroupIntoRows(columns);
-        }
-    }
-
-    private void regroupIntoRows(int columns) {
-        List<PhotoGridRow> rows = new ArrayList<>();
-        for (int i = 0; i < photoGridModel.size(); i += columns) {
-            rows.add(new PhotoGridRow(photoGridModel.photosSlice(i, i + columns)));
-        }
-        photoGridListView.getItems()
-                         .setAll(rows);
-    }
-
-// ── PhotoGridCallbacks — the narrow surface PhotoRowCell/PhotoGridRowController use ────────
-
-    @Override
-    public ObservableValue<Number> thumbnailSizeProperty() {
-        return thumbnailSizeSlider.valueProperty();
-    }
-
-    @Override
-    public void onPhotoClicked(PhotoRecord photo) {
-        Integer idx = photoGridModel.indexById(photo.getId());
-        if (idx != null) {
-            openSlideshow(photoGridModel.photos(), idx);
-        }
-    }
-
-    @Override
-    public String tooltipTextFor(PhotoRecord photo) {
-        return getPhotoDetailsText(photo);
-    }
-
-    /**
-     * A row just became visible (or was re-flowed while still visible). Registers its photos in
-     * {@link #visiblePhotoCells} so {@link #onThumbnailsReady} can reach them directly, then looks
-     * up thumbnails for exactly these photo IDs on a background thread and applies them — any
-     * photo with no real thumbnail yet is queued for on-demand generation. Mirrors
-     * {@code LibraryController#onRowShown}.
-     */
-    @Override
-    public void onRowShown(PhotoGridRowController row, List<PhotoRecord> photos) {
-        RowInfo rowInfo = getRowInfo(row, photos, visiblePhotoCells, photoGridModel.generation());
-
-        runOnDaemonThread("Row Shown", () -> {
-            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(rowInfo.ids());
-            runOnFxThread(() -> {
-                if (rowInfo.myGeneration() != photoGridModel.generation() || rowInfo.myShowToken() != row.getShowToken()) {
-                    return; // selection changed, or this row now shows different photos — discard
-                }
-                List<Long> missing = new ArrayList<>();
-                for (PhotoRecord photo : photos) {
-                    ThumbnailRecord thumbnail = thumbs.get(photo.getId());
-                    if (thumbnail != null && hasCachedFile(thumbnail)) {
-                        row.applyImage(photo, loadThumbnailImage(thumbnail));
-                    } else {
-                        missing.add(photo.getId()); // no real thumbnail yet
-                    }
-                }
-                if (!missing.isEmpty()) {
-                    queueThumbnailGeneration(missing);
-                }
-            });
-        });
-    }
-
-    public static RowInfo getRowInfo(PhotoGridRowController row,
-                                     List<PhotoRecord> photos,
-                                     Map<Long, PhotoCellController> visiblePhotoCells,
-                                     long selectionGeneration) {
-        for (PhotoCellController cell : row.getCellControllers()) {
-            PhotoRecord shown = cell.getCurrentPhoto();
-            if (shown != null) {
-                visiblePhotoCells.put(shown.getId(), cell);
-            }
-        }
-
-        long myShowToken = row.getShowToken();
-        List<Long> ids = photos.stream()
-                               .map(PhotoRecord::getId)
-                               .toList();
-        return new RowInfo(selectionGeneration, myShowToken, ids);
-    }
-
-    public record RowInfo(long myGeneration, long myShowToken, List<Long> ids) {}
-
-    @Override
-    public void onRowHidden(PhotoGridRowController row, List<PhotoRecord> previousPhotos) {
-        for (PhotoRecord photo : previousPhotos) {
-            visiblePhotoCells.remove(photo.getId());
-        }
-    }
-
-    /**
-     * Batches up photo IDs missing a real thumbnail and flushes them as a single
-     * {@code submitThumbnailGenerationJob} call after a short debounce. Mirrors
-     * {@code LibraryController#queueThumbnailGeneration}.
-     */
-    private void queueThumbnailGeneration(List<Long> ids) {
-        pendingThumbnailGenIds.addAll(ids);
-        thumbnailGenDebounce.reSchedule(() -> {
-            if (pendingThumbnailGenIds.isEmpty()) {
-                return;
-            }
-            List<Long> batch = List.copyOf(pendingThumbnailGenIds);
-            pendingThumbnailGenIds.clear();
-            jobManager.submitThumbnailGenerationJob(batch);
-        });
+        photoGridController.populatePhotoGrid(toShow);
     }
 
     private void applyCoverFace(long faceId) {
@@ -843,38 +598,6 @@ public class PersonDetailController implements Initializable, PhotoGridCallbacks
             }
         });
     }
-
-    /**
-     * Swaps the placeholder image of any still-*visible* cell for the real thumbnail, once
-     * {@code ThumbnailGenerationJob} has generated it. Photo IDs not currently in
-     * {@link #visiblePhotoCells} (scrolled out of view since the request was made, or belonging
-     * to some other screen's selection) are simply skipped. Mirrors
-     * {@code LibraryController#onThumbnailsReady}.
-     */
-    @EventListener
-    public void onThumbnailsReady(ThumbnailsReadyEvent event) {
-        ThumbnailUtils.updateThumbnailImage(thumbnailRepository, visiblePhotoCells, event);
-    }
-
-    private static boolean hasCachedFile(ThumbnailRecord thumbnail) {
-        return thumbnail.getCachePath() != null && new File(thumbnail.getCachePath()).isFile();
-    }
-
-    /**
-     * Loads a cached thumbnail file, capped to {@link #MAX_THUMBNAIL_DECODE_SIZE}. Mirrors
-     * {@code LibraryController#loadThumbnailImage}.
-     */
-    private Image loadThumbnailImage(ThumbnailRecord thumbnail) {
-        File file = new File(thumbnail.getCachePath());
-        return new Image(file.toURI()
-                             .toString(), MAX_THUMBNAIL_DECODE_SIZE, MAX_THUMBNAIL_DECODE_SIZE, true, true, true);
-    }
-
-    private void openSlideshow(List<PhotoRecord> photos, int startIndex) {
-        UiUtils.openSlideshow(photos, startIndex, photoGridListView.getScene(), fxmlLoader);
-    }
-
-// ── Utilities ─────────────────────────────────────────────────────────────
 
     private static int compareByDate(PhotoRecord a, PhotoRecord b) {
         if (a.getCaptureDate() == null && b.getCaptureDate() == null) {
