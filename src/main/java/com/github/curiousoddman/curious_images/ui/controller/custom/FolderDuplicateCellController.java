@@ -1,12 +1,14 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
 import com.github.curiousoddman.curious_images.model.bundle.FolderDuplicateCellBundle;
+import com.github.curiousoddman.curious_images.util.HumanReadableUtils;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
+import lombok.Setter;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -35,6 +37,7 @@ public class FolderDuplicateCellController implements Initializable {
     @FXML
     public FlowPane thumbnailFlowPane;
 
+    @Setter
     private long folderId;
 
     @Override
@@ -44,27 +47,9 @@ public class FolderDuplicateCellController implements Initializable {
             summaryLabel.setText(
                     bundle.getGroupCount() + " duplicate group" + (bundle.getGroupCount() == 1 ? "" : "s")
                             + "  •  " + bundle.getPhotoCount() + " photo" + (bundle.getPhotoCount() == 1 ? "" : "s")
-                            + "  •  " + humanReadableSize(bundle.getTotalSize()));
+                            + "  •  " + HumanReadableUtils.size(bundle.getTotalSize()));
             checkBox.setSelected(bundle.isInitiallyChecked());
         }
-    }
-
-    private static String humanReadableSize(long bytes) {
-        if (bytes < 1024) {
-            return bytes + " B";
-        }
-        String[] units = {"KB", "MB", "GB", "TB"};
-        double   value = bytes / 1024.0;
-        int      i     = 0;
-        while (value >= 1024.0 && i < units.length - 1) {
-            value /= 1024.0;
-            i++;
-        }
-        return String.format("%.1f %s", value, units[i]);
-    }
-
-    public void setFolderId(long folderId) {
-        this.folderId = folderId;
     }
 
     public long folderId() {

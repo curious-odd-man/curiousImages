@@ -150,7 +150,6 @@ public class FacePickerController implements Initializable {
     private long       currentPersonId;
     private boolean    correctionsHappened;
 
-    private final Map<Long, FaceRecord>               facesById          = new LinkedHashMap<>();
     private final Map<Long, FacePickerCellController> cellsById          = new LinkedHashMap<>();
     private final Map<Long, Long>                     clusterKeyByFaceId = new LinkedHashMap<>();
     private final Map<Long, TitledPane>               sectionsByKey      = new LinkedHashMap<>();
@@ -185,7 +184,6 @@ public class FacePickerController implements Initializable {
     public void init(List<FaceRecord> faces, Long currentCoverFaceId, long currentPersonId) {
         this.currentPersonId = currentPersonId;
         this.correctionsHappened = false;
-        facesById.clear();
         cellsById.clear();
         clusterKeyByFaceId.clear();
         sectionsByKey.clear();
@@ -230,7 +228,6 @@ public class FacePickerController implements Initializable {
         LoadedFxml<FacePickerCellController> loaded = fxmlLoader.load(FxmlView.FACE_PICKER_CELL, null);
         FacePickerCellController             cell   = loaded.controller();
         cell.bind(face, isCover, this::onFaceChosen, this::onToggleSelect, this::onContextMenuRequested);
-        facesById.put(face.getId(), face);
         cellsById.put(face.getId(), cell);
         clusterKeyByFaceId.put(face.getId(), clusterKey);
         targetFlow.getChildren()
@@ -244,7 +241,6 @@ public class FacePickerController implements Initializable {
      */
     private void removeCell(long faceId) {
         FacePickerCellController cell = cellsById.remove(faceId);
-        facesById.remove(faceId);
         selectedIds.remove(faceId);
         Long clusterKey = clusterKeyByFaceId.remove(faceId);
         if (cell == null) {

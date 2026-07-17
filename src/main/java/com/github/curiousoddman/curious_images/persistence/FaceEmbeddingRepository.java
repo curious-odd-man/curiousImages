@@ -1,7 +1,6 @@
 package com.github.curiousoddman.curious_images.persistence;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceEmbeddingRecord;
-import com.github.curiousoddman.curious_images.util.EmbeddingMath;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Query;

@@ -16,7 +16,6 @@ import com.github.curiousoddman.curious_images.ui.controller.screen.PersonDetail
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridCallbacks;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridRow;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoRowCell;
-import com.github.curiousoddman.curious_images.util.CollectionUtils;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.beans.value.ObservableValue;

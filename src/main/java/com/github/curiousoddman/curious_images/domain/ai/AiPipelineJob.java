@@ -18,8 +18,6 @@ import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
-import org.jooq.Query;
-import org.jooq.impl.DSL;
 import org.opencv.core.Mat;
 
 import java.nio.file.Path;

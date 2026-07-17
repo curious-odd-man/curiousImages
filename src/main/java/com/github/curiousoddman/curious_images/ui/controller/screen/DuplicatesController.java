@@ -342,11 +342,11 @@ public class DuplicatesController implements Initializable {
     }
 
     private void clearPreview() {
-        visiblePhotoCells.forEach((key, controller) -> {
-            controller.container()
-                      .getStyleClass()
-                      .clear();
-        });
+        visiblePhotoCells.forEach((key, controller) ->
+                controller.container()
+                          .getStyleClass()
+                          .clear()
+        );
     }
 
     private void resolveActivePane(DupResolveStrategy strategy) {
@@ -414,12 +414,12 @@ public class DuplicatesController implements Initializable {
         StringBuilder          sb               = new StringBuilder();
 
         photoDetailsText.values()
-                        .forEach(dr -> {
-                            sb.append(dr.getLabel())
-                              .append(": ")
-                              .append(dr.getValue())
-                              .append('\n');
-                        });
+                        .forEach(dr ->
+                                sb.append(dr.getLabel())
+                                  .append(": ")
+                                  .append(dr.getValue())
+                                  .append('\n')
+                        );
         return sb.toString();
     }
 

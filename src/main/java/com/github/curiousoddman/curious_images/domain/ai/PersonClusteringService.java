@@ -246,7 +246,6 @@ public class PersonClusteringService {
             }
         }
 
-        Map<Long, Integer> clusterListIndexByClusterId = new HashMap<>();
         for (Map.Entry<Long, List<Integer>> entry : lockedIndicesByClusterId.entrySet()) {
             long          existingClusterId = entry.getKey();
             List<Integer> indices           = entry.getValue();
@@ -266,7 +265,6 @@ public class PersonClusteringService {
             clusterSizes.add(indices.size());
             existingClusterIdOf.add(existingClusterId);
             existingClusterOwner.add(ownerPersonId);
-            clusterListIndexByClusterId.put(existingClusterId, listIndex);
 
             for (int idx : indices) {
                 clusterOf[idx] = listIndex;

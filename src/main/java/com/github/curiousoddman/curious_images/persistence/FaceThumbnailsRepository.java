@@ -45,7 +45,7 @@ public class FaceThumbnailsRepository {
                               .toString();
         int lastIndexOfDot = fileName.lastIndexOf('.');
 
-        String dirName = null;
+        String dirName;
         if (lastIndexOfDot > 0) {
             dirName = fileName.substring(0, lastIndexOfDot);
         } else {
