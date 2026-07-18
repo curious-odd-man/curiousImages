@@ -13,17 +13,19 @@ import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoRowCell;
 import com.github.curiousoddman.curious_images.ui.util.UiUtils;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.Slider;
-import javafx.scene.image.Image;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.annotation.Scope;
-import org.springframework.context.event.EventListener;
+import org.springframework.context.event.ApplicationEventMulticaster;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -58,9 +60,11 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks {
     private static final int GRID_METRICS_DEBOUNCE_MS  = 150;
     private static final int THUMBNAIL_GEN_DEBOUNCE_MS = 150;
 
-    private final FxmlLoader          fxmlLoader;
-    private final ThumbnailRepository thumbnailRepository;
-    private final JobManager          jobManager;
+    private final FxmlLoader                  fxmlLoader;
+    private final ThumbnailRepository         thumbnailRepository;
+    private final JobManager                  jobManager;
+    private final ApplicationEventMulticaster multicaster;
+
 
     @FXML
     public ListView<PhotoGridRow> listView;
@@ -88,6 +92,22 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks {
         thumbnailSizeSlider.valueProperty()
                            .addListener((obs, oldValue, newValue) ->
                                    gridMetricsDebounce.reSchedule(() -> recomputeGridMetrics(false)));
+    }
+
+    @PostConstruct
+    void init() {
+        multicaster.addApplicationListener(this::handle);
+    }
+
+    @PreDestroy
+    void destroy() {
+        multicaster.removeApplicationListener(this::handle);
+    }
+
+    private void handle(ApplicationEvent applicationEvent) {
+        if (applicationEvent instanceof ThumbnailsReadyEvent thumbnailsReadyEvent) {
+            onThumbnailsReady(thumbnailsReadyEvent);
+        }
     }
 
     public void clear() {
@@ -217,7 +237,7 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks {
         }
     }
 
-    @EventListener
+    //@EventListener // NOTE: this does not work on prototype scope bean
     public void onThumbnailsReady(ThumbnailsReadyEvent event) {
         ThumbnailUtils.updateThumbnailImage(thumbnailRepository, visiblePhotoCells, event);
     }
