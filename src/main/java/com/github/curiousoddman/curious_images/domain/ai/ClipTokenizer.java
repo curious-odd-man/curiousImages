@@ -71,7 +71,7 @@ public class ClipTokenizer {
      * Tokenises {@code text} and returns a {@code long[1][77]} tensor ready for the CLIP
      * text encoder. The output is SOT + tokens + EOT, padded with zeros to 77 tokens.
      */
-    public long[][] tokenize(String text) {
+    public int[][] tokenize(String text) {
         List<Integer> tokens = encode(text);
 
         // SOT + content + EOT, truncate if needed
@@ -83,7 +83,7 @@ public class ClipTokenizer {
         }
         result.add(eotToken);
 
-        long[][] output = new long[1][CONTEXT_LENGTH];
+        int[][] output = new int[1][CONTEXT_LENGTH];
         for (int i = 0; i < result.size(); i++) {
             output[0][i] = result.get(i);
         }

@@ -1,5 +1,9 @@
 USER_DATA_ROOT: C:\Users\curious\cimages
 
+ai:
+  features:
+    face-only: false
+
 spring:
   main:
     web-application-type: servlet
@@ -63,11 +67,6 @@ logging.level:
     github:
       curiousoddman:
         curious_images:
-          ui:
-            controller:
-              element: debug
-          model:
-            playlist: debug
           domain:
             ai: info
           index: info

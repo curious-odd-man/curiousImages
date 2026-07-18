@@ -40,7 +40,7 @@ public class ClipImageEncoder {
     private final ModelPaths        paths;
 
     public float[] encode(Mat image) throws OrtException, IrrecoverableIterationException {
-        OrtSession session = registry.getOrLoad("clip_image", paths.clipImage(), List.of("output"));
+        OrtSession session = registry.getOrLoad("clip_image", paths.clipImage(), List.of("embedding"));
 
         Mat resized = resizeShortestEdge(image, CLIP_SIZE);
         Mat cropped = centreCrop(resized, CLIP_SIZE, CLIP_SIZE);

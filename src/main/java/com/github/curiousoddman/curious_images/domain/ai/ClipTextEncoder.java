@@ -35,13 +35,16 @@ public class ClipTextEncoder {
      * {@link OnnxModelRegistry#evict(String)} between searches.
      */
     public float[] encode(String text) throws OrtException, IrrecoverableIterationException {
-        OrtSession session = registry.getOrLoad("clip_text", paths.clipText(), List.of("output"));
-        long[][]   tokens  = tokenizer.tokenize(text);
+        OrtSession session = registry.getOrLoad("clip_text", paths.clipText(), List.of("embedding"));
+        int[][]   tokens  = tokenizer.tokenize(text);
         try (OnnxTensor tensor = OnnxTensor.createTensor(OrtEnvironment.getEnvironment(), tokens);
-             OrtSession.Result result = session.run(Map.of("input", tensor))) {
-            float[] raw = (float[]) result.get(0)
+             OrtSession.Result result = session.run(Map.of("text", tensor))) {
+            float[][] raw = (float[][]) result.get(0)
                                           .getValue();
-            return l2Normalize(raw);
+            if (raw.length != 1) {
+                throw new IllegalArgumentException();
+            }
+            return l2Normalize(raw[0]);
         } finally {
             // Evict the text encoder after each query to reclaim ~250 MB RAM.
             // It will be reloaded from disk in <1 s on SSD.
