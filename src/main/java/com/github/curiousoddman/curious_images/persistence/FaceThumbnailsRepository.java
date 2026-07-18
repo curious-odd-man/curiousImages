@@ -43,14 +43,8 @@ public class FaceThumbnailsRepository {
         Path path = Path.of(originImageFullPath);
         String fileName = path.getFileName()
                               .toString();
-        int lastIndexOfDot = fileName.lastIndexOf('.');
 
-        String dirName;
-        if (lastIndexOfDot > 0) {
-            dirName = fileName.substring(0, lastIndexOfDot);
-        } else {
-            dirName = fileName;
-        }
+        String dirName = fileName.replace('.', '_');
 
         return path.getParent()
                    .resolve(dirName)
