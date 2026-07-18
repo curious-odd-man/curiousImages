@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
 import java.util.ResourceBundle;
-import java.util.function.Consumer;
 
 @Slf4j
 @Component
@@ -31,23 +30,22 @@ public class FxmlLoader {
         }
         loader.setResources(resourceBundle);
         loader.setClassLoader(context.getClassLoader());
-        Parent parent = loader.load(fxmlStream);
+        Pane parent = loader.load(fxmlStream);
         return new LoadedFxml<>(
                 parent,
                 loader.getController()
         );
     }
 
-    public <T, P extends Pane> P loadFxmlAndAttachToParent(P parent, FxmlView<T> view, Consumer<T> controllerConsumer) {
-        LoadedFxml<T> loadedFolderDuplicates = load(view, null);
-        controllerConsumer.accept(loadedFolderDuplicates.controller());
-        Parent viewPane = loadedFolderDuplicates.parent();
+    public <T> LoadedFxml<T> loadFxmlAndAttachToParent(Pane parent, FxmlView<T> view) {
+        LoadedFxml<T> loaded   = load(view, null);
+        Parent        viewPane = loaded.parent();
         AnchorPane.setTopAnchor(viewPane, 0.0);
         AnchorPane.setBottomAnchor(viewPane, 0.0);
         AnchorPane.setLeftAnchor(viewPane, 0.0);
         AnchorPane.setRightAnchor(viewPane, 0.0);
         parent.getChildren()
               .setAll(viewPane);
-        return parent;
+        return loaded;
     }
 }

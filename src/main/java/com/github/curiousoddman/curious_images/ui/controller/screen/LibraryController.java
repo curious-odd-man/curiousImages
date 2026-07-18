@@ -9,6 +9,7 @@ import com.github.curiousoddman.curious_images.event.model.BackgroundProcessEven
 import com.github.curiousoddman.curious_images.event.payload.BackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.event.types.BackgroundProcessEventType;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
+import com.github.curiousoddman.curious_images.model.UiElement;
 import com.github.curiousoddman.curious_images.model.bundle.AddFilesBundle;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
@@ -105,7 +106,7 @@ public class LibraryController implements Initializable {
     @FXML
     public StackPane                 contentStack;
     @FXML
-    public BorderPane                photoGridView;
+    public BorderPane                photoGridContainer;
     @FXML
     public AnchorPane                personDetailContainer;
     @FXML
@@ -127,11 +128,8 @@ public class LibraryController implements Initializable {
     @FXML
     public Label                     backgroundProgressDescription;
 
-
-    private DuplicatesController       duplicatesController;
-    private FolderDuplicatesController folderDuplicatesController;
-    private PersonDetailController     personDetailController;
-    private PhotoGridController        photoGridController;
+    private PersonDetailController personDetailController;
+    private PhotoGridController    photoGridController;
 
     private volatile boolean autoStartAiPipelineAfterModelDownload = false;
 
@@ -152,18 +150,23 @@ public class LibraryController implements Initializable {
             }
         });
 
-        LoadedFxml<PhotoGridController> loaded = fxmlLoader.load(FxmlView.PHOTO_GRID, null);
-        photoGridController = loaded.controller();
-        photoGridView.setCenter(loaded.parent());
+        LoadedFxml<PhotoGridController> photoGridLoaded = fxmlLoader.load(FxmlView.PHOTO_GRID, null);
+        photoGridController = photoGridLoaded.controller();
+        photoGridContainer.setCenter(photoGridLoaded.parent());
 
         photoGridManager.initialize(photoGridController);
         treeManager.onLibraryDataUpdated(null);
 
-        fxmlLoader.loadFxmlAndAttachToParent(duplicatesContainer, FxmlView.DUPLICATES, v -> duplicatesController = v);
-        fxmlLoader.loadFxmlAndAttachToParent(folderDuplicatesContainer, FxmlView.FOLDER_DUPLICATES, v -> folderDuplicatesController = v);
+        LoadedFxml<DuplicatesController>       duplicatesLoaded       = fxmlLoader.loadFxmlAndAttachToParent(duplicatesContainer, FxmlView.DUPLICATES);
+        LoadedFxml<FolderDuplicatesController> folderDuplicatesLoaded = fxmlLoader.loadFxmlAndAttachToParent(folderDuplicatesContainer, FxmlView.FOLDER_DUPLICATES);
         checkModelsAndPromptDownload();
 
-        libraryViewManager.initialize(photoGridView, duplicatesContainer, folderDuplicatesContainer, personDetailContainer, duplicatesController, folderDuplicatesController);
+        libraryViewManager.initialize(
+                new UiElement<>(photoGridContainer, photoGridController),
+                new UiElement<>(duplicatesContainer, duplicatesLoaded.controller()),
+                new UiElement<>(folderDuplicatesContainer, folderDuplicatesLoaded.controller()),
+                new UiElement<>(personDetailContainer, personDetailController)
+        );
     }
 
     // ── Window / split-pane preferences ──────────────────────────────────────
@@ -281,7 +284,7 @@ public class LibraryController implements Initializable {
                 photoGridManager.loadPhotosForAlbum(ap.albumId());
             }
             case PersonPayload pp ->
-                    personDetailController = libraryViewManager.showPersonDetail(pp.personId(), personDetailController);
+                    personDetailController = libraryViewManager.showPersonDetail(pp.personId(), new UiElement<>(personDetailContainer, personDetailController));
         }
     }
 

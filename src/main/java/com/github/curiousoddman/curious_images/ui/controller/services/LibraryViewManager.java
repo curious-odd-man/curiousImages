@@ -1,19 +1,21 @@
 package com.github.curiousoddman.curious_images.ui.controller.services;
 
+import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
+import com.github.curiousoddman.curious_images.model.UiElement;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
+import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridController;
 import com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController;
 import com.github.curiousoddman.curious_images.ui.controller.screen.FolderDuplicatesController;
 import com.github.curiousoddman.curious_images.ui.controller.screen.PersonDetailController;
 import javafx.scene.Node;
-import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.BorderPane;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 @Component
@@ -21,63 +23,86 @@ import java.util.concurrent.atomic.AtomicReference;
 public class LibraryViewManager {
     private final FxmlLoader fxmlLoader;
 
-    private BorderPane                 photoGridView;
-    private AnchorPane                 duplicatesContainer;
-    private AnchorPane                 folderDuplicatesContainer;
-    private AnchorPane                 personDetailContainer;
-    private DuplicatesController       duplicatesController;
-    private FolderDuplicatesController folderDuplicatesController;
+    private final List<UiElement<?>> uiElements = new ArrayList<>();
 
-    private List<Node> nodes = List.of();
+    private UiElement<PhotoGridController>        photoGrid;
+    private UiElement<DuplicatesController>       duplicates;
+    private UiElement<FolderDuplicatesController> folderDuplicates;
+    private UiElement<PersonDetailController>     personDetails;
 
-    public void initialize(BorderPane photoGridView,
-                           AnchorPane duplicatesContainer,
-                           AnchorPane folderDuplicatesContainer,
-                           AnchorPane personDetailContainer,
-                           DuplicatesController duplicatesController,
-                           FolderDuplicatesController folderDuplicatesController) {
-        this.photoGridView = photoGridView;
-        this.duplicatesContainer = duplicatesContainer;
-        this.folderDuplicatesContainer = folderDuplicatesContainer;
-        this.personDetailContainer = personDetailContainer;
-        this.duplicatesController = duplicatesController;
-        this.folderDuplicatesController = folderDuplicatesController;
-        nodes = List.of(photoGridView, duplicatesContainer, folderDuplicatesContainer, personDetailContainer);
+    public void initialize(UiElement<PhotoGridController> photoGridView,
+                           UiElement<DuplicatesController> duplicatesContainer,
+                           UiElement<FolderDuplicatesController> folderDuplicatesContainer,
+                           UiElement<PersonDetailController> personDetailContainer) {
+        this.photoGrid = photoGridView;
+        this.duplicates = duplicatesContainer;
+        this.folderDuplicates = folderDuplicatesContainer;
+        this.personDetails = personDetailContainer;
+
+        uiElements.add(photoGridView);
+        uiElements.add(personDetailContainer);
+        uiElements.add(duplicatesContainer);
+        uiElements.add(folderDuplicatesContainer);
     }
 
-    public PersonDetailController showPersonDetail(long personId, PersonDetailController personDetailController) {
-        AtomicReference<PersonDetailController> ctrl = new AtomicReference<>();
-        if (personDetailController == null) {
-            fxmlLoader.loadFxmlAndAttachToParent(personDetailContainer, FxmlView.PERSON_DETAIL, ctrl::set);
-            personDetailController = ctrl.get();
+    public PersonDetailController showPersonDetail(long personId, UiElement<PersonDetailController> personDetailsElement) {
+        PersonDetailController controller = personDetailsElement.controller();
+        if (personDetailsElement.controller() == null) {
+            controller = fxmlLoader.loadFxmlAndAttachToParent(personDetails.pane(), FxmlView.PERSON_DETAIL)
+                                   .controller();
+
+            if (uiElements.get(1)
+                          .controller() != null) {
+                // This should only be called once when the controller for person details does not exist yet
+                throw new IllegalStateException("oops, something went wrong");
+            }
+            UiElement<PersonDetailController> element = new UiElement<>(personDetailsElement.pane(), controller);
+            personDetailsElement = element;
+            uiElements.set(1, element);
         }
-        show(personDetailContainer);
-        personDetailController.loadPerson(personId);
-        return personDetailController;
+
+        show(personDetailsElement);
+        controller.loadPerson(personId);
+        return controller;
     }
 
     public void showPhotoGrid() {
-        show(photoGridView);
+        show(photoGrid);
     }
 
     public void showDuplicatesView() {
-        show(duplicatesContainer);
-        duplicatesController.activateDuplicatesView();
+        show(duplicates);
+        duplicates.controller()
+                  .activateDuplicatesView();
     }
 
     public void showFolderDuplicatesView() {
-        show(folderDuplicatesContainer);
-        folderDuplicatesController.activateFolderDuplicatesView();
+        show(folderDuplicates);
+        folderDuplicates.controller()
+                        .activateFolderDuplicatesView();
     }
 
-    private void show(Node node) {
+    @EventListener
+    public void onThumbnailReady(ThumbnailsReadyEvent event) {
+        for (UiElement<?> iter : uiElements) {
+            if (iter.controller() instanceof ThumbnailReadyEventListener listener) {
+                if (iter.pane()
+                        .isVisible()) {
+                    listener.onThumbnailReady(event);
+                }
+            }
+        }
+    }
+
+    private void show(UiElement<?> uiElement) {
         Node toShow = null;
-        for (Node iter : nodes) {
-            if (iter == node) {
-                toShow = iter;
+        for (UiElement<?> iter : uiElements) {
+            Node parent = iter.pane();
+            if (parent == uiElement.pane()) {
+                toShow = parent;
             } else {
-                iter.setVisible(false);
-                iter.setManaged(false);
+                parent.setVisible(false);
+                parent.setManaged(false);
             }
         }
 
@@ -85,7 +110,7 @@ public class LibraryViewManager {
             toShow.setVisible(true);
             toShow.setManaged(true);
         } else {
-            log.error("Nothing to show !!!! {}", node);
+            log.error("Nothing to show !!!! {}", uiElement);
         }
     }
 }

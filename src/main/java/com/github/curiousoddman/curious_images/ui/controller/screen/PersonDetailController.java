@@ -4,6 +4,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.domain.ai.PersonCorrectionService;
+import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.event.model.TreeViewUpdateEvent;
 import com.github.curiousoddman.curious_images.event.payload.TreeViewUpdatePayload;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
@@ -13,6 +14,7 @@ import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridController;
+import com.github.curiousoddman.curious_images.ui.controller.services.ThumbnailReadyEventListener;
 import com.github.curiousoddman.curious_images.ui.styles.CssClasses;
 import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
 import javafx.fxml.FXML;
@@ -62,7 +64,7 @@ import static com.sun.javafx.util.Utils.runOnFxThread;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class PersonDetailController implements Initializable {
+public class PersonDetailController implements Initializable, ThumbnailReadyEventListener {
 
     private final PersonRepository          personRepository;
     private final FaceRepository            faceRepository;
@@ -611,5 +613,12 @@ public class PersonDetailController implements Initializable {
         }
         return a.getCaptureDate()
                 .compareTo(b.getCaptureDate());
+    }
+
+    @Override
+    public void onThumbnailReady(ThumbnailsReadyEvent event) {
+        if (photoGridController != null) {
+            photoGridController.onThumbnailReady(event);
+        }
     }
 }

@@ -211,8 +211,6 @@ public class AiPipelineJob extends BackgroundJob {
                         FaceEmbeddingRecord emb = faceEmbeds.get(face.getId());
                         if (emb != null) {
                             float[] faceEmbed = EmbeddingMath.getFloats(emb.getEmbedding());
-                            // face no longer stores its person directly (see FaceRepository); resolve
-                            // via cluster_id -> cluster.person_id instead.
                             // TODO: this index is only refreshed here, at Lucene-indexing time — it is
                             //  NOT updated when a manual correction (reassign/merge/exclude, FR1-FR5)
                             //  changes a face's owner later. Revisit if face-similarity search starts

@@ -7,14 +7,13 @@ import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridModel;
+import com.github.curiousoddman.curious_images.ui.controller.services.ThumbnailReadyEventListener;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridCallbacks;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridRow;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoRowCell;
 import com.github.curiousoddman.curious_images.ui.util.UiUtils;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -23,9 +22,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.Slider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Scope;
-import org.springframework.context.event.ApplicationEventMulticaster;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -47,7 +44,7 @@ import static com.sun.javafx.util.Utils.runOnFxThread;
 @Component
 @Scope("prototype")
 @RequiredArgsConstructor
-public class PhotoGridController implements Initializable, PhotoGridCallbacks, ApplicationListener<ThumbnailsReadyEvent> {
+public class PhotoGridController implements Initializable, PhotoGridCallbacks, ThumbnailReadyEventListener {
     public static final int MAX_THUMBNAIL_DECODE_SIZE = 320;
 
     private static final double CELL_HPADDING         = 12.0; // photo_cell.fxml left+right padding
@@ -60,11 +57,9 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, A
     private static final int GRID_METRICS_DEBOUNCE_MS  = 150;
     private static final int THUMBNAIL_GEN_DEBOUNCE_MS = 150;
 
-    private final FxmlLoader                  fxmlLoader;
-    private final ThumbnailRepository         thumbnailRepository;
-    private final JobManager                  jobManager;
-    private final ApplicationEventMulticaster multicaster;
-
+    private final FxmlLoader          fxmlLoader;
+    private final ThumbnailRepository thumbnailRepository;
+    private final JobManager          jobManager;
 
     @FXML
     public ListView<PhotoGridRow> listView;
@@ -92,16 +87,6 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, A
         thumbnailSizeSlider.valueProperty()
                            .addListener((obs, oldValue, newValue) ->
                                    gridMetricsDebounce.reSchedule(() -> recomputeGridMetrics(false)));
-    }
-
-    @PostConstruct
-    void init() {
-        multicaster.addApplicationListener(this);
-    }
-
-    @PreDestroy
-    void destroy() {
-        multicaster.removeApplicationListener(this);
     }
 
     public void clear() {
@@ -222,6 +207,11 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, A
         photoCountLabel.setText(message);
     }
 
+    @Override
+    public void onThumbnailReady(ThumbnailsReadyEvent event) {
+        ThumbnailUtils.updateThumbnailImage(thumbnailRepository, visiblePhotoCells, event);
+    }
+
     public record RowInfo(long myGeneration, long myShowToken, List<Long> ids) {}
 
     @Override
@@ -229,11 +219,6 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, A
         for (PhotoRecord photo : previousPhotos) {
             visiblePhotoCells.remove(photo.getId());
         }
-    }
-
-    //@EventListener // NOTE: this does not work on prototype scope bean
-    public void onApplicationEvent(ThumbnailsReadyEvent event) {
-        ThumbnailUtils.updateThumbnailImage(thumbnailRepository, visiblePhotoCells, event);
     }
 
     private static boolean hasCachedFile(ThumbnailRecord thumbnail) {

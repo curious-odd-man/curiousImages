@@ -11,6 +11,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
@@ -24,19 +25,6 @@ import java.net.URL;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
-/**
- * Controller for a single image slot in the virtualized photo grid ({@code photo_cell.fxml}).
- * <p>
- * Instances are pooled and reused by {@link PhotoGridRowController} — a given instance shows a
- * different photo every time its row scrolls to a new position or the grid is re-flowed after a
- * resize / thumbnail-size change. This is what replaces the old {@code FlowPane} approach of
- * creating one permanent {@code Node} per photo: the number of live instances is now bounded by
- * (visible rows × columns), not by the size of the selection.
- * <p>
- * <b>Scope:</b> {@code prototype}, not the app's usual singleton {@code @Component} — a fresh
- * instance is created every time the pool grows (see {@code PhotoGridRowController#ensurePoolSize}),
- * mirroring {@code FacePickerCellController}/{@code DuplicateCellController}.
- */
 @Component
 @Scope("prototype")
 @RequiredArgsConstructor
@@ -45,17 +33,17 @@ public class PhotoCellController implements Initializable {
     private final ImageContextMenu imageContextMenu;
 
     @FXML
-    private Label     cellRoot;
+    public  BorderPane cellRoot;
     @FXML
-    private StackPane imageSlot;
+    public  Label      filenameLabel;
     @FXML
-    private Rectangle placeholderRect;
+    private StackPane  imageSlot;
     @FXML
-    private Label     placeholderLabel;
+    private Rectangle  placeholderRect;
     @FXML
-    private ImageView imageView;
+    private Label      placeholderLabel;
     @FXML
-    private Tooltip   tooltip;
+    private ImageView  imageView;
 
     @Setter
     private Consumer<PhotoRecord> onPhotoClicked;
@@ -63,22 +51,21 @@ public class PhotoCellController implements Initializable {
     @Getter
     private PhotoRecord currentPhoto;
 
+    private Tooltip tooltip;
+
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        tooltip = new Tooltip("");
+        tooltip.getStyleClass()
+               .add("monospace-text");
+        Tooltip.install(cellRoot, tooltip);
         tooltip.setShowDelay(Duration.millis(500));
         imageView.setPreserveRatio(true);
 
-        // Built fresh on every right-click rather than a field held for the pooled instance's
-        // lifetime — a pre-created ContextMenu would sit in memory for every pool slot even
-        // though it's shown at most once at a time. See onCellContextMenuRequested.
         cellRoot.setOnContextMenuRequested(e -> imageContextMenu.show(currentPhoto, cellRoot, e));
     }
 
-    /**
-     * Binds this cell's image/placeholder size to the shared thumbnail-size slider. Called once,
-     * right after this controller is created — the binding then tracks the slider live (including
-     * mid-drag) for every photo this pooled instance ever shows, with no rebinding needed.
-     */
     public void bindThumbnailSize(ObservableValue<? extends Number> size) {
         cellRoot.prefWidthProperty()
                 .bind(size);
@@ -104,7 +91,9 @@ public class PhotoCellController implements Initializable {
         this.currentPhoto = photo;
         cellRoot.setVisible(true);
         cellRoot.setManaged(true);
-        cellRoot.setText(photo.getFilename());
+        filenameLabel.setVisible(true);
+        filenameLabel.setManaged(true);
+        filenameLabel.setText(photo.getFilename());
         tooltip.setText(tooltipText);
         imageView.setVisible(false);
         imageView.setManaged(false);
@@ -113,11 +102,6 @@ public class PhotoCellController implements Initializable {
         placeholderLabel.setVisible(true);
     }
 
-    /**
-     * Swaps in the real image (thumbnail, quick-preview, or a fallback icon) — only if this slot
-     * is still showing {@code photo}; a no-op otherwise, i.e. this pooled instance has since been
-     * recycled to a different photo and the caller's lookup is stale.
-     */
     public void showImage(PhotoRecord photo, Image image) {
         if (currentPhoto != photo) {
             return;
@@ -134,6 +118,7 @@ public class PhotoCellController implements Initializable {
      */
     public void showEmpty() {
         this.currentPhoto = null;
+        filenameLabel.setVisible(false);
         cellRoot.setVisible(false);
         cellRoot.setManaged(false);
         imageView.setImage(null);
