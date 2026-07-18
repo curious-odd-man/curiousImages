@@ -23,7 +23,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.Slider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.event.ApplicationEventMulticaster;
 import org.springframework.stereotype.Component;
@@ -47,7 +47,7 @@ import static com.sun.javafx.util.Utils.runOnFxThread;
 @Component
 @Scope("prototype")
 @RequiredArgsConstructor
-public class PhotoGridController implements Initializable, PhotoGridCallbacks {
+public class PhotoGridController implements Initializable, PhotoGridCallbacks, ApplicationListener<ThumbnailsReadyEvent> {
     public static final int MAX_THUMBNAIL_DECODE_SIZE = 320;
 
     private static final double CELL_HPADDING         = 12.0; // photo_cell.fxml left+right padding
@@ -96,18 +96,12 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks {
 
     @PostConstruct
     void init() {
-        multicaster.addApplicationListener(this::handle);
+        multicaster.addApplicationListener(this);
     }
 
     @PreDestroy
     void destroy() {
-        multicaster.removeApplicationListener(this::handle);
-    }
-
-    private void handle(ApplicationEvent applicationEvent) {
-        if (applicationEvent instanceof ThumbnailsReadyEvent thumbnailsReadyEvent) {
-            onThumbnailsReady(thumbnailsReadyEvent);
-        }
+        multicaster.removeApplicationListener(this);
     }
 
     public void clear() {
@@ -238,7 +232,7 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks {
     }
 
     //@EventListener // NOTE: this does not work on prototype scope bean
-    public void onThumbnailsReady(ThumbnailsReadyEvent event) {
+    public void onApplicationEvent(ThumbnailsReadyEvent event) {
         ThumbnailUtils.updateThumbnailImage(thumbnailRepository, visiblePhotoCells, event);
     }
 
