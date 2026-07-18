@@ -2,11 +2,6 @@ package com.github.curiousoddman.curious_images.ui.styles;
 
 import lombok.experimental.UtilityClass;
 
-/**
- * Central registry of every CSS class name the Java code references, so a class name is never
- * duplicated as a string literal in more than one controller. Each constant here must have a
- * matching rule in {@code /styles/global.css}.
- */
 @UtilityClass
 public class CssClasses {
 
@@ -23,6 +18,8 @@ public class CssClasses {
     public static final String EDITABLE_FIELD_ACTIVE = "editable-field-active";
 
     public static final String GRID_CELL_UNDERLINE = "grid-cell-underline";
-    public static final String ERROR_TEXT = "error-text";
+    public static final String ERROR_TEXT          = "error-text";
 
+    public static final String ERROR_NOTIFICATION_ICON   = "error-notification-icon";
+    public static final String WARNING_NOTIFICATION_ICON = "warning-notification-icon";
 }

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.nio.file.Path;
 
 @Repository
@@ -17,8 +18,7 @@ public class FaceThumbnailsRepository {
 
     private final ThumbnailGenerator thumbnailGenerator;
 
-    @SneakyThrows
-    public Path createFaceThumbnail(String originImageFullPath, BufferedImage img, DetectedFace face) {
+    public Path createFaceThumbnail(String originImageFullPath, BufferedImage img, DetectedFace face) throws IOException {
         int x = (int) (img.getWidth() * face.x());
         int y = (int) (img.getHeight() * face.y());
         int w = (int) (img.getWidth() * face.w());

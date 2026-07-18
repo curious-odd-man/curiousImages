@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.*?>
+
+<HBox alignment="CENTER_LEFT" spacing="8" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.custom.NotificationMenuItemController">
+
+    <padding>
+        <Insets bottom="4" left="8" right="8" top="4" />
+    </padding>
+   <VBox fx:id="detailsVbox">
+      <children>
+      
+          <!-- Notification text -->
+          <Label fx:id="messageLabel" text="xxxxxxxxxxxx" wrapText="true" style="-fx-text-fill: black;"/>
+      </children>
+   </VBox>
+
+    <Region HBox.hgrow="ALWAYS" />
+
+    <Button onAction="#onDismissClicked">
+        <graphic>
+            <FontIcon iconColor="orangered" iconLiteral="bi-x-octagon-fill" iconSize="18" />
+        </graphic>
+    </Button>
+</HBox>

@@ -112,3 +112,13 @@
 .error-text {
     -fx-text-fill: #e84242;
 }
+
+.error-notification-icon {
+    -fx-icon-color: #e84242;
+    -fx-icon-size: 18;
+}
+
+.warning-notification-icon {
+    -fx-icon-color: #e1b400;
+    -fx-icon-size: 18;
+}

@@ -5,6 +5,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
+<?import org.kordamp.ikonli.javafx.FontIcon?>
 <BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0" prefHeight="1080.0" prefWidth="1920.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.LibraryController">
     <center>
         <SplitPane fx:id="librarySplitPane" dividerPositions="0.2559" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0" BorderPane.alignment="CENTER">
@@ -97,6 +98,7 @@
                         <MenuItem mnemonicParsing="false" text="About" />
                     </items>
                 </Menu>
+                <Menu fx:id="notificationsMenu" mnemonicParsing="false"/>
             </menus>
         </MenuBar>
     </top>

@@ -7,6 +7,8 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.domain.index.ClipVectorIndex;
 import com.github.curiousoddman.curious_images.domain.index.FaceVectorIndex;
+import com.github.curiousoddman.curious_images.event.model.UserNotificationEvent;
+import com.github.curiousoddman.curious_images.event.payload.FaceClipProcessingFailed;
 import com.github.curiousoddman.curious_images.persistence.*;
 import com.github.curiousoddman.curious_images.util.EmbeddingMath;
 import com.github.curiousoddman.curious_images.util.ImageUtils;
@@ -123,11 +125,13 @@ public class AiPipelineJob extends BackgroundJob {
         LocalDateTime now           = timeProvider.now();
         String        lastPhotoPath = "";
         Mat           img           = null;
+        PhotoRecord   photo         = null;
         try {
-            PhotoRecord photo = photoRepo.findById(photoId)
-                                         .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
+            photo = photoRepo.findById(photoId)
+                             .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
             lastPhotoPath = photo.getAbsolutePath();
-            img = imageUtils.imageOrCr2Preview(photo).orElseThrow();
+            img = imageUtils.imageOrCr2Preview(photo)
+                            .orElseThrow();
 
             if (faceSet.contains(photoId)) {
                 List<DetectedFace> faces = retinaFaceDetector.detect(img);
@@ -160,6 +164,7 @@ public class AiPipelineJob extends BackgroundJob {
             return true;
         } catch (Exception e) {
             log.error("Face/CLIP processing failed for photo {}", photoId, e);
+            eventPublisher.publishEvent(new UserNotificationEvent(this, new FaceClipProcessingFailed(photo, e)));
             buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
         } finally {
             if (img != null) {

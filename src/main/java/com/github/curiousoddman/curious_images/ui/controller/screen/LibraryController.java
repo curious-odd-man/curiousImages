@@ -15,6 +15,7 @@ import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
+import com.github.curiousoddman.curious_images.ui.controller.services.NotificationsService;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridController;
 import com.github.curiousoddman.curious_images.ui.controller.services.LibraryViewManager;
 import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridManager;
@@ -40,6 +41,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.Menu;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextField;
@@ -81,15 +83,16 @@ import static javafx.scene.control.ProgressIndicator.INDETERMINATE_PROGRESS;
 public class LibraryController implements Initializable {
     private static final int SEARCH_TOP_K = 50;
 
-    private final FxmlLoader             fxmlLoader;
-    private final UserPreferencesService userPreferencesService;
-    private final PhotoRepository        photoRepository;
-    private final SearchService          searchService;
-    private final JobManager             jobManager;
-    private final ModelPaths             modelPaths;
-    private final TreeManager            treeManager;
-    private final PhotoGridManager       photoGridManager;
-    private final LibraryViewManager     libraryViewManager;
+    private final FxmlLoader              fxmlLoader;
+    private final UserPreferencesService  userPreferencesService;
+    private final PhotoRepository         photoRepository;
+    private final SearchService           searchService;
+    private final JobManager              jobManager;
+    private final ModelPaths              modelPaths;
+    private final TreeManager             treeManager;
+    private final PhotoGridManager        photoGridManager;
+    private final LibraryViewManager   libraryViewManager;
+    private final NotificationsService notificationsService;
 
     // ── FXML nodes ────────────────────────────────────────────────────────────
 
@@ -127,6 +130,8 @@ public class LibraryController implements Initializable {
     public Label                     backgroundProgressLabel;
     @FXML
     public Label                     backgroundProgressDescription;
+    @FXML
+    public Menu                      notificationsMenu;
 
     private PersonDetailController personDetailController;
     private PhotoGridController    photoGridController;
@@ -136,6 +141,7 @@ public class LibraryController implements Initializable {
     @Override
     @SneakyThrows
     public void initialize(URL location, ResourceBundle resources) {
+        notificationsService.initialize(notificationsMenu);
         libraryTreeView.setCellFactory(tv -> new LibraryTreeCell());
         libraryTreeView.getSelectionModel()
                        .selectedItemProperty()
