@@ -6,6 +6,7 @@ import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoCellController;
 import javafx.scene.image.Image;
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.util.List;
@@ -15,6 +16,7 @@ import static com.github.curiousoddman.curious_images.ui.controller.custom.Photo
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
+@Slf4j
 @UtilityClass
 public class ThumbnailUtils {
     public static void updateThumbnailImage(ThumbnailRepository repo, Map<Long, PhotoCellController> visiblePhotoCells, ThumbnailsReadyEvent event) {
@@ -24,8 +26,11 @@ public class ThumbnailUtils {
 
             for (Map.Entry<Long, ThumbnailRecord> entry : thumbs.entrySet()) {
                 PhotoCellController cell = visiblePhotoCells.get(entry.getKey());
-                if (cell != null && hasCachedFile(entry.getValue())) {
+                boolean             hasCachedFile    = hasCachedFile(entry.getValue());
+                if (cell != null && hasCachedFile) {
                     runOnFxThread(() -> cell.showImage(cell.getCurrentPhoto(), loadThumbnailImage(entry.getValue())));
+                } else {
+                    log.warn("Unable to display thumbnail: {} --> {} && {}", event, cell != null, hasCachedFile);
                 }
             }
         });

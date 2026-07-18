@@ -87,12 +87,6 @@ public class PhotoGridRowController implements Initializable {
         return List.copyOf(pool);
     }
 
-    /**
-     * Synchronously updates this row's visible photo cells to {@code photos} — labels, tooltips,
-     * placeholders, and pool sizing all happen here with no disk/DB I/O. Real thumbnails/previews
-     * are applied later via {@link #applyImage}, once the caller (see {@link com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridCallbacks})
-     * has looked them up.
-     */
     public void showRow(List<PhotoRecord> photos) {
         showToken++;
         ensurePoolSize(photos.size());

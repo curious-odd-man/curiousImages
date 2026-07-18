@@ -174,7 +174,7 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks {
                 for (PhotoRecord photo : photos) {
                     ThumbnailRecord thumbnail = thumbs.get(photo.getId());
                     if (thumbnail != null && hasCachedFile(thumbnail)) {
-                        row.applyImage(photo, loadThumbnailImage(thumbnail));
+                        row.applyImage(photo, ThumbnailUtils.loadThumbnailImage(thumbnail));
                     } else {
                         missing.add(photo.getId()); // no real thumbnail yet
                     }
@@ -236,12 +236,6 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks {
             pendingThumbnailGenIds.clear();
             jobManager.submitThumbnailGenerationJob(batch);
         });
-    }
-
-    private Image loadThumbnailImage(ThumbnailRecord thumbnail) {
-        File file = new File(thumbnail.getCachePath());
-        return new Image(file.toURI()
-                             .toString(), MAX_THUMBNAIL_DECODE_SIZE, MAX_THUMBNAIL_DECODE_SIZE, true, true, true);
     }
 
     private void openSlideshow(List<PhotoRecord> photos, int startIndex) {

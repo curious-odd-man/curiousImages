@@ -23,7 +23,6 @@ public class FxmlLoader {
 
     @SneakyThrows
     public <T> LoadedFxml<T> load(FxmlView<T> fxmlPath, ResourceBundle resourceBundle) {
-        log.info("Loading {} ...", fxmlPath.fxmlPath());
         FXMLLoader loader = new FXMLLoader();
         loader.setControllerFactory(context::getBean);
         InputStream fxmlStream = getClass().getResourceAsStream(fxmlPath.fxmlPath());

@@ -48,7 +48,11 @@ public class ImageUtils {
                                         .map(mat -> rotateForOrientation(mat, rotationDegreeForCr2));
             }
             Mat img = imreadRotated(sourceFile);
-            return img.empty() ? Optional.empty() : Optional.of(img);
+            boolean empty = img.empty();
+            if (empty) {
+                log.warn("Unable to load image or cr2 preview: {}", sourceFile);
+            }
+            return empty ? Optional.empty() : Optional.of(img);
         } catch (Exception e) {
             log.warn("Failed to decode {}", sourceFile, e);
             return Optional.empty();
