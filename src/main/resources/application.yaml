@@ -8,7 +8,7 @@ spring:
   datasource:
     # MODE=PostgreSQL enables BIGSERIAL, JSON, and other PG syntax used in Flyway migrations.
     # DEFAULT_NULL_ORDERING=HIGH matches PostgreSQL behaviour (NULLs sort last in ASC).
-    url: jdbc:h2:file:${USER_DATA_ROOT}/cimages-${ENV};DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH
+    url: jdbc:h2:file:${USER_DATA_ROOT}/${ENV}/cimages;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH
     driver-class-name: org.h2.Driver
     username: sa
     password: sa
@@ -21,7 +21,7 @@ spring:
 
 app:
   thumbnail-cache:
-    dir: ${USER_DATA_ROOT}/dev/thumb-cache-${ENV}
+    dir: ${USER_DATA_ROOT}/${ENV}/thumb-cache
   duplicate-detection:
     thread-count: 4
   ai:
@@ -29,7 +29,7 @@ app:
     # Models are extracted from the classpath on first launch if not already present.
     # Place model files in src/main/resources/models/ before building.
     model-dir: ${USER_DATA_ROOT}/models
-    index-root: ${USER_DATA_ROOT}/index-${ENV}
+    index-root: ${USER_DATA_ROOT}/${ENV}/index
 
     # Execution provider for ONNX Runtime.
     # Options: CPU | CUDA | DIRECTML

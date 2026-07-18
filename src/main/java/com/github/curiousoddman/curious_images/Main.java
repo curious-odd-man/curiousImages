@@ -9,8 +9,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableTransactionManagement
 public class Main {
     // TODO: fix/verify search/index
-    // TODO: reorganize env artifacts (each env should be inside single folder)
-    // TODO: engagement features - ask AI, for example - show photos for this day in past etc...
+    // TODO: engagement features - rank, order and plan
     // TODO: metadata editing (DB only with "changed" flag for later dump to files if necessary)
     // TODO: Selections/collections/albums whatever - integrate photo-shoot-magic here
     // TODO: Scan and add video
