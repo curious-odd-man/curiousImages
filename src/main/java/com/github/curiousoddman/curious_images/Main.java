@@ -8,8 +8,9 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @SpringBootApplication
 @EnableTransactionManagement
 public class Main {
-    // TODO: fix/verify search/index - looks like it works, can we show embeddings for images??
-    //      Additionally, check the unused methods in SearchService - those could be used as well.
+    // TODO: search:        // for further expansion: https://github.com/dariusk/corpora/tree/master/data/animals
+    //      - add tags for images with the help of AI
+    //      - add @Person and #Tag search options with auto-complete suggestions
     // TODO: engagement features - rank, order and plan - see doc
     // TODO: metadata editing (DB only with "changed" flag for later dump to files if necessary)
     // TODO: Selections/collections/albums whatever - integrate photo-shoot-magic here
