@@ -1,10 +1,15 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoTagRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
 import com.github.curiousoddman.curious_images.ui.util.ImageContextMenu;
+import com.github.curiousoddman.curious_images.util.HumanReadableUtils;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
@@ -12,6 +17,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
@@ -22,8 +28,14 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.net.URL;
+import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
+
+import static com.github.curiousoddman.curious_images.ui.styles.CssClasses.TAG_LABEL;
+import static com.github.curiousoddman.curious_images.ui.util.UiUtils.fxManage;
+import static com.github.curiousoddman.curious_images.ui.util.UiUtils.fxUnmanage;
 
 @Component
 @Scope("prototype")
@@ -36,6 +48,8 @@ public class PhotoCellController implements Initializable {
     public  BorderPane cellRoot;
     @FXML
     public  Label      filenameLabel;
+    @FXML
+    public  FlowPane   tagsPane;
     @FXML
     private StackPane  imageSlot;
     @FXML
@@ -81,6 +95,8 @@ public class PhotoCellController implements Initializable {
                  .bind(size);
         imageView.fitHeightProperty()
                  .bind(size);
+        tagsPane.prefWrapLengthProperty()
+                .bind(cellRoot.widthProperty());
     }
 
     /**
@@ -89,26 +105,30 @@ public class PhotoCellController implements Initializable {
      */
     public void showPlaceholder(PhotoRecord photo, String tooltipText) {
         this.currentPhoto = photo;
-        cellRoot.setVisible(true);
-        cellRoot.setManaged(true);
-        filenameLabel.setVisible(true);
-        filenameLabel.setManaged(true);
+        fxManage(cellRoot, filenameLabel, placeholderRect);
+        fxUnmanage(imageView, tagsPane);
         filenameLabel.setText(photo.getFilename());
         tooltip.setText(tooltipText);
-        imageView.setVisible(false);
-        imageView.setManaged(false);
         imageView.setImage(null);
         placeholderRect.setVisible(true);
         placeholderLabel.setVisible(true);
     }
 
-    public void showImage(PhotoRecord photo, Image image) {
+    public void showImage(PhotoRecord photo, Map<PhotoTagRecord, TagEmbeddingRecord> tags, Image image) {
         if (currentPhoto != photo) {
             return;
         }
         imageView.setImage(image);
-        imageView.setVisible(true);
-        imageView.setManaged(true);
+        fxManage(imageView, tagsPane);
+        ObservableList<Node> tagsParent = tagsPane.getChildren();
+        tagsParent.clear();
+        for (Map.Entry<PhotoTagRecord, TagEmbeddingRecord> entry : tags.entrySet()) {
+            PhotoTagRecord     tag       = entry.getKey();
+            TagEmbeddingRecord embedding = entry.getValue();
+            Label              label     = new Label(embedding.getTag() + " (" + HumanReadableUtils.rate(tag.getConfidence()) + ")");
+            label.getStyleClass().add(TAG_LABEL);
+            tagsParent.add(label);
+        }
         placeholderRect.setVisible(false);
         placeholderLabel.setVisible(false);
     }
@@ -119,8 +139,7 @@ public class PhotoCellController implements Initializable {
     public void showEmpty() {
         this.currentPhoto = null;
         filenameLabel.setVisible(false);
-        cellRoot.setVisible(false);
-        cellRoot.setManaged(false);
+        fxUnmanage(cellRoot);
         imageView.setImage(null);
     }
 

@@ -14,4 +14,8 @@ public class HumanReadableUtils {
         }
         return String.format("%.1f %s", size, units[unitIndex]);
     }
+
+    public static String rate(double d) {
+        return String.format("%.2f", d);
+    }
 }

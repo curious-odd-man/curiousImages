@@ -1,9 +1,12 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoTagRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
+import com.github.curiousoddman.curious_images.persistence.PhotoTagRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridModel;
@@ -35,6 +38,7 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
@@ -60,6 +64,8 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, T
     private final FxmlLoader          fxmlLoader;
     private final ThumbnailRepository thumbnailRepository;
     private final JobManager          jobManager;
+    private final PhotoTagRepository  photoTagRepository;
+    private final ThumbnailUtils      thumbnailUtils;
 
     @FXML
     public ListView<PhotoGridRow> listView;
@@ -109,7 +115,11 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, T
         photoGridModel.nextGeneration();
         visiblePhotoCells.clear();
         pendingThumbnailGenIds.clear();
-        photoGridModel.setPhotos(photos);
+        Set<Long> photoIds = photos.stream()
+                                   .map(PhotoRecord::getId)
+                                   .collect(Collectors.toSet());
+        Map<Long, Map<PhotoTagRecord, TagEmbeddingRecord>> tags = photoTagRepository.findForPhotos(photoIds);
+        photoGridModel.setPhotos(photos, tags);
         photoCountLabel.setText(photos.size() + " photo" + (photos.size() == 1 ? "" : "s"));
         recomputeGridMetrics(true); // force a regroup even if the column count is unchanged
     }
@@ -173,7 +183,8 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, T
                 for (PhotoRecord photo : photos) {
                     ThumbnailRecord thumbnail = thumbs.get(photo.getId());
                     if (thumbnail != null && hasCachedFile(thumbnail)) {
-                        row.applyImage(photo, ThumbnailUtils.loadThumbnailImage(thumbnail));
+                        Map<PhotoTagRecord, TagEmbeddingRecord> tags = photoGridModel.getPhotoTags(photo);
+                        row.applyImage(photo, tags, ThumbnailUtils.loadThumbnailImage(thumbnail));
                     } else {
                         missing.add(photo.getId()); // no real thumbnail yet
                     }
@@ -209,7 +220,7 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, T
 
     @Override
     public void onThumbnailReady(ThumbnailsReadyEvent event) {
-        ThumbnailUtils.updateThumbnailImage(thumbnailRepository, visiblePhotoCells, event);
+        thumbnailUtils.updateThumbnailImage(visiblePhotoCells, event);
     }
 
     public record RowInfo(long myGeneration, long myShowToken, List<Long> ids) {}

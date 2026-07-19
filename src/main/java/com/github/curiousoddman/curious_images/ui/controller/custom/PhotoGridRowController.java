@@ -1,6 +1,8 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoTagRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Component;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -109,10 +112,10 @@ public class PhotoGridRowController implements Initializable {
      * captured value before calling this, to avoid the (harmless but wasted) lookup-vs-slot
      * mismatch entirely.
      */
-    public void applyImage(PhotoRecord photo, Image image) {
+    public void applyImage(PhotoRecord photo, Map<PhotoTagRecord, TagEmbeddingRecord> tags, Image image) {
         for (PhotoCellController cell : pool) {
             if (cell.getCurrentPhoto() == photo) {
-                cell.showImage(photo, image);
+                cell.showImage(photo, tags, image);
                 return;
             }
         }

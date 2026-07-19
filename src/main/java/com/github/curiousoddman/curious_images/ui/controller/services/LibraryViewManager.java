@@ -17,6 +17,9 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.github.curiousoddman.curious_images.ui.util.UiUtils.fxManage;
+import static com.github.curiousoddman.curious_images.ui.util.UiUtils.fxUnmanage;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -101,14 +104,14 @@ public class LibraryViewManager {
             if (parent == uiElement.pane()) {
                 toShow = parent;
             } else {
+                fxUnmanage(parent);
                 parent.setVisible(false);
                 parent.setManaged(false);
             }
         }
 
         if (toShow != null) {
-            toShow.setVisible(true);
-            toShow.setManaged(true);
+            fxManage(toShow);
         } else {
             log.error("Nothing to show !!!! {}", uiElement);
         }

@@ -122,3 +122,10 @@
     -fx-icon-color: #e1b400;
     -fx-icon-size: 18;
 }
+
+.tag {
+    -fx-background-color: #E8F0FE;
+    -fx-background-radius: 999px;
+    -fx-padding: 4 8 4 12;
+    -fx-alignment: center-left;
+}

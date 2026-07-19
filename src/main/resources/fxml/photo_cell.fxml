@@ -23,6 +23,11 @@
       </StackPane>
    </center>
    <bottom>
-      <Label fx:id="filenameLabel" text="Label" BorderPane.alignment="CENTER" />
+      <VBox BorderPane.alignment="CENTER">
+         <children>
+            <FlowPane fx:id="tagsPane" alignment="CENTER" columnHalignment="CENTER" />
+            <Label fx:id="filenameLabel" text="Label" />
+         </children>
+      </VBox>
    </bottom>
 </BorderPane>

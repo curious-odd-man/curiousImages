@@ -8,6 +8,7 @@ import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.stage.Modality;
@@ -73,5 +74,19 @@ public class UiUtils {
         keepSelectedButton.setOnMouseExited(e -> onExit.run());
         deleteSelectedButton.setOnMouseEntered(e -> onEnter.accept(DupResolveStrategy.REMOVE_CHECKED));
         deleteSelectedButton.setOnMouseExited(e -> onExit.run());
+    }
+
+    public static void fxManage(Node... parent) {
+        for (Node node : parent) {
+            node.setVisible(true);
+            node.setManaged(true);
+        }
+    }
+
+    public static void fxUnmanage(Node... parent) {
+        for (Node node : parent) {
+            node.setVisible(false);
+            node.setManaged(false);
+        }
     }
 }

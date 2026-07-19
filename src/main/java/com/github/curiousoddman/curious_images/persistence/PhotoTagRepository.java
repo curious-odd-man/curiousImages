@@ -1,12 +1,18 @@
 package com.github.curiousoddman.curious_images.persistence;
 
+import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoTagRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Query;
+import org.jooq.Record2;
+import org.jooq.Result;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.github.curiousoddman.curious_images.dbobj.Tables.PHOTO_TAG;
 import static com.github.curiousoddman.curious_images.dbobj.Tables.TAG_EMBEDDING;
@@ -47,5 +53,23 @@ public class PhotoTagRepository {
                   .onConflict(PHOTO_TAG.TAG_ID, PHOTO_TAG.PHOTO_ID)
                   .doUpdate()
                   .set(PHOTO_TAG.TAG_SOURCE, "AI");
+    }
+
+    public Map<Long, Map<PhotoTagRecord, TagEmbeddingRecord>> findForPhotos(Collection<Long> photoIds) {
+        Result<Record2<PhotoTagRecord, TagEmbeddingRecord>> result = dsl.select(PHOTO_TAG, TAG_EMBEDDING)
+                                                                        .from(PHOTO_TAG)
+                                                                        .join(TAG_EMBEDDING)
+                                                                        .on(PHOTO_TAG.TAG_ID.eq(TAG_EMBEDDING.ID))
+                                                                        .where(PHOTO_TAG.PHOTO_ID.in(photoIds))
+                                                                        .fetch();
+        Map<Long, Map<PhotoTagRecord, TagEmbeddingRecord>> map = new HashMap<>();
+        for (Record2<PhotoTagRecord, TagEmbeddingRecord> row : result) {
+            PhotoTagRecord     photoTagRecord     = row.value1();
+            TagEmbeddingRecord tagEmbeddingRecord = row.value2();
+            map.computeIfAbsent(photoTagRecord.getPhotoId(), _ -> new HashMap<>())
+               .put(photoTagRecord, tagEmbeddingRecord);
+        }
+
+        return map;
     }
 }
