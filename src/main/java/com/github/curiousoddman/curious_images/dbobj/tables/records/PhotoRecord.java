@@ -409,6 +409,20 @@ public class PhotoRecord extends UpdatableRecordImpl<PhotoRecord> {
         return (LocalDateTime) get(26);
     }
 
+    /**
+     * Setter for <code>public.PHOTO.AI_TAG_DONE</code>.
+     */
+    public void setAiTagDone(Boolean value) {
+        set(27, value);
+    }
+
+    /**
+     * Getter for <code>public.PHOTO.AI_TAG_DONE</code>.
+     */
+    public Boolean getAiTagDone() {
+        return (Boolean) get(27);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -432,7 +446,7 @@ public class PhotoRecord extends UpdatableRecordImpl<PhotoRecord> {
     /**
      * Create a detached, initialised PhotoRecord
      */
-    public PhotoRecord(Long id, Long folderId, String absolutePath, String filename, String extension, Long fileSize, Integer imageWidth, Integer imageHeight, LocalDateTime captureDate, String captureDateSource, LocalDateTime importedAt, LocalDateTime lastSeenAt, Integer orientation, String cameraMake, String cameraModel, String lensModel, JSON exifExtra, Double gpsLat, Double gpsLon, Double gpsAltitude, Boolean aiFaceDetectDone, Boolean aiFaceEmbedDone, Boolean aiClipEmbedDone, Boolean aiLuceneIndexDone, String aiLastError, Short aiRetryCount, LocalDateTime aiUpdatedAt) {
+    public PhotoRecord(Long id, Long folderId, String absolutePath, String filename, String extension, Long fileSize, Integer imageWidth, Integer imageHeight, LocalDateTime captureDate, String captureDateSource, LocalDateTime importedAt, LocalDateTime lastSeenAt, Integer orientation, String cameraMake, String cameraModel, String lensModel, JSON exifExtra, Double gpsLat, Double gpsLon, Double gpsAltitude, Boolean aiFaceDetectDone, Boolean aiFaceEmbedDone, Boolean aiClipEmbedDone, Boolean aiLuceneIndexDone, String aiLastError, Short aiRetryCount, LocalDateTime aiUpdatedAt, Boolean aiTagDone) {
         super(Photo.PHOTO);
 
         setId(id);
@@ -462,6 +476,7 @@ public class PhotoRecord extends UpdatableRecordImpl<PhotoRecord> {
         setAiLastError(aiLastError);
         setAiRetryCount(aiRetryCount);
         setAiUpdatedAt(aiUpdatedAt);
+        setAiTagDone(aiTagDone);
         resetChangedOnNotNull();
     }
 }

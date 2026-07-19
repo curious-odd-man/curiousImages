@@ -21,7 +21,8 @@ import com.github.curiousoddman.curious_images.dbobj.tables.Person;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoPreview;
-import com.github.curiousoddman.curious_images.dbobj.tables.Tag;
+import com.github.curiousoddman.curious_images.dbobj.tables.PhotoTag;
+import com.github.curiousoddman.curious_images.dbobj.tables.TagEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail;
 import com.github.curiousoddman.curious_images.dbobj.tables.UserPreferences;
 
@@ -128,9 +129,14 @@ public class Tables {
     public static final PhotoPreview PHOTO_PREVIEW = PhotoPreview.PHOTO_PREVIEW;
 
     /**
-     * The table <code>public.TAG</code>.
+     * The table <code>public.PHOTO_TAG</code>.
      */
-    public static final Tag TAG = Tag.TAG;
+    public static final PhotoTag PHOTO_TAG = PhotoTag.PHOTO_TAG;
+
+    /**
+     * The table <code>public.TAG_EMBEDDING</code>.
+     */
+    public static final TagEmbedding TAG_EMBEDDING = TagEmbedding.TAG_EMBEDDING;
 
     /**
      * The table <code>public.THUMBNAIL</code>.

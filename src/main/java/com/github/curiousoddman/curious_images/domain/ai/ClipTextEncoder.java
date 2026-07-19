@@ -45,10 +45,6 @@ public class ClipTextEncoder {
                 throw new IllegalArgumentException();
             }
             return l2Normalize(raw[0]);
-        } finally {
-            // Evict the text encoder after each query to reclaim ~250 MB RAM.
-            // It will be reloaded from disk in <1 s on SSD.
-            registry.evict("clip_text");
         }
     }
 }

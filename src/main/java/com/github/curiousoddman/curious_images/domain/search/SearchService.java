@@ -29,7 +29,6 @@ public class SearchService {
     private final ClipVectorIndex         clipVectorIndex;
     private final ClipEmbeddingRepository clipEmbeddingRepo;
     private final FaceRepository          faceRepo;
-    private final ClusterRepository clusterRepository;
 
     /**
      * Encodes {@code query} with the CLIP text encoder and returns up to {@code topK} photo

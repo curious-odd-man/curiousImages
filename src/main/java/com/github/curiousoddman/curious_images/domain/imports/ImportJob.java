@@ -154,7 +154,7 @@ public class ImportJob extends BackgroundJob {
                     metadata.cameraModel(), metadata.lensModel(),
                     metadata.exifExtraJson(), now));
             queuePreview(photoId, metadata, buffer);
-            buffer.add(photoRepository.resetAiFields());
+            buffer.add(photoRepository.resetAiFields(photoId));
             return ImportOutcome.UPDATED;
         }
 

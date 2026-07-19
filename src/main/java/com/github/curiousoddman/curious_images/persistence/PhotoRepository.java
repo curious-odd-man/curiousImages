@@ -299,14 +299,16 @@ public class PhotoRepository {
                   .fetch(PHOTO.ID);
     }
 
-    public Query resetAiFields() {
+    public Query resetAiFields(long photoId) {
         return dsl
                 .update(PHOTO)
                 .set(PHOTO.AI_UPDATED_AT, timeProvider.now())
                 .set(PHOTO.AI_CLIP_EMBED_DONE, false)
                 .set(PHOTO.AI_FACE_DETECT_DONE, false)
                 .set(PHOTO.AI_FACE_EMBED_DONE, false)
-                .set(PHOTO.AI_LUCENE_INDEX_DONE, false);
+                .set(PHOTO.AI_LUCENE_INDEX_DONE, false)
+                .set(PHOTO.AI_TAG_DONE,false)
+                .where(PHOTO.ID.eq(photoId));
     }
 
     public List<PhotoRecord> findOrderedByCaptureDate() {
@@ -321,5 +323,19 @@ public class PhotoRepository {
                   .where(PHOTO.GPS_LAT.isNotNull()
                                       .and(PHOTO.GPS_LON.isNotNull()))
                   .fetch();
+    }
+
+    public List<Long> findPendingAiTagging() {
+        return dsl.select(PHOTO.ID)
+                  .from(PHOTO)
+                  .where(PHOTO.AI_TAG_DONE.eq(false))
+                  .fetch(PHOTO.ID);
+    }
+
+    public Query markTaggingDone(Long photoId) {
+        return dsl.update(PHOTO)
+                  .set(PHOTO.AI_TAG_DONE, true)
+                  .set(PHOTO.AI_UPDATED_AT, timeProvider.now())
+                  .where(PHOTO.ID.eq(photoId));
     }
 }

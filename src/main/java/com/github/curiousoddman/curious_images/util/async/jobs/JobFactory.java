@@ -5,6 +5,7 @@ import com.github.curiousoddman.curious_images.domain.ai.AiPipelineJob;
 import com.github.curiousoddman.curious_images.domain.ai.AlbumGenerationJob;
 import com.github.curiousoddman.curious_images.domain.ai.ArcFaceEncoder;
 import com.github.curiousoddman.curious_images.domain.ai.ClipImageEncoder;
+import com.github.curiousoddman.curious_images.domain.ai.ClipTextEncoder;
 import com.github.curiousoddman.curious_images.domain.ai.FaceAligner;
 import com.github.curiousoddman.curious_images.domain.ai.ModelDownloadJob;
 import com.github.curiousoddman.curious_images.domain.ai.ModelPaths;
@@ -35,6 +36,7 @@ import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoPreviewRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
+import com.github.curiousoddman.curious_images.persistence.PhotoTagRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.util.ImageUtils;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
@@ -85,6 +87,8 @@ public class JobFactory {
     private final ClusterRepository        clusterRepository;
     private final PersonService            personService;
     private final ModelPaths               modelPaths;
+    private final ClipTextEncoder          clipTextEncoder;
+    private final PhotoTagRepository       photoTagRepository;
 
     public ImportJob createImportJob(List<String> paths) {
         return new ImportJob(
@@ -147,7 +151,9 @@ public class JobFactory {
                 faceThumbnailsRepository,
                 jobManager,
                 imageUtils,
-                aiFaceDetectionOnly
+                aiFaceDetectionOnly,
+                clipTextEncoder,
+                photoTagRepository
         );
     }
 

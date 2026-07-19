@@ -1,10 +1,12 @@
 package com.github.curiousoddman.curious_images.domain.ai;
 
+import ai.onnxruntime.OrtException;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ClipEmbeddingRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ClusterRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceEmbeddingRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
 import com.github.curiousoddman.curious_images.domain.index.ClipVectorIndex;
 import com.github.curiousoddman.curious_images.domain.index.FaceVectorIndex;
 import com.github.curiousoddman.curious_images.event.model.UserNotificationEvent;
@@ -25,10 +27,12 @@ import org.opencv.core.Mat;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Set;
 
 import static com.github.curiousoddman.curious_images.util.QueryBuffer.DB_FLUSH_BATCH_SIZE;
@@ -36,10 +40,13 @@ import static com.github.curiousoddman.curious_images.util.QueryBuffer.DB_FLUSH_
 @Slf4j
 @RequiredArgsConstructor
 public class AiPipelineJob extends BackgroundJob {
-    public static final String AI_PIPELINE = "AI Pipeline";
+    public static final  String AI_PIPELINE                   = "AI Pipeline";
+    private static final float  TAGGING_SIMILARITY_THREASHOLD = 0.8f;       // TODO: this is configurable option for a user
+    private static final int    TAGGING_KTOP                  = 5;
 
     private static final String ARCFACE_MODEL_VER    = "arcface_r50";
     private static final String CLIP_IMAGE_MODEL_VER = "clip_vit_b32";
+    private static final String CLIP_TEXT_MODEL_VER  = "text_vit_b32";
 
     private final DSLContext               dsl;
     private final PhotoRepository          photoRepo;
@@ -59,6 +66,8 @@ public class AiPipelineJob extends BackgroundJob {
     private final JobManager               jobManager;
     private final ImageUtils               imageUtils;
     private final boolean                  faceDetectionOnly;
+    private final ClipTextEncoder          clipTextEncoder;
+    private final PhotoTagRepository       tagRepository;
 
     @Override
     public void runImpl() throws Exception {
@@ -76,6 +85,12 @@ public class AiPipelineJob extends BackgroundJob {
                     publishInterrupted();
                     return;
                 }
+
+                runImageTagging();
+                if (isInterruptRequested()) {
+                    publishInterrupted();
+                    return;
+                }
             }
 
             personClusteringService.clusterIncremental();
@@ -87,6 +102,99 @@ public class AiPipelineJob extends BackgroundJob {
             publishFailed(e);
             throw e;
         }
+    }
+
+    private void runImageTagging() throws OrtException, IrrecoverableIterationException {
+        List<Long> photoIds = photoRepo.findPendingAiTagging();
+        if (photoIds.isEmpty()) {
+            log.info("AI tagging: no pending photos");
+            return;
+        }
+
+        // Note - those must be normalized!!
+        List<TagEmbeddingRecord> tags = getOrCalculateTagEmbeddings();
+
+        if (isInterruptRequested()) {
+            publishInterrupted();
+            return;
+        }
+
+        List<ClipEmbeddingRecord> clipEmbeddings = clipEmbeddingRepo.findByPhotoIds(photoIds);
+        try (QueryBuffer queryBuffer = new QueryBuffer(dsl)) {
+            publishInProgress("Image Tagging...", 0, photoIds.size());
+            for (int i = 0; i < clipEmbeddings.size(); i++) {
+                ClipEmbeddingRecord clipEmbedding = clipEmbeddings.get(i);
+                if (isInterruptRequested()) {
+                    publishInterrupted();
+                    return;
+                }
+
+                float[]                 embedding     = EmbeddingMath.getFloats(clipEmbedding.getEmbedding());
+                PriorityQueue<TagScore> priorityQueue = new PriorityQueue<>(Comparator.comparing(TagScore::score));
+                for (TagEmbeddingRecord tag : tags) {
+                    if (isInterruptRequested()) {
+                        publishInterrupted();
+                        return;
+                    }
+
+                    float[] tagEmbedding = EmbeddingMath.getFloats(tag.getEmbedding());
+                    float   similarity   = EmbeddingMath.dot(embedding, tagEmbedding);
+                    priorityQueue.add(new TagScore(tag, similarity));
+                    if (priorityQueue.size() > TAGGING_KTOP) {
+                        priorityQueue.poll();
+                    }
+                }
+
+                for (TagScore tagScore : priorityQueue) {
+                    queryBuffer.add(
+                            tagRepository.upsert(clipEmbedding.getPhotoId(), tagScore.tag(), tagScore.score()),
+                            photoRepo.markTaggingDone(clipEmbedding.getPhotoId())
+
+                    );
+                }
+                publishProgressThrottled("Processing photos", i + 1, clipEmbeddings.size(),
+                        "Photo id = " + clipEmbedding.getPhotoId(), i == clipEmbeddings.size() - 1);
+            }
+        }
+    }
+
+    private List<TagEmbeddingRecord> getOrCalculateTagEmbeddings() throws OrtException, IrrecoverableIterationException {
+        List<TagEmbeddingRecord> tags = tagRepository.findAllTags();
+
+        List<TagEmbeddingRecord> missing = tags.stream()
+                                               .filter(t -> t.getEmbedding() == null
+                                                       || !CLIP_TEXT_MODEL_VER.equals(t.getModelVer()))
+                                               .toList();
+
+        if (!missing.isEmpty()) {
+            publishInProgress("Tag Embeddings", 0, missing.size());
+            try (QueryBuffer queryBuffer = new QueryBuffer(dsl)) {
+                log.debug("Calculating embeddings for {} tags", missing.size());
+                if (isInterruptRequested()) {
+                    publishInterrupted();
+                    return List.of();
+                }
+
+                for (int i = 0; i < missing.size(); i++) {
+                    TagEmbeddingRecord tag       = missing.get(i);
+                    float[]            embedding = clipTextEncoder.encode(tag.getTag());
+
+                    tag.setEmbedding(EmbeddingMath.toBytes(embedding));
+                    tag.setModelVer(CLIP_TEXT_MODEL_VER);
+                    publishProgressThrottled("Tag embeddings", i + 1, missing.size(),
+                            tag.getCategory() + " : " + tag.getTag(), i == missing.size() - 1);
+                }
+
+                queryBuffer.add(tagRepository.update(missing));
+            }
+        } else {
+            log.debug("All tags are embedded - no work to be done...");
+        }
+
+        return tags;
+    }
+
+    public record TagScore(TagEmbeddingRecord tag, float score) {
     }
 
     private void runFaceAndClipEmbedding() {

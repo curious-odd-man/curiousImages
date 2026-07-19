@@ -65,4 +65,10 @@ public class ClipEmbeddingRepository {
            .where(CLIP_EMBEDDING.PHOTO_ID.eq(photoId))
            .execute();
     }
+
+    public List<ClipEmbeddingRecord> findByPhotoIds(List<Long> photoIds) {
+        return dsl.selectFrom(CLIP_EMBEDDING)
+                  .where(CLIP_EMBEDDING.PHOTO_ID.in(photoIds))
+                  .fetch();
+    }
 }

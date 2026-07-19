@@ -16,6 +16,8 @@ import com.github.curiousoddman.curious_images.dbobj.tables.Face.FacePath;
 import com.github.curiousoddman.curious_images.dbobj.tables.Folder.FolderPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash.PhotoHashPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoPreview.PhotoPreviewPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.PhotoTag.PhotoTagPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.TagEmbedding.TagEmbeddingPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail.ThumbnailPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 
@@ -215,6 +217,11 @@ public class Photo extends TableImpl<PhotoRecord> {
      */
     public final TableField<PhotoRecord, LocalDateTime> AI_UPDATED_AT = createField(DSL.name("AI_UPDATED_AT"), SQLDataType.LOCALDATETIME(6), this, "");
 
+    /**
+     * The column <code>public.PHOTO.AI_TAG_DONE</code>.
+     */
+    public final TableField<PhotoRecord, Boolean> AI_TAG_DONE = createField(DSL.name("AI_TAG_DONE"), SQLDataType.BOOLEAN.defaultValue(DSL.field(DSL.raw("FALSE"), SQLDataType.BOOLEAN)), this, "");
+
     private Photo(Name alias, Table<PhotoRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }
@@ -377,6 +384,19 @@ public class Photo extends TableImpl<PhotoRecord> {
         return _photoHash;
     }
 
+    private transient PhotoTagPath _photoTag;
+
+    /**
+     * Get the implicit to-many join path to the <code>public.PHOTO_TAG</code>
+     * table
+     */
+    public PhotoTagPath photoTag() {
+        if (_photoTag == null)
+            _photoTag = new PhotoTagPath(this, null, Keys.CONSTRAINT_73A.getInverseKey());
+
+        return _photoTag;
+    }
+
     private transient AlbumPhotoPath _albumPhoto;
 
     /**
@@ -435,6 +455,14 @@ public class Photo extends TableImpl<PhotoRecord> {
      */
     public DuplicateGroupPath duplicateGroup() {
         return duplicateGroupMember().duplicateGroup();
+    }
+
+    /**
+     * Get the implicit many-to-many join path to the
+     * <code>public.TAG_EMBEDDING</code> table
+     */
+    public TagEmbeddingPath tagEmbedding() {
+        return photoTag().tagEmbedding();
     }
 
     @Override

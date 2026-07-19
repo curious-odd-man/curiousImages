@@ -21,7 +21,8 @@ import com.github.curiousoddman.curious_images.dbobj.tables.Person;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoPreview;
-import com.github.curiousoddman.curious_images.dbobj.tables.Tag;
+import com.github.curiousoddman.curious_images.dbobj.tables.PhotoTag;
+import com.github.curiousoddman.curious_images.dbobj.tables.TagEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail;
 import com.github.curiousoddman.curious_images.dbobj.tables.UserPreferences;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.AlbumPhotoRecord;
@@ -41,7 +42,8 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoHashRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoPreviewRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.TagRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoTagRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.UserPreferencesRecord;
 
@@ -95,7 +97,8 @@ public class Keys {
     public static final UniqueKey<PhotoRecord> CONSTRAINT_489 = Internal.createUniqueKey(Photo.PHOTO, DSL.name("CONSTRAINT_489"), new TableField[] { Photo.PHOTO.ABSOLUTE_PATH }, true);
     public static final UniqueKey<PhotoHashRecord> CONSTRAINT_6 = Internal.createUniqueKey(PhotoHash.PHOTO_HASH, DSL.name("CONSTRAINT_6"), new TableField[] { PhotoHash.PHOTO_HASH.PHOTO_ID }, true);
     public static final UniqueKey<PhotoPreviewRecord> CONSTRAINT_33 = Internal.createUniqueKey(PhotoPreview.PHOTO_PREVIEW, DSL.name("CONSTRAINT_33"), new TableField[] { PhotoPreview.PHOTO_PREVIEW.PHOTO_ID }, true);
-    public static final UniqueKey<TagRecord> CONSTRAINT_1 = Internal.createUniqueKey(Tag.TAG, DSL.name("CONSTRAINT_1"), new TableField[] { Tag.TAG.ID }, true);
+    public static final UniqueKey<PhotoTagRecord> CONSTRAINT_73A0 = Internal.createUniqueKey(PhotoTag.PHOTO_TAG, DSL.name("CONSTRAINT_73A0"), new TableField[] { PhotoTag.PHOTO_TAG.TAG_ID, PhotoTag.PHOTO_TAG.PHOTO_ID }, true);
+    public static final UniqueKey<TagEmbeddingRecord> CONSTRAINT_7BE = Internal.createUniqueKey(TagEmbedding.TAG_EMBEDDING, DSL.name("CONSTRAINT_7BE"), new TableField[] { TagEmbedding.TAG_EMBEDDING.ID }, true);
     public static final UniqueKey<ThumbnailRecord> CONSTRAINT_F = Internal.createUniqueKey(Thumbnail.THUMBNAIL, DSL.name("CONSTRAINT_F"), new TableField[] { Thumbnail.THUMBNAIL.PHOTO_ID }, true);
     public static final UniqueKey<UserPreferencesRecord> CONSTRAINT_2 = Internal.createUniqueKey(UserPreferences.USER_PREFERENCES, DSL.name("CONSTRAINT_2"), new TableField[] { UserPreferences.USER_PREFERENCES.PREF_KEY }, true);
 
@@ -120,5 +123,7 @@ public class Keys {
     public static final ForeignKey<PhotoRecord, FolderRecord> CONSTRAINT_48 = Internal.createForeignKey(Photo.PHOTO, DSL.name("CONSTRAINT_48"), new TableField[] { Photo.PHOTO.FOLDER_ID }, Keys.CONSTRAINT_7B, new TableField[] { Folder.FOLDER.ID }, true);
     public static final ForeignKey<PhotoHashRecord, PhotoRecord> CONSTRAINT_66 = Internal.createForeignKey(PhotoHash.PHOTO_HASH, DSL.name("CONSTRAINT_66"), new TableField[] { PhotoHash.PHOTO_HASH.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
     public static final ForeignKey<PhotoPreviewRecord, PhotoRecord> CONSTRAINT_331 = Internal.createForeignKey(PhotoPreview.PHOTO_PREVIEW, DSL.name("CONSTRAINT_331"), new TableField[] { PhotoPreview.PHOTO_PREVIEW.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
+    public static final ForeignKey<PhotoTagRecord, TagEmbeddingRecord> CONSTRAINT_73 = Internal.createForeignKey(PhotoTag.PHOTO_TAG, DSL.name("CONSTRAINT_73"), new TableField[] { PhotoTag.PHOTO_TAG.TAG_ID }, Keys.CONSTRAINT_7BE, new TableField[] { TagEmbedding.TAG_EMBEDDING.ID }, true);
+    public static final ForeignKey<PhotoTagRecord, PhotoRecord> CONSTRAINT_73A = Internal.createForeignKey(PhotoTag.PHOTO_TAG, DSL.name("CONSTRAINT_73A"), new TableField[] { PhotoTag.PHOTO_TAG.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
     public static final ForeignKey<ThumbnailRecord, PhotoRecord> CONSTRAINT_F5 = Internal.createForeignKey(Thumbnail.THUMBNAIL, DSL.name("CONSTRAINT_F5"), new TableField[] { Thumbnail.THUMBNAIL.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
 }

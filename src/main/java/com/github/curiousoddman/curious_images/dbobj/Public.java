@@ -21,7 +21,8 @@ import com.github.curiousoddman.curious_images.dbobj.tables.Person;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoPreview;
-import com.github.curiousoddman.curious_images.dbobj.tables.Tag;
+import com.github.curiousoddman.curious_images.dbobj.tables.PhotoTag;
+import com.github.curiousoddman.curious_images.dbobj.tables.TagEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail;
 import com.github.curiousoddman.curious_images.dbobj.tables.UserPreferences;
 
@@ -142,9 +143,14 @@ public class Public extends SchemaImpl {
     public final PhotoPreview PHOTO_PREVIEW = PhotoPreview.PHOTO_PREVIEW;
 
     /**
-     * The table <code>public.TAG</code>.
+     * The table <code>public.PHOTO_TAG</code>.
      */
-    public final Tag TAG = Tag.TAG;
+    public final PhotoTag PHOTO_TAG = PhotoTag.PHOTO_TAG;
+
+    /**
+     * The table <code>public.TAG_EMBEDDING</code>.
+     */
+    public final TagEmbedding TAG_EMBEDDING = TagEmbedding.TAG_EMBEDDING;
 
     /**
      * The table <code>public.THUMBNAIL</code>.
@@ -189,7 +195,8 @@ public class Public extends SchemaImpl {
             Photo.PHOTO,
             PhotoHash.PHOTO_HASH,
             PhotoPreview.PHOTO_PREVIEW,
-            Tag.TAG,
+            PhotoTag.PHOTO_TAG,
+            TagEmbedding.TAG_EMBEDDING,
             Thumbnail.THUMBNAIL,
             UserPreferences.USER_PREFERENCES
         );
