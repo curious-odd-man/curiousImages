@@ -1,22 +1,30 @@
 package com.github.curiousoddman.curious_images.manual.tooling;
 
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
+@Slf4j
 public class MergeTagUpdater {
 
     // Matches: ('someTag')
     private static final Pattern TAG_PATTERN =
             Pattern.compile("\\('((?:''|[^'])*)'\\)");
 
-    public static void updateMergeFile(Path mergeFile, Path newTagsFile) throws IOException {
-
+    @SneakyThrows
+    public static void updateMergeFile(Path mergeFile, Path newTagsFile) {
+        log.info("Reading {}", newTagsFile);
         String sql = Files.readString(mergeFile);
 
         // Existing tags in merge file
@@ -28,13 +36,17 @@ public class MergeTagUpdater {
                                     .replace("''", "'"));
         }
 
+        log.info("Found {} known tags", existingTags.size());
+
         // Read new tags
         List<String> lines = readAndParseNewTagsFile(newTagsFile);
+        log.info("Found {} lines", lines.size());
 
         Set<String> tagsToAdd = new LinkedHashSet<>();
 
         for (String line : lines) {
-            String tag = line.trim();
+            String tag = line.trim()
+                             .toLowerCase();
             if (tag.isEmpty()) {
                 continue;
             }
@@ -45,13 +57,16 @@ public class MergeTagUpdater {
         }
 
         if (tagsToAdd.isEmpty()) {
-            System.out.println("No new tags.");
+            log.warn("No new tags.");
             return;
         }
 
         StringBuilder values = new StringBuilder();
 
-        for (String tag : tagsToAdd) {
+        List<String> sortedTags = new ArrayList<>(tagsToAdd);
+        Collections.sort(sortedTags);
+
+        for (String tag : sortedTags) {
             values.append(",\n            ('")
                   .append(tag.replace("'", "''"))
                   .append("')");
@@ -71,7 +86,7 @@ public class MergeTagUpdater {
 
         Files.writeString(mergeFile, sql);
 
-        System.out.println("Added " + tagsToAdd.size() + " new tags.");
+        log.info("Added {} new tags.", tagsToAdd.size());
     }
 
     private static List<String> readAndParseNewTagsFile(Path newTagsFile) throws IOException {
@@ -81,8 +96,10 @@ public class MergeTagUpdater {
     public static void main(String[] args) throws IOException {
 
         Path mergeFile = Path.of("src/main/resources/db/migration/R__tag_data.sql");
-        Path newTags   = Path.of("tags.txt");
-
-        updateMergeFile(mergeFile, newTags);
+        try (Stream<Path> list = Files.list(Path.of("W:\\Programming\\git\\curiousImages\\new"))) {
+            list.forEach(p -> {
+                updateMergeFile(mergeFile, p);
+            });
+        }
     }
 }
