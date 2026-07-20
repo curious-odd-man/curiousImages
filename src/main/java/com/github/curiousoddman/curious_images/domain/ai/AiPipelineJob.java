@@ -11,6 +11,7 @@ import com.github.curiousoddman.curious_images.domain.index.ClipVectorIndex;
 import com.github.curiousoddman.curious_images.domain.index.FaceVectorIndex;
 import com.github.curiousoddman.curious_images.event.model.UserNotificationEvent;
 import com.github.curiousoddman.curious_images.event.payload.FaceClipProcessingFailed;
+import com.github.curiousoddman.curious_images.model.FaceLandmarks;
 import com.github.curiousoddman.curious_images.persistence.*;
 import com.github.curiousoddman.curious_images.util.EmbeddingMath;
 import com.github.curiousoddman.curious_images.util.ImageUtils;
@@ -358,8 +359,8 @@ public class AiPipelineJob extends BackgroundJob {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private Landmarks toLandmarks(float[][] landmarks) {
-        return new Landmarks(
+    private FaceLandmarks toLandmarks(float[][] landmarks) {
+        return new FaceLandmarks(
                 landmarks[0][0], landmarks[0][1],
                 landmarks[1][0], landmarks[1][1],
                 landmarks[2][0], landmarks[2][1],

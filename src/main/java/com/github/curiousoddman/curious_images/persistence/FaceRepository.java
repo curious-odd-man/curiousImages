@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images.persistence;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
+import com.github.curiousoddman.curious_images.model.FaceLandmarks;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.InsertSetMoreStep;
@@ -45,8 +46,8 @@ public class FaceRepository {
      * synchronously to write the corresponding face_embedding row in the same pass.
      */
     public long insertAndGetId(long photoId, double x, double y, double w, double h,
-                               double confidence, Landmarks landmarks, LocalDateTime now, Path thumbnailPath) {
-        return createRecord(photoId, x, y, w, h, confidence, landmarks, now, thumbnailPath)
+                               double confidence, FaceLandmarks faceLandmarks, LocalDateTime now, Path thumbnailPath) {
+        return createRecord(photoId, x, y, w, h, confidence, faceLandmarks, now, thumbnailPath)
                 .returning(FACE.ID)
                 .fetchOne()
                 .getId();
@@ -57,8 +58,8 @@ public class FaceRepository {
      * via {@code dsl.transaction(cfg -> DSL.using(cfg).batch(buffer).execute())}.
      */
     public Query insertQuery(long photoId, double x, double y, double w, double h,
-                             double confidence, Landmarks landmarks, LocalDateTime now, Path thumbnailPath) {
-        return createRecord(photoId, x, y, w, h, confidence, landmarks, now, thumbnailPath);
+                             double confidence, FaceLandmarks faceLandmarks, LocalDateTime now, Path thumbnailPath) {
+        return createRecord(photoId, x, y, w, h, confidence, faceLandmarks, now, thumbnailPath);
     }
 
     public Optional<FaceRecord> findById(long id) {
@@ -235,7 +236,7 @@ public class FaceRepository {
                   .collect(toMap(r -> r.get(FACE.ID), r -> r.get(CLUSTER.PERSON_ID)));
     }
 
-    private InsertSetMoreStep<FaceRecord> createRecord(long photoId, double x, double y, double w, double h, double confidence, Landmarks landmarks, LocalDateTime now, Path thumbnailPath) {
+    private InsertSetMoreStep<FaceRecord> createRecord(long photoId, double x, double y, double w, double h, double confidence, FaceLandmarks faceLandmarks, LocalDateTime now, Path thumbnailPath) {
         return dsl.insertInto(FACE)
                   .set(FACE.PHOTO_ID, photoId)
                   .set(FACE.BBOX_X, x)
@@ -243,16 +244,16 @@ public class FaceRepository {
                   .set(FACE.BBOX_W, w)
                   .set(FACE.BBOX_H, h)
                   .set(FACE.CONFIDENCE, confidence)
-                  .set(FACE.LANDMARK_LEFT_EYE_X, landmarks.leftEyeX())
-                  .set(FACE.LANDMARK_LEFT_EYE_Y, landmarks.leftEyeY())
-                  .set(FACE.LANDMARK_RIGHT_EYE_X, landmarks.rightEyeX())
-                  .set(FACE.LANDMARK_RIGHT_EYE_Y, landmarks.rightEyeY())
-                  .set(FACE.LANDMARK_NOSE_X, landmarks.noseX())
-                  .set(FACE.LANDMARK_NOSE_Y, landmarks.noseY())
-                  .set(FACE.LANDMARK_LEFT_MOUTH_X, landmarks.leftMouthX())
-                  .set(FACE.LANDMARK_LEFT_MOUTH_Y, landmarks.leftMouthY())
-                  .set(FACE.LANDMARK_RIGHT_MOUTH_X, landmarks.rightMouthX())
-                  .set(FACE.LANDMARK_RIGHT_MOUTH_Y, landmarks.rightMouthY())
+                  .set(FACE.LANDMARK_LEFT_EYE_X, faceLandmarks.leftEyeX())
+                  .set(FACE.LANDMARK_LEFT_EYE_Y, faceLandmarks.leftEyeY())
+                  .set(FACE.LANDMARK_RIGHT_EYE_X, faceLandmarks.rightEyeX())
+                  .set(FACE.LANDMARK_RIGHT_EYE_Y, faceLandmarks.rightEyeY())
+                  .set(FACE.LANDMARK_NOSE_X, faceLandmarks.noseX())
+                  .set(FACE.LANDMARK_NOSE_Y, faceLandmarks.noseY())
+                  .set(FACE.LANDMARK_LEFT_MOUTH_X, faceLandmarks.leftMouthX())
+                  .set(FACE.LANDMARK_LEFT_MOUTH_Y, faceLandmarks.leftMouthY())
+                  .set(FACE.LANDMARK_RIGHT_MOUTH_X, faceLandmarks.rightMouthX())
+                  .set(FACE.LANDMARK_RIGHT_MOUTH_Y, faceLandmarks.rightMouthY())
                   .set(FACE.CREATED_AT, now)
                   .set(FACE.THUMBNAIL_ABSOLUTE_PATH, thumbnailPath.toAbsolutePath()
                                                                   .toString());
