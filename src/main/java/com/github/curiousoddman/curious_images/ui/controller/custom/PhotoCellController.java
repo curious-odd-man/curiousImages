@@ -27,6 +27,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.net.URL;
+import java.util.Comparator;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -125,7 +126,7 @@ public class PhotoCellController implements Initializable {
     }
 
     public void showEmpty() {
-        log.debug("Disappear {}", photoCellData == null ? null: photoCellData.photoId());
+        log.debug("Disappear {}", photoCellData == null ? null : photoCellData.photoId());
         this.photoCellData = null;
         fxUnmanage(cellRoot, iconsHbox);
         imageView.setImage(null);
@@ -171,15 +172,21 @@ public class PhotoCellController implements Initializable {
         registerHoverTooltip(iconsTooltip, data.tags()
                                                .entrySet()
                                                .stream()
-                                               .map(e -> e.getValue()
-                                                          .getTag() + " (" + rate(e.getKey()
-                                                                                   .getConfidence()) + ")")
+                                               .map(v -> new TagData(v.getValue()
+                                                                      .getTag(), v.getKey()
+                                                                                  .getConfidence()))
+                                               .sorted(Comparator.comparing(TagData::score))
+                                               .map(e -> e.name() + " (" + rate(e.score()) + ")")
                                                .collect(Collectors.joining("\n")), tagIcon);
         registerHoverTooltip(iconsTooltip, gps(photo.getGpsLat(), photo.getGpsLon()), gpsIcon);
         registerHoverTooltip(iconsTooltip, data.persons()
                                                .stream()
                                                .map(PersonDetails::personName)
                                                .collect(Collectors.joining("\n")), faceCountLabel, faceIcon);
+    }
+
+    private record TagData(String name, double score) {
+
     }
 
     @FXML
