@@ -166,6 +166,7 @@ public class PhotoCellController implements Initializable {
                       .isEmpty(), faceIcon);
         fxManage(data.hasDuplicates(), duplicateIcon);
 
+        registerHoverTooltip(iconsTooltip, "Has duplicates", duplicateIcon);
         registerHoverTooltip(iconsTooltip, photo.getExtension() + ": " + size(photo.getFileSize()), typeImageIcon);
         registerHoverTooltip(iconsTooltip, data.tags()
                                                .entrySet()
