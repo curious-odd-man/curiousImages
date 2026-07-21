@@ -83,16 +83,16 @@ import static javafx.scene.control.ProgressIndicator.INDETERMINATE_PROGRESS;
 public class LibraryController implements Initializable {
     private static final int SEARCH_TOP_K = 50;
 
-    private final FxmlLoader              fxmlLoader;
-    private final UserPreferencesService  userPreferencesService;
-    private final PhotoRepository         photoRepository;
-    private final SearchService           searchService;
-    private final JobManager              jobManager;
-    private final ModelPaths              modelPaths;
-    private final TreeManager             treeManager;
-    private final PhotoGridManager        photoGridManager;
-    private final LibraryViewManager   libraryViewManager;
-    private final NotificationsService notificationsService;
+    private final FxmlLoader             fxmlLoader;
+    private final UserPreferencesService userPreferencesService;
+    private final PhotoRepository        photoRepository;
+    private final SearchService          searchService;
+    private final JobManager             jobManager;
+    private final ModelPaths             modelPaths;
+    private final TreeManager            treeManager;
+    private final PhotoGridManager       photoGridManager;
+    private final LibraryViewManager     libraryViewManager;
+    private final NotificationsService   notificationsService;
 
     // ── FXML nodes ────────────────────────────────────────────────────────────
 

@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images.ui.nodes.photogrid;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.model.PhotoCellData;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridRowController;
 import javafx.beans.value.ObservableValue;
 
@@ -25,18 +26,13 @@ public interface PhotoGridCallbacks {
     void onPhotoClicked(PhotoRecord photo);
 
     /**
-     * Builds the tooltip text for a photo (EXIF/file details).
-     */
-    String tooltipTextFor(PhotoRecord photo);
-
-    /**
      * A row just became visible showing {@code photos} (or was re-flowed to a different set while
      * still visible, e.g. after a resize). Implementations should kick off an async
      * thumbnail/quick-preview lookup for exactly these photo IDs and apply the result via
      * {@code row.applyImage(...)}, and queue on-demand thumbnail generation for any that don't
      * have a real thumbnail yet.
      */
-    void onRowShown(PhotoGridRowController row, List<PhotoRecord> photos);
+    void onRowShown(PhotoGridRowController row, List<PhotoCellData> photos);
 
     /**
      * The given row controller is no longer showing {@code previousPhotos} — about to show a
@@ -44,5 +40,5 @@ public interface PhotoGridCallbacks {
      * bookkeeping keyed by those photo IDs (e.g. a visible-cell registry used to swap in
      * newly-generated thumbnails without rebuilding anything).
      */
-    void onRowHidden(PhotoGridRowController row, List<PhotoRecord> previousPhotos);
+    void onRowHidden(PhotoGridRowController row, List<PhotoCellData> previousPhotos);
 }

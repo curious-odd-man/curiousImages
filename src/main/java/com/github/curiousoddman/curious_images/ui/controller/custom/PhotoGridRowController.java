@@ -1,16 +1,14 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoTagRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
+import com.github.curiousoddman.curious_images.model.PhotoCellData;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoRowCell;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -20,10 +18,8 @@ import org.springframework.stereotype.Component;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * Controller for one visible row of the virtualized photo grid ({@code photo_grid_row.fxml}) — the
@@ -54,16 +50,9 @@ public class PhotoGridRowController implements Initializable {
 
     private final List<PhotoCellController> pool = new ArrayList<>();
 
-    private ObservableValue<Number>       thumbnailSize;
-    private Consumer<PhotoRecord>         onPhotoClicked;
-    private Function<PhotoRecord, String> tooltipTextFn;
+    private ObservableValue<Number> thumbnailSize;
+    private Consumer<PhotoRecord>   onPhotoClicked;
 
-    /**
-     * Bumped on every {@link #showRow}. Lets a stale, in-flight background thumbnail/preview
-     * lookup for a previous row assignment detect that this row controller has since been
-     * recycled to a different set of photos, and discard its result instead of overwriting cells
-     * that are now showing something else.
-     */
     @Getter
     private long showToken;
 
@@ -72,33 +61,25 @@ public class PhotoGridRowController implements Initializable {
         // Cells are configured entirely via bindOnce()/showRow() below.
     }
 
-    /**
-     * Called once, right after this row controller is created — the thumbnail-size binding
-     * target, click handler, tooltip-text function, and context-menu handlers are all
-     * shared/stable for the lifetime of the row controller (only the photos shown change, via
-     * {@link #showRow}).
-     */
     public void bindOnce(ObservableValue<Number> thumbnailSize,
-                         Consumer<PhotoRecord> onPhotoClicked,
-                         Function<PhotoRecord, String> tooltipTextFn) {
+                         Consumer<PhotoRecord> onPhotoClicked) {
         this.thumbnailSize = thumbnailSize;
         this.onPhotoClicked = onPhotoClicked;
-        this.tooltipTextFn = tooltipTextFn;
     }
 
     public List<PhotoCellController> getCellControllers() {
         return List.copyOf(pool);
     }
 
-    public void showRow(List<PhotoRecord> photos) {
+    public void showRow(List<PhotoCellData> photos) {
         showToken++;
         ensurePoolSize(photos.size());
 
         for (int i = 0; i < pool.size(); i++) {
             PhotoCellController cell = pool.get(i);
             if (i < photos.size()) {
-                PhotoRecord photo = photos.get(i);
-                cell.showPlaceholder(photo, tooltipTextFn.apply(photo));
+                PhotoCellData photo = photos.get(i);
+                cell.showPlaceholder(photo);
             } else {
                 cell.showEmpty();
             }
@@ -112,10 +93,10 @@ public class PhotoGridRowController implements Initializable {
      * captured value before calling this, to avoid the (harmless but wasted) lookup-vs-slot
      * mismatch entirely.
      */
-    public void applyImage(PhotoRecord photo, Map<PhotoTagRecord, TagEmbeddingRecord> tags, Image image) {
+    public void applyImage(PhotoCellData photo) {
         for (PhotoCellController cell : pool) {
-            if (cell.getCurrentPhoto() == photo) {
-                cell.showImage(photo, tags, image);
+            if (cell.getPhotoCellData().photo() == photo.photo()) {
+                cell.showImage(photo);
                 return;
             }
         }

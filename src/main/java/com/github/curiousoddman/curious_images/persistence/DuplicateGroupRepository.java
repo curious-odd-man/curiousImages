@@ -1,5 +1,6 @@
 package com.github.curiousoddman.curious_images.persistence;
 
+import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroupMember;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.DuplicateGroupMemberRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
@@ -8,6 +9,7 @@ import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.jooq.InsertValuesStep2;
+import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -153,6 +155,27 @@ public class DuplicateGroupRepository {
            .set(DUPLICATE_GROUP.ACCEPTED, true)
            .where(DUPLICATE_GROUP.ID.eq(groupId))
            .execute();
+    }
+
+    public Map<Long, Integer> countDuplicatesForPhotos(List<Long> ids) {
+        DuplicateGroupMember m1 = DUPLICATE_GROUP_MEMBER.as("m1");
+        DuplicateGroupMember m2 = DUPLICATE_GROUP_MEMBER.as("m2");
+
+        return dsl.select(
+                          m1.PHOTO_ID,
+                          DSL.count(m2.PHOTO_ID)
+                             .minus(1)
+                             .as("duplicate_count")
+                  )
+                  .from(m1)
+                  .join(m2)
+                  .on(m1.DUPLICATE_GROUP_ID.eq(m2.DUPLICATE_GROUP_ID))
+                  .where(m1.PHOTO_ID.in(ids))
+                  .groupBy(m1.PHOTO_ID)
+                  .fetchMap(
+                          m1.PHOTO_ID,
+                          r -> r.get("duplicate_count", Integer.class)
+                  );
     }
 
     private static final class GroupAccumulator {

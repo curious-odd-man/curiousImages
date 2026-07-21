@@ -14,6 +14,7 @@ import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridController;
+import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridManager;
 import com.github.curiousoddman.curious_images.ui.controller.services.ThumbnailReadyEventListener;
 import com.github.curiousoddman.curious_images.ui.styles.CssClasses;
 import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
@@ -72,6 +73,7 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
     private final FxmlLoader                fxmlLoader;
     private final PersonCorrectionService   personCorrectionService;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final PhotoGridManager          photoGridManager;
 
     @FXML
     public TitledPane        profilePane;
@@ -574,7 +576,9 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
             toShow = photosByYear.getOrDefault(year, List.of());
         }
 
-        photoGridController.populatePhotoGrid(toShow);
+        // FIXME: This is strange workaround. there is 1 instance of manager and 2 instances of controllers.
+        // One manager cannot manage 2 controllers simultaneously. this must be unentangled.
+        photoGridController.populatePhotoGrid(photoGridManager.createData(toShow));
     }
 
     private void applyCoverFace(long faceId) {

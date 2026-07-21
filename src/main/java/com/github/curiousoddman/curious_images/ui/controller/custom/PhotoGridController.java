@@ -1,13 +1,9 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoTagRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
-import com.github.curiousoddman.curious_images.persistence.PhotoTagRepository;
-import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
+import com.github.curiousoddman.curious_images.model.PhotoCellData;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridModel;
 import com.github.curiousoddman.curious_images.ui.controller.services.ThumbnailReadyEventListener;
@@ -16,7 +12,6 @@ import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoGridRow;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoRowCell;
 import com.github.curiousoddman.curious_images.ui.util.UiUtils;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
-import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -28,20 +23,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
-import static com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController.getPhotoDetailsText;
-import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
 @Slf4j
@@ -58,14 +47,10 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, T
     private static final double LABEL_HEIGHT_ESTIMATE = 40.0; // wrapped filename label, ~2 lines
     private static final double ROW_VGAP              = 8.0;  // vertical gap between grid rows
 
-    private static final int GRID_METRICS_DEBOUNCE_MS  = 150;
-    private static final int THUMBNAIL_GEN_DEBOUNCE_MS = 150;
+    private static final int GRID_METRICS_DEBOUNCE_MS = 150;
 
-    private final FxmlLoader          fxmlLoader;
-    private final ThumbnailRepository thumbnailRepository;
-    private final JobManager          jobManager;
-    private final PhotoTagRepository  photoTagRepository;
-    private final ThumbnailUtils      thumbnailUtils;
+    private final FxmlLoader     fxmlLoader;
+    private final ThumbnailUtils thumbnailUtils;
 
     @FXML
     public ListView<PhotoGridRow> listView;
@@ -76,11 +61,9 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, T
 
     private int lastColumns = -1;
 
-    private final PhotoGridModel                 photoGridModel         = new PhotoGridModel();
-    private final Map<Long, PhotoCellController> visiblePhotoCells      = new HashMap<>();
-    private final Set<Long>                      pendingThumbnailGenIds = new HashSet<>();
-    private final DelayedAction                  thumbnailGenDebounce   = new DelayedAction(THUMBNAIL_GEN_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
-    private final DelayedAction                  gridMetricsDebounce    = new DelayedAction(GRID_METRICS_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
+    private final PhotoGridModel                 photoGridModel      = new PhotoGridModel();
+    private final Map<Long, PhotoCellController> visiblePhotoCells   = new HashMap<>();
+    private final DelayedAction                  gridMetricsDebounce = new DelayedAction(GRID_METRICS_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -98,7 +81,6 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, T
     public void clear() {
         photoGridModel.nextGeneration();
         visiblePhotoCells.clear();
-        pendingThumbnailGenIds.clear();
         photoGridModel.clear();
         photoCountLabel.setText("");
     }
@@ -111,15 +93,10 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, T
         return photoGridModel.generation();
     }
 
-    public void populatePhotoGrid(List<PhotoRecord> photos) {
+    public void populatePhotoGrid(List<PhotoCellData> photos) {
         photoGridModel.nextGeneration();
         visiblePhotoCells.clear();
-        pendingThumbnailGenIds.clear();
-        Set<Long> photoIds = photos.stream()
-                                   .map(PhotoRecord::getId)
-                                   .collect(Collectors.toSet());
-        Map<Long, Map<PhotoTagRecord, TagEmbeddingRecord>> tags = photoTagRepository.findForPhotos(photoIds);
-        photoGridModel.setPhotos(photos, tags);
+        photoGridModel.setPhotos(photos);
         photoCountLabel.setText(photos.size() + " photo" + (photos.size() == 1 ? "" : "s"));
         recomputeGridMetrics(true); // force a regroup even if the column count is unchanged
     }
@@ -165,51 +142,32 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, T
     }
 
     @Override
-    public String tooltipTextFor(PhotoRecord photo) {
-        return getPhotoDetailsText(photo);
-    }
-
-    @Override
-    public void onRowShown(PhotoGridRowController row, List<PhotoRecord> photos) {
+    public void onRowShown(PhotoGridRowController row, List<PhotoCellData> photos) {
         RowInfo rowInfo = getRowInfo(row, photos, visiblePhotoCells, photoGridModel.generation());
-
-        runOnDaemonThread("Row Shown", () -> {
-            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(rowInfo.ids());
-            runOnFxThread(() -> {
-                if (rowInfo.myGeneration() != photoGridModel.generation() || rowInfo.myShowToken() != row.getShowToken()) {
-                    return; // selection changed, or this row now shows different photos — discard
-                }
-                List<Long> missing = new ArrayList<>();
-                for (PhotoRecord photo : photos) {
-                    ThumbnailRecord thumbnail = thumbs.get(photo.getId());
-                    if (thumbnail != null && hasCachedFile(thumbnail)) {
-                        Map<PhotoTagRecord, TagEmbeddingRecord> tags = photoGridModel.getPhotoTags(photo);
-                        row.applyImage(photo, tags, ThumbnailUtils.loadThumbnailImage(thumbnail));
-                    } else {
-                        missing.add(photo.getId()); // no real thumbnail yet
-                    }
-                }
-                if (!missing.isEmpty()) {
-                    queueThumbnailGeneration(missing);
-                }
-            });
+        runOnFxThread(() -> {
+            if (rowInfo.myGeneration() != photoGridModel.generation() || rowInfo.myShowToken() != row.getShowToken()) {
+                return; // selection changed, or this row now shows different photos — discard
+            }
+            for (PhotoCellData photo : photos) {
+                row.applyImage(photo);
+            }
         });
     }
 
     public static RowInfo getRowInfo(PhotoGridRowController row,
-                                     List<PhotoRecord> photos,
+                                     List<PhotoCellData> photos,
                                      Map<Long, PhotoCellController> visiblePhotoCells,
                                      long selectionGeneration) {
         for (PhotoCellController cell : row.getCellControllers()) {
-            PhotoRecord shown = cell.getCurrentPhoto();
+            PhotoCellData shown = cell.getPhotoCellData();
             if (shown != null) {
-                visiblePhotoCells.put(shown.getId(), cell);
+                visiblePhotoCells.put(shown.photoId(), cell);
             }
         }
 
         long myShowToken = row.getShowToken();
         List<Long> ids = photos.stream()
-                               .map(PhotoRecord::getId)
+                               .map(PhotoCellData::photoId)
                                .toList();
         return new RowInfo(selectionGeneration, myShowToken, ids);
     }
@@ -226,27 +184,12 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, T
     public record RowInfo(long myGeneration, long myShowToken, List<Long> ids) {}
 
     @Override
-    public void onRowHidden(PhotoGridRowController row, List<PhotoRecord> previousPhotos) {
-        for (PhotoRecord photo : previousPhotos) {
-            visiblePhotoCells.remove(photo.getId());
+    public void onRowHidden(PhotoGridRowController row, List<PhotoCellData> previousPhotos) {
+        for (PhotoCellData photo : previousPhotos) {
+            visiblePhotoCells.remove(photo.photoId());
         }
     }
 
-    private static boolean hasCachedFile(ThumbnailRecord thumbnail) {
-        return thumbnail.getCachePath() != null && new File(thumbnail.getCachePath()).isFile();
-    }
-
-    private void queueThumbnailGeneration(List<Long> ids) {
-        pendingThumbnailGenIds.addAll(ids);
-        thumbnailGenDebounce.reSchedule(() -> {
-            if (pendingThumbnailGenIds.isEmpty()) {
-                return;
-            }
-            List<Long> batch = List.copyOf(pendingThumbnailGenIds);
-            pendingThumbnailGenIds.clear();
-            jobManager.submitThumbnailGenerationJob(batch);
-        });
-    }
 
     private void openSlideshow(List<PhotoRecord> photos, int startIndex) {
         UiUtils.openSlideshow(photos, startIndex, listView.getScene(), fxmlLoader);

@@ -18,4 +18,21 @@ public class HumanReadableUtils {
     public static String rate(double d) {
         return String.format("%.2f", d);
     }
+
+    public static String gps(Double latitude, Double longitude) {
+        if (latitude == null || longitude == null) {
+            return "Unknown location";
+        }
+
+        String latDirection = latitude >= 0 ? "N" : "S";
+        String lonDirection = longitude >= 0 ? "E" : "W";
+
+        return String.format(
+                "%.6f° %s, %.6f° %s",
+                Math.abs(latitude),
+                latDirection,
+                Math.abs(longitude),
+                lonDirection
+        );
+    }
 }

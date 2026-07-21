@@ -5,29 +5,78 @@
 <?import javafx.scene.image.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.*?>
+<?import javafx.scene.text.*?>
+<?import org.kordamp.ikonli.javafx.*?>
 
 <BorderPane fx:id="cellRoot" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.custom.PhotoCellController">
-   <center>
-      <StackPane fx:id="imageSlot" onMouseClicked="#onCellClicked">
-          <padding>
-              <Insets bottom="6.0" left="6.0" right="6.0" top="6.0" />
-          </padding>
-      
-          <children>
-              <Rectangle fx:id="placeholderRect" arcHeight="10.0" arcWidth="10.0" fill="#d8d8d8" />
-              <Label fx:id="placeholderLabel" text="Loading...">
+    <center>
+        <StackPane fx:id="imageSlot" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" onMouseClicked="#onCellClicked">
+            <padding>
+                <Insets bottom="6.0" left="6.0" right="6.0" top="6.0" />
+            </padding>
 
-              </Label>
-              <ImageView fx:id="imageView" managed="false" preserveRatio="true" visible="false" />
-          </children>
-      </StackPane>
-   </center>
-   <bottom>
-      <VBox BorderPane.alignment="CENTER">
-         <children>
-            <FlowPane fx:id="tagsPane" alignment="CENTER" columnHalignment="CENTER" />
-            <Label fx:id="filenameLabel" text="Label" />
-         </children>
-      </VBox>
-   </bottom>
+            <children>
+                <Rectangle fx:id="placeholderRect" arcHeight="10.0" arcWidth="10.0" fill="#d8d8d8" />
+                <Label fx:id="placeholderLabel" text="Loading..." textFill="#1a00ff">
+               <font>
+                  <Font name="Consolas Bold" size="26.0" />
+               </font></Label>
+                <ImageView fx:id="imageView" managed="false" preserveRatio="true" visible="false" />
+            </children>
+        </StackPane>
+    </center>
+    <bottom>
+        <HBox fx:id="iconsHbox" alignment="CENTER" maxWidth="1.7976931348623157E308" spacing="3.0" BorderPane.alignment="CENTER">
+            <padding>
+                <Insets bottom="2.0" left="2.0" right="2.0" top="2.0" />
+            </padding>
+            <children>
+                <Label fx:id="typeImageIcon">
+                    <graphic>
+                        <FontIcon iconColor="#5C6BC0" iconLiteral="bi-instagram" />
+                    </graphic>
+                    <font>
+                        <Font name="System" size="18.0" />
+                    </font>
+                </Label>
+                <Label fx:id="tagIcon">
+                    <graphic>
+                        <FontIcon iconColor="#00897B" iconLiteral="bi-tags-fill" />
+                    </graphic>
+                    <font>
+                        <Font name="System" size="18.0" />
+                    </font>
+                </Label>
+
+                <Label fx:id="gpsIcon">
+                    <graphic>
+                        <FontIcon iconColor="#43A047" iconLiteral="bi-geo-fill" />
+                    </graphic>
+                    <font>
+                        <Font name="System" size="18.0" />
+                    </font>
+                </Label>
+                <Label fx:id="faceIcon">
+                    <graphic>
+                        <FontIcon iconColor="#1976D2" iconLiteral="bi-person-square" />
+                    </graphic>
+                    <font>
+                        <Font name="System" size="18.0" />
+                    </font>
+                </Label>
+                <Label fx:id="faceCountLabel" text="2" textFill="#1976D2">
+                    <font>
+                        <Font name="System Bold" size="18.0" />
+                    </font>
+                </Label>
+
+                <FontIcon fx:id="duplicateIcon" iconColor="#F57C00" iconLiteral="bi-front" iconSize="18" />
+                <Button onAction="#onShowInfo" styleClass="icon-button">
+                    <graphic>
+                        <FontIcon fx:id="showInfoIcon" iconColor="#616161" iconLiteral="bi-info-circle-fill" iconSize="18" />
+                    </graphic>
+                </Button>
+            </children>
+        </HBox>
+    </bottom>
 </BorderPane>

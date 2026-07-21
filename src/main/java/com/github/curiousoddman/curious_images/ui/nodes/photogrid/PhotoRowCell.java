@@ -1,7 +1,7 @@
 package com.github.curiousoddman.curious_images.ui.nodes.photogrid;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
+import com.github.curiousoddman.curious_images.model.PhotoCellData;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridRowController;
@@ -12,22 +12,13 @@ import java.util.List;
 
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
-/**
- * A {@code ListView<PhotoGridRow>} cell — the core of the virtualized photo grid.
- * <p>
- * {@code ListView} only ever instantiates enough of these to cover the visible viewport plus a
- * small buffer, and recycles them as the user scrolls (calling {@link #updateItem} with a new
- * {@link PhotoGridRow} on the same instance) instead of creating a new one per row. That bounds
- * the number of live nodes regardless of how many thousands of photos are in a selection — this
- * is what replaces the old ever-growing {@code FlowPane}.
- */
 public class PhotoRowCell extends ListCell<PhotoGridRow> {
 
     private final PhotoGridRowController rowController;
     private final Parent                 rowNode;
     private final PhotoGridCallbacks     callbacks;
 
-    private List<PhotoRecord> currentPhotos;
+    private List<PhotoCellData> currentPhotos;
 
     public PhotoRowCell(PhotoGridCallbacks callbacks, FxmlLoader fxmlLoader) {
         this.callbacks = callbacks;
@@ -36,8 +27,7 @@ public class PhotoRowCell extends ListCell<PhotoGridRow> {
         this.rowController = loaded.controller();
         rowController.bindOnce(
                 callbacks.thumbnailSizeProperty(),
-                callbacks::onPhotoClicked,
-                callbacks::tooltipTextFor
+                callbacks::onPhotoClicked
         );
         getStyleClass().add("photo-row-cell");
         setFocusTraversable(false);

@@ -123,9 +123,16 @@
     -fx-icon-size: 18;
 }
 
-.tag {
-    -fx-background-color: #E8F0FE;
-    -fx-background-radius: 999px;
-    -fx-padding: 4 8 4 12;
-    -fx-alignment: center-left;
+.icon-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 50%;
+    -fx-padding: 4;
+}
+
+.icon-button:hover {
+    -fx-background-color: rgba(0,0,0,0.08);
+}
+
+.icon-button:pressed {
+    -fx-background-color: rgba(0,0,0,0.15);
 }

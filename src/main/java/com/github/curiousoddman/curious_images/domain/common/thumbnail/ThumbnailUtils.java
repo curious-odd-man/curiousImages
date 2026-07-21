@@ -1,9 +1,8 @@
 package com.github.curiousoddman.curious_images.domain.common.thumbnail;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoTagRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
+import com.github.curiousoddman.curious_images.model.PhotoCellData;
 import com.github.curiousoddman.curious_images.persistence.PhotoTagRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoCellController;
@@ -30,18 +29,21 @@ public class ThumbnailUtils {
     public void updateThumbnailImage(Map<Long, PhotoCellController> visiblePhotoCells, ThumbnailsReadyEvent event) {
         List<Long> ids = List.copyOf(event.getPhotoIds());
         runOnDaemonThread("ThumbnailUpdate", () -> {
-            Map<Long, ThumbnailRecord>                         thumbs = thumbnailRepository.findByPhotoIds(ids);
-            Map<Long, Map<PhotoTagRecord, TagEmbeddingRecord>> tags   = photoTagRepository.findForPhotos(ids);
+            Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(ids);
 
             for (Map.Entry<Long, ThumbnailRecord> entry : thumbs.entrySet()) {
                 PhotoCellController cell          = visiblePhotoCells.get(entry.getKey());
                 boolean             hasCachedFile = hasCachedFile(entry.getValue());
                 if (cell != null && hasCachedFile) {
-
+                    PhotoCellData existingCellData = cell.getPhotoCellData();
                     runOnFxThread(() -> cell.showImage(
-                            cell.getCurrentPhoto(),
-                            tags.get(entry.getKey()),
-                            loadThumbnailImage(entry.getValue())
+                            new PhotoCellData(
+                                    existingCellData.photo(),
+                                    loadThumbnailImage(thumbs.get(entry.getKey())),
+                                    existingCellData.tags(),
+                                    existingCellData.persons(),
+                                    existingCellData.hasDuplicates()
+                            )
                     ));
                 } else {
                     log.warn("Unable to display thumbnail: {} --> {} && {}", event, cell != null, hasCachedFile);

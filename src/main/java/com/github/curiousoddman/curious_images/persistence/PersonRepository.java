@@ -1,9 +1,12 @@
 package com.github.curiousoddman.curious_images.persistence;
 
+import com.github.curiousoddman.curious_images.dbobj.tables.Face;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
+import com.github.curiousoddman.curious_images.model.PersonDetails;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Query;
+import org.jooq.Record3;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -16,7 +19,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import static com.github.curiousoddman.curious_images.dbobj.Tables.CLUSTER;
+import static com.github.curiousoddman.curious_images.dbobj.Tables.FACE;
 import static com.github.curiousoddman.curious_images.dbobj.Tables.PERSON;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
 
 /**
  * Hand-written jOOQ repository for {@code person}.
@@ -201,5 +209,30 @@ public class PersonRepository {
            .set(PERSON.UPDATED_AT, now)
            .where(PERSON.ID.eq(personId))
            .execute();
+    }
+
+    public Map<Long, List<PersonDetails>> findByPhotoIdsIn(List<Long> ids) {
+        Face COVER_FACE = FACE.as("cover_face");
+
+        return dsl
+                .select(
+                        FACE.PHOTO_ID,
+                        PERSON.NAME,
+                        COVER_FACE.THUMBNAIL_ABSOLUTE_PATH
+                )
+                .from(FACE)
+                .join(CLUSTER)
+                .on(FACE.CLUSTER_ID.eq(CLUSTER.ID))
+                .join(PERSON)
+                .on(CLUSTER.PERSON_ID.eq(PERSON.ID))
+                .join(COVER_FACE)
+                .on(COVER_FACE.ID.eq(PERSON.COVER_FACE_ID))
+                .where(FACE.PHOTO_ID.in(ids))
+                .fetch()
+                .stream()
+                .collect(groupingBy(
+                        Record3::value1,
+                        mapping(r -> new PersonDetails(r.value2(), r.value3()), toList())
+                ));
     }
 }

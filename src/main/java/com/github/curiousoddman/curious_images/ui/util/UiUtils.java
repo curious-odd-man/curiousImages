@@ -7,13 +7,15 @@ import com.github.curiousoddman.curious_images.model.bundle.SlideshowBundle;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController;
+import javafx.animation.ScaleTransition;
 import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Tooltip;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.util.Duration;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
@@ -76,17 +78,45 @@ public class UiUtils {
         deleteSelectedButton.setOnMouseExited(e -> onExit.run());
     }
 
-    public static void fxManage(Node... parent) {
-        for (Node node : parent) {
-            node.setVisible(true);
-            node.setManaged(true);
+    public static void registerHoverTooltip(Tooltip sharedTooltip, String text, Node... nodes) {
+        for (Node node : nodes) {
+            node.setOnMouseEntered(e -> {
+                sharedTooltip.setText(text);
+                Tooltip.install(node, sharedTooltip);
+            });
+
+            node.setOnMouseExited(e -> Tooltip.uninstall(node, sharedTooltip));
         }
     }
 
+    public static void fxManage(boolean manage, Node... nodes) {
+        for (Node node : nodes) {
+            node.setVisible(manage);
+            node.setManaged(manage);
+        }
+    }
+
+    public static void fxManage(Node... parent) {
+        fxManage(true, parent);
+    }
+
     public static void fxUnmanage(Node... parent) {
-        for (Node node : parent) {
-            node.setVisible(false);
-            node.setManaged(false);
+        fxManage(false, parent);
+    }
+
+    public static void registerZoomInOnHover(Node... nodes) {
+        for (Node node : nodes) {
+            ScaleTransition zoomIn = new ScaleTransition(Duration.millis(120), node);
+            zoomIn.setToX(1.05);
+            zoomIn.setToY(1.05);
+
+            node.setOnMouseEntered(event -> zoomIn.playFromStart());
+
+            ScaleTransition zoomOut = new ScaleTransition(Duration.millis(120), node);
+            zoomOut.setToX(1.0);
+            zoomOut.setToY(1.0);
+
+            node.setOnMouseExited(event -> zoomOut.playFromStart());
         }
     }
 }

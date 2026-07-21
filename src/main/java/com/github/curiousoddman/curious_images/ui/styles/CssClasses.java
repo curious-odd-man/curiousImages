@@ -22,6 +22,4 @@ public class CssClasses {
 
     public static final String ERROR_NOTIFICATION_ICON   = "error-notification-icon";
     public static final String WARNING_NOTIFICATION_ICON = "warning-notification-icon";
-
-    public static final String TAG_LABEL = "tag";
 }

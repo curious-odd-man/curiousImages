@@ -1,3 +1,13 @@
 ENV: dev
 #DATABASE_FILE: cimages-prod-copy
 H2_CONSOLE_ENABLED: true
+logging:
+  level:
+    com:
+      github:
+        curiousoddman:
+          curious_images:
+            ui:
+              controller:
+                custom:
+                  PhotoCellController: info
