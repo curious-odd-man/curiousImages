@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableTransactionManagement
 public class Main {
     // TODO: search:
-    //      - display tags for each image
     //      - add @Person and #Tag search options with auto-complete suggestions
     // TODO: engagement features - rank, order and plan - see doc
     // TODO: metadata editing (DB only with "changed" flag for later dump to files if necessary)

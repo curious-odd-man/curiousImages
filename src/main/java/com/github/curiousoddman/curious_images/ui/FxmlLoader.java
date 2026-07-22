@@ -38,7 +38,11 @@ public class FxmlLoader {
     }
 
     public <T> LoadedFxml<T> loadFxmlAndAttachToParent(Pane parent, FxmlView<T> view) {
-        LoadedFxml<T> loaded   = load(view, null);
+        return loadFxmlAndAttachToParent(parent, view, null);
+    }
+
+    public <T> LoadedFxml<T> loadFxmlAndAttachToParent(Pane parent, FxmlView<T> view, ResourceBundle resourceBundle) {
+        LoadedFxml<T> loaded   = load(view, resourceBundle);
         Parent        viewPane = loaded.parent();
         AnchorPane.setTopAnchor(viewPane, 0.0);
         AnchorPane.setBottomAnchor(viewPane, 0.0);

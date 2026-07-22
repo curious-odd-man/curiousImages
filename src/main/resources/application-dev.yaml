@@ -11,3 +11,4 @@ logging:
               controller:
                 custom:
                   PhotoCellController: info
+                  RightPanelController: debug

@@ -11,6 +11,7 @@
     -fx-border-radius: 4;
     -fx-background-color: derive(#c62828, 90%);
 }
+
 /* Face-picker grid cell selection border (replaces inline setStyle in FacePickerCellController) */
 .face-cell {
     -fx-border-color: #aaaaaa;
@@ -51,6 +52,7 @@
     -fx-background-color: transparent;
     -fx-padding: 0;
 }
+
 /* Shared monospace text style (photo details labels / tooltips) */
 .monospace-text {
     -fx-font-family: "Consolas";
@@ -130,9 +132,32 @@
 }
 
 .icon-button:hover {
-    -fx-background-color: rgba(0,0,0,0.08);
+    -fx-background-color: rgba(0, 0, 0, 0.08);
 }
 
 .icon-button:pressed {
-    -fx-background-color: rgba(0,0,0,0.15);
+    -fx-background-color: rgba(0, 0, 0, 0.15);
 }
+
+.tag-chip {
+    -fx-background-color: #E3F2FD;
+    -fx-background-radius: 12;
+    -fx-padding: 3 8 3 8;
+    -fx-alignment: center-left;
+}
+
+.tag-name {
+    -fx-font-weight: bold;
+}
+
+.tag-score {
+    -fx-text-fill: #666666;
+    -fx-font-size: 10px;
+}
+
+/* Debug style*/
+/*
+.root * {
+    -fx-border-color: red;
+    -fx-border-width: 1px;
+}*/

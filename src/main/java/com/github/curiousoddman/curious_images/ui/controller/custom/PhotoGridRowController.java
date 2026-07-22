@@ -3,6 +3,7 @@ package com.github.curiousoddman.curious_images.ui.controller.custom;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.PhotoCellData;
+import com.github.curiousoddman.curious_images.model.bundle.PhotoCellResources;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoRowCell;
@@ -52,6 +53,7 @@ public class PhotoGridRowController implements Initializable {
 
     private ObservableValue<Number> thumbnailSize;
     private Consumer<PhotoRecord>   onPhotoClicked;
+    private PhotoCellResources photoCellResources;
 
     @Getter
     private long showToken;
@@ -59,6 +61,9 @@ public class PhotoGridRowController implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // Cells are configured entirely via bindOnce()/showRow() below.
+        if (resources instanceof PhotoCellResources cellResources) {
+            photoCellResources = cellResources;
+        }
     }
 
     public void bindOnce(ObservableValue<Number> thumbnailSize,
@@ -104,7 +109,7 @@ public class PhotoGridRowController implements Initializable {
 
     private void ensurePoolSize(int minSize) {
         while (pool.size() < minSize) {
-            LoadedFxml<PhotoCellController> loaded     = fxmlLoader.load(FxmlView.PHOTO_CELL, null);
+            LoadedFxml<PhotoCellController> loaded     = fxmlLoader.load(FxmlView.PHOTO_CELL, photoCellResources);
             PhotoCellController             controller = loaded.controller();
             controller.bindThumbnailSize(thumbnailSize);
             controller.setOnPhotoClicked(onPhotoClicked);

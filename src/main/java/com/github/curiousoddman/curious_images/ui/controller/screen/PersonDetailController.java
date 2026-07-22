@@ -8,6 +8,7 @@ import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.event.model.TreeViewUpdateEvent;
 import com.github.curiousoddman.curious_images.event.payload.TreeViewUpdatePayload;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
+import com.github.curiousoddman.curious_images.model.bundle.PhotoCellResources;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
@@ -138,7 +139,7 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
                     .selectedItemProperty()
                     .addListener((obs, oldItem, newItem) -> onAgeAlbumSelected(newItem));
 
-        LoadedFxml<PhotoGridController> loaded = fxmlLoader.load(FxmlView.PHOTO_GRID, null);
+        LoadedFxml<PhotoGridController> loaded = fxmlLoader.load(FxmlView.PHOTO_GRID, resources);
         photoGridController = loaded.controller();
         gridBorderPane.setCenter(loaded.parent());
     }

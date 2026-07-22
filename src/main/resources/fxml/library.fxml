@@ -5,67 +5,66 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
-<?import org.kordamp.ikonli.javafx.FontIcon?>
-<BorderPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0" prefHeight="1080.0" prefWidth="1920.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.LibraryController">
+<BorderPane fx:id="rootBorderPane" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0" prefHeight="1080.0" prefWidth="1920.0" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.LibraryController">
     <center>
         <SplitPane fx:id="librarySplitPane" dividerPositions="0.2559" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0" BorderPane.alignment="CENTER">
             <items>
-                                <!-- Left: library tree -->
-                                <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0">
-                                    <children>
-                                        <!--
-                                            DnD: files and folders dropped anywhere on the tree view
-                                            are handled by LibraryController#onTreeDragOver /
-                                            onTreeDragDropped. When dropped onto an IMPORT_ROOT or
-                                            FOLDER node the root path is pre-filled in the dialog;
-                                            a drop on any other node defaults to no pre-fill.
-                                        -->
-                                        <TreeView fx:id="libraryTreeView" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" onDragDropped="#onTreeDragDropped" onDragOver="#onTreeDragOver" showRoot="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
-                                    </children>
-                                </AnchorPane>
+                <!-- Left: library tree -->
+                <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0" SplitPane.resizableWithParent="false">
+                    <children>
+                        <!--
+                            DnD: files and folders dropped anywhere on the tree view
+                            are handled by LibraryController#onTreeDragOver /
+                            onTreeDragDropped. When dropped onto an IMPORT_ROOT or
+                            FOLDER node the root path is pre-filled in the dialog;
+                            a drop on any other node defaults to no pre-fill.
+                        -->
+                        <TreeView fx:id="libraryTreeView" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" onDragDropped="#onTreeDragDropped" onDragOver="#onTreeDragOver" showRoot="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+                    </children>
+                </AnchorPane>
 
-                                <!--
-                                    Right: StackPane with two layers.
-                                    Only one is visible at a time — toggled by LibraryController.
+                <!--
+                    Right: StackPane with two layers.
+                    Only one is visible at a time — toggled by LibraryController.
 
-                                    Layer 0 (photoGridView)   — shown for folders, timeline, albums, search.
-                                    Layer 1 (personDetailContainer) — shown when a PERSON node is selected;
-                                             content is loaded from person_detail.fxml and injected at runtime.
-                                -->
-                                <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0">
-                                    <children>
-                                        <StackPane fx:id="contentStack" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                    Layer 0 (photoGridView)   — shown for folders, timeline, albums, search.
+                    Layer 1 (personDetailContainer) — shown when a PERSON node is selected;
+                             content is loaded from person_detail.fxml and injected at runtime.
+                -->
+                <AnchorPane maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="0.0" minWidth="0.0">
+                    <children>
+                        <StackPane fx:id="contentStack" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
 
-                                            <!-- ── Photo grid (default view) ── -->
-                                            <BorderPane fx:id="photoGridContainer" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
-                                                <top>
-                                                    <VBox spacing="0.0" BorderPane.alignment="CENTER">
-                                                        <!-- Search bar row -->
-                                                        <HBox alignment="CENTER_LEFT" spacing="8.0">
-                                                            <padding>
-                                                                <Insets bottom="4.0" left="10.0" right="10.0" top="6.0" />
-                                                            </padding>
-                                                            <TextField fx:id="searchField" promptText="Search photos... (semantic / AI)" HBox.hgrow="ALWAYS" />
-                                                            <Button fx:id="searchButton" mnemonicParsing="false" onAction="#onSearchClicked" text="Search" />
-                                                            <Button fx:id="clearSearchButton" mnemonicParsing="false" onAction="#onClearSearchClicked" text="✕" visible="false" />
-                                                        </HBox>
-                                                    </VBox>
-                                                </top>
-                                            </BorderPane>
+                            <!-- ── Photo grid (default view) ── -->
+                            <BorderPane fx:id="photoGridContainer" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
+                                <top>
+                                    <VBox spacing="0.0" BorderPane.alignment="CENTER">
+                                        <!-- Search bar row -->
+                                        <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                            <padding>
+                                                <Insets bottom="4.0" left="10.0" right="10.0" top="6.0" />
+                                            </padding>
+                                            <TextField fx:id="searchField" promptText="Search photos... (semantic / AI)" HBox.hgrow="ALWAYS" />
+                                            <Button fx:id="searchButton" mnemonicParsing="false" onAction="#onSearchClicked" text="Search" />
+                                            <Button fx:id="clearSearchButton" mnemonicParsing="false" onAction="#onClearSearchClicked" text="✕" visible="false" />
+                                        </HBox>
+                                    </VBox>
+                                </top>
+                            </BorderPane>
 
-                                            <!-- ── Person detail panel (injected at runtime) ── -->
-                                            <AnchorPane fx:id="personDetailContainer" managed="false" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" visible="false" />
+                            <!-- ── Person detail panel (injected at runtime) ── -->
+                            <AnchorPane fx:id="personDetailContainer" managed="false" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" visible="false" />
 
-                                            <!-- ── Duplicates review panel (injected from duplicates.fxml at
-                                                 runtime in LibraryController#initialize) ── -->
-                                            <AnchorPane fx:id="duplicatesContainer" managed="false" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" visible="false" />
-                     <AnchorPane fx:id="folderDuplicatesContainer" layoutX="10.0" layoutY="10.0" managed="false" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" visible="false" />
+                            <!-- ── Duplicates review panel (injected from duplicates.fxml at
+                                 runtime in LibraryController#initialize) ── -->
+                            <AnchorPane fx:id="duplicatesContainer" managed="false" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" visible="false" />
+                            <AnchorPane fx:id="folderDuplicatesContainer" layoutX="10.0" layoutY="10.0" managed="false" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" visible="false" />
 
-                                        </StackPane>
-                                    </children>
-                                </AnchorPane>
-                            </items>
-                        </SplitPane>
+                        </StackPane>
+                    </children>
+                </AnchorPane>
+            </items>
+        </SplitPane>
     </center>
     <top>
         <MenuBar BorderPane.alignment="CENTER">
@@ -98,7 +97,7 @@
                         <MenuItem mnemonicParsing="false" text="About" />
                     </items>
                 </Menu>
-                <Menu fx:id="notificationsMenu" mnemonicParsing="false"/>
+                <Menu fx:id="notificationsMenu" mnemonicParsing="false" />
             </menus>
         </MenuBar>
     </top>
@@ -126,4 +125,7 @@
             <Label fx:id="backgroundProgressDescription" maxWidth="1.7976931348623157E308" text="here goes file name" HBox.hgrow="ALWAYS" />
         </HBox>
     </bottom>
+    <right>
+
+    </right>
 </BorderPane>

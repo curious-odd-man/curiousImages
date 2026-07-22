@@ -2,6 +2,7 @@ package com.github.curiousoddman.curious_images.ui.controller.services;
 
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.model.UiElement;
+import com.github.curiousoddman.curious_images.model.bundle.PhotoCellResources;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridController;
@@ -48,10 +49,10 @@ public class LibraryViewManager {
         uiElements.add(folderDuplicatesContainer);
     }
 
-    public PersonDetailController showPersonDetail(long personId, UiElement<PersonDetailController> personDetailsElement) {
+    public PersonDetailController showPersonDetail(long personId, UiElement<PersonDetailController> personDetailsElement, PhotoCellResources photoCellResources) {
         PersonDetailController controller = personDetailsElement.controller();
         if (personDetailsElement.controller() == null) {
-            controller = fxmlLoader.loadFxmlAndAttachToParent(personDetails.pane(), FxmlView.PERSON_DETAIL)
+            controller = fxmlLoader.loadFxmlAndAttachToParent(personDetails.pane(), FxmlView.PERSON_DETAIL, photoCellResources)
                                    .controller();
 
             if (uiElements.get(1)

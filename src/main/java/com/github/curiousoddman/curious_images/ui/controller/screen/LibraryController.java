@@ -8,13 +8,16 @@ import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferences
 import com.github.curiousoddman.curious_images.event.model.BackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.payload.BackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.event.types.BackgroundProcessEventType;
+import com.github.curiousoddman.curious_images.model.ImageDetails;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.UiElement;
 import com.github.curiousoddman.curious_images.model.bundle.AddFilesBundle;
+import com.github.curiousoddman.curious_images.model.bundle.PhotoCellResources;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
+import com.github.curiousoddman.curious_images.ui.controller.custom.RightPanelController;
 import com.github.curiousoddman.curious_images.ui.controller.services.NotificationsService;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridController;
 import com.github.curiousoddman.curious_images.ui.controller.services.LibraryViewManager;
@@ -132,9 +135,12 @@ public class LibraryController implements Initializable {
     public Label                     backgroundProgressDescription;
     @FXML
     public Menu                      notificationsMenu;
+    @FXML
+    public BorderPane                rootBorderPane;
 
     private PersonDetailController personDetailController;
     private PhotoGridController    photoGridController;
+    private RightPanelController   rightPanelController;
 
     private volatile boolean autoStartAiPipelineAfterModelDownload = false;
 
@@ -156,7 +162,7 @@ public class LibraryController implements Initializable {
             }
         });
 
-        LoadedFxml<PhotoGridController> photoGridLoaded = fxmlLoader.load(FxmlView.PHOTO_GRID, null);
+        LoadedFxml<PhotoGridController> photoGridLoaded = fxmlLoader.load(FxmlView.PHOTO_GRID, new PhotoCellResources(this::onShowRightPanel));
         photoGridController = photoGridLoaded.controller();
         photoGridContainer.setCenter(photoGridLoaded.parent());
 
@@ -290,7 +296,7 @@ public class LibraryController implements Initializable {
                 photoGridManager.loadPhotosForAlbum(ap.albumId());
             }
             case PersonPayload pp ->
-                    personDetailController = libraryViewManager.showPersonDetail(pp.personId(), new UiElement<>(personDetailContainer, personDetailController));
+                    personDetailController = libraryViewManager.showPersonDetail(pp.personId(), new UiElement<>(personDetailContainer, personDetailController), new PhotoCellResources(this::onShowRightPanel));
         }
     }
 
@@ -455,6 +461,15 @@ public class LibraryController implements Initializable {
 
         event.setDropCompleted(true);
         event.consume();
+    }
+
+    public void onShowRightPanel(ImageDetails imageDetails) {
+        if (rightPanelController == null) {
+            LoadedFxml<RightPanelController> rightPanelLoaded = fxmlLoader.load(FxmlView.RIGHT_PANEL, null);
+            rightPanelController = rightPanelLoaded.controller();
+            rootBorderPane.setRight(rightPanelLoaded.parent());
+        }
+        rightPanelController.showDetails(imageDetails);
     }
 
     /**

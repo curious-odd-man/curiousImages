@@ -1,8 +1,10 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.model.ImageDetails;
 import com.github.curiousoddman.curious_images.model.PersonDetails;
 import com.github.curiousoddman.curious_images.model.PhotoCellData;
+import com.github.curiousoddman.curious_images.model.bundle.PhotoCellResources;
 import com.github.curiousoddman.curious_images.ui.util.ImageContextMenu;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
@@ -82,6 +84,8 @@ public class PhotoCellController implements Initializable {
     @Getter
     private PhotoCellData photoCellData;
 
+    private Consumer<ImageDetails> imageDetailsConsumer;
+
     private Tooltip cellTooltip;
 
     @Override
@@ -96,6 +100,9 @@ public class PhotoCellController implements Initializable {
         imageView.setPreserveRatio(true);
 
         cellRoot.setOnContextMenuRequested(e -> imageContextMenu.show(photoCellData.photo(), cellRoot, e));
+        if (resources instanceof PhotoCellResources cellResources) {
+            imageDetailsConsumer = cellResources.getImageDetailsConsumer();
+        }
     }
 
     public void bindThumbnailSize(ObservableValue<? extends Number> size) {
@@ -198,6 +205,10 @@ public class PhotoCellController implements Initializable {
 
     @FXML
     public void onShowInfo(ActionEvent event) {
-// FIXME: Implement side panel with details
+        imageDetailsConsumer.accept(
+                new ImageDetails(
+                      photoCellData
+                )
+        );
     }
 }

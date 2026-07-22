@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+<?import org.kordamp.ikonli.javafx.*?>
+
+<VBox fx:id="rootVbox" managed="true" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" spacing="5.0" visible="true" BorderPane.alignment="CENTER" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.curiousoddman.curious_images.ui.controller.custom.RightPanelController">
+    <padding>
+        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+    </padding>
+    <children>
+      <HBox alignment="CENTER" spacing="5.0">
+         <children>
+              <Label maxWidth="1.7976931348623157E308" text="Details" HBox.hgrow="ALWAYS">
+                  <font>
+                      <Font name="System Bold" size="15.0" />
+                  </font>
+              </Label>
+             <Button mnemonicParsing="false" onAction="#onHideDetails" HBox.hgrow="NEVER">
+                 <graphic>
+                     <FontIcon iconColor="orangered" iconLiteral="bi-x-octagon-fill" iconSize="18" />
+                 </graphic>
+             </Button>
+         </children>
+      </HBox>
+
+        <Separator />
+
+        <GridPane hgap="5.0" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minWidth="0.0" vgap="5.0">
+
+            <columnConstraints>
+                <!-- No fixed width here: each column-0 Label pins its own minWidth to
+                     USE_PREF_SIZE (below), so this column auto-sizes to whichever
+                     label+icon needs the most room. -->
+                <ColumnConstraints hgrow="NEVER" />
+                <ColumnConstraints hgrow="ALWAYS" maxWidth="1.7976931348623157E308" minWidth="0.0" />
+            </columnConstraints>
+
+            <!-- File -->
+
+            <Label text="File name" minWidth="-Infinity" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                <graphic>
+                    <FontIcon iconLiteral="bi-file-earmark-text-fill" iconSize="16" />
+                </graphic>
+            </Label>
+            <Label fx:id="fileNameLabel" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+            <Label text="Extension" minWidth="-Infinity" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                <graphic>
+                    <FontIcon iconLiteral="bi-file-earmark" iconSize="16" />
+                </graphic>
+            </Label>
+            <Label fx:id="extensionLabel" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+            <Label text="Full path" minWidth="-Infinity" GridPane.columnIndex="0" GridPane.rowIndex="2">
+                <graphic>
+                    <FontIcon iconLiteral="bi-folder2-open" iconSize="16" />
+                </graphic>
+            </Label>
+            <Label fx:id="pathLabel" minWidth="0.0" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+
+            <Label text="File size" minWidth="-Infinity" GridPane.columnIndex="0" GridPane.rowIndex="3">
+                <graphic>
+                    <FontIcon iconLiteral="bi-hdd" iconSize="16" />
+                </graphic>
+            </Label>
+            <Label fx:id="fileSizeLabel" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+            <Label text="Imported at" minWidth="-Infinity" GridPane.columnIndex="0" GridPane.rowIndex="4">
+                <graphic>
+                    <FontIcon iconLiteral="bi-download" iconSize="16" />
+                </graphic>
+            </Label>
+            <Label fx:id="importedAtLabel" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+
+
+            <!-- Image -->
+
+            <Label text="Resolution" minWidth="-Infinity" GridPane.columnIndex="0" GridPane.rowIndex="5">
+                <graphic>
+                    <FontIcon iconLiteral="bi-aspect-ratio" iconSize="16" />
+                </graphic>
+            </Label>
+            <Label fx:id="resolutionLabel" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+
+            <Label text="Orientation" minWidth="-Infinity" GridPane.columnIndex="0" GridPane.rowIndex="6">
+                <graphic>
+                    <FontIcon iconLiteral="bi-arrow-repeat" iconSize="16" />
+                </graphic>
+            </Label>
+            <Label fx:id="orientationLabel" GridPane.columnIndex="1" GridPane.rowIndex="6" />
+
+
+            <!-- Capture -->
+
+
+
+            <Label text="Capture date" minWidth="-Infinity" GridPane.columnIndex="0" GridPane.rowIndex="7">
+                <graphic>
+                    <FontIcon iconLiteral="bi-calendar-event" iconSize="16" />
+                </graphic>
+            </Label>
+            <Label fx:id="captureDateLabel" GridPane.columnIndex="1" GridPane.rowIndex="7" />
+
+
+
+
+            <Label text="Date source" minWidth="-Infinity" GridPane.columnIndex="0" GridPane.rowIndex="8">
+                <graphic>
+                    <FontIcon iconLiteral="bi-clock-history" iconSize="16" />
+                </graphic>
+            </Label>
+
+            <Label fx:id="captureDateSourceLabel" GridPane.columnIndex="1" GridPane.rowIndex="8" />
+
+
+
+
+            <Label text="Camera make" minWidth="-Infinity" GridPane.columnIndex="0" GridPane.rowIndex="9">
+                <graphic>
+                    <FontIcon iconLiteral="bi-building" iconSize="16" />
+                </graphic>
+            </Label>
+
+            <Label fx:id="cameraMakeLabel" GridPane.columnIndex="1" GridPane.rowIndex="9" />
+
+
+
+
+            <Label text="Camera model" minWidth="-Infinity" GridPane.columnIndex="0" GridPane.rowIndex="10">
+                <graphic>
+                    <FontIcon iconLiteral="bi-camera-fill" iconSize="16" />
+                </graphic>
+            </Label>
+
+            <Label fx:id="cameraModelLabel" GridPane.columnIndex="1" GridPane.rowIndex="10" />
+
+
+
+
+            <Label text="Lens model" minWidth="-Infinity" GridPane.columnIndex="0" GridPane.rowIndex="11">
+            <graphic>
+                <FontIcon iconLiteral="bi-search" iconSize="16" />
+            </graphic>
+            </Label>
+
+            <Label fx:id="lensModelLabel" GridPane.columnIndex="1" GridPane.rowIndex="11" />
+
+
+            <!-- GPS -->
+
+
+
+            <Label fx:id="gpsTitleLabel" managed="false" text="GPS" minWidth="-Infinity" visible="false" GridPane.columnIndex="0" GridPane.rowIndex="12">
+                <graphic>
+                    <FontIcon fx:id="gpsIcon" iconLiteral="bi-geo-alt-fill" iconSize="16" managed="false" visible="false" />
+                </graphic>
+            </Label>
+
+            <HBox fx:id="gpsBox" alignment="CENTER_LEFT" managed="false" spacing="6" visible="false" GridPane.columnIndex="1" GridPane.rowIndex="12">
+
+                <Label fx:id="gpsLabel" />
+
+                <Button fx:id="openMapButton" onAction="#onOpenMap" text="Open map">
+                    <graphic>
+                        <FontIcon iconLiteral="bi-box-arrow-up-right" />
+                    </graphic>
+                </Button>
+
+            </HBox>
+         <rowConstraints>
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+            <RowConstraints />
+         </rowConstraints>
+
+        </GridPane>
+
+        <Separator fx:id="tagsSeparator" managed="false" visible="false" />
+
+        <VBox fx:id="tagsSection" managed="false" maxWidth="1.7976931348623157E308" spacing="6" visible="false">
+
+            <Label text="Tags">
+                <graphic>
+                    <FontIcon iconLiteral="bi-tags-fill" />
+                </graphic>
+            </Label>
+
+            <FlowPane fx:id="tagsPane" hgap="6" vgap="6" />
+        </VBox>
+
+        <Separator fx:id="personsSeparator" managed="false" visible="false" />
+
+        <VBox fx:id="personsSection" managed="false" maxWidth="1.7976931348623157E308" spacing="6" visible="false">
+
+            <Label text="Persons">
+                <graphic>
+                    <FontIcon iconLiteral="bi-people-fill" />
+                </graphic>
+            </Label>
+
+            <FlowPane fx:id="personsPane" hgap="8" vgap="8" />
+        </VBox>
+    </children>
+
+</VBox>

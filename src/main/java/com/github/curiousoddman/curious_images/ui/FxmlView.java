@@ -5,6 +5,7 @@ import com.github.curiousoddman.curious_images.ui.controller.custom.Notification
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoCellController;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridController;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridRowController;
+import com.github.curiousoddman.curious_images.ui.controller.custom.RightPanelController;
 import com.github.curiousoddman.curious_images.ui.controller.screen.AddFilesController;
 import com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController;
 import com.github.curiousoddman.curious_images.ui.controller.screen.FacePickerCellController;
@@ -34,4 +35,5 @@ public record FxmlView<T>(String fxmlPath, Class<T> controllerClass) {
     public static final FxmlView<FolderDuplicateCellController>  FOLDER_DUPLICATE_CELL   = new FxmlView<>("/fxml/folder_duplicate_cell.fxml", FolderDuplicateCellController.class);
     public static final FxmlView<PhotoGridController>            PHOTO_GRID              = new FxmlView<>("/fxml/photo_grid.fxml", PhotoGridController.class);
     public static final FxmlView<NotificationMenuItemController> NOTIFICATIONS_MENU_ITEM = new FxmlView<>("/fxml/notification_menu_item.fxml", NotificationMenuItemController.class);
+    public static final FxmlView<RightPanelController>           RIGHT_PANEL             = new FxmlView<>("/fxml/right_panel.fxml", RightPanelController.class);
 }

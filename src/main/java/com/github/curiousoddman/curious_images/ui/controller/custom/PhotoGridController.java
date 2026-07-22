@@ -4,6 +4,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.model.PhotoCellData;
+import com.github.curiousoddman.curious_images.model.bundle.PhotoCellResources;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridModel;
 import com.github.curiousoddman.curious_images.ui.controller.services.ThumbnailReadyEventListener;
@@ -67,7 +68,7 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, T
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        listView.setCellFactory(lv -> new PhotoRowCell(this, fxmlLoader));
+        listView.setCellFactory(lv -> new PhotoRowCell(this, fxmlLoader, (PhotoCellResources) resources));
         listView.setFocusTraversable(false);
 
         listView.widthProperty()

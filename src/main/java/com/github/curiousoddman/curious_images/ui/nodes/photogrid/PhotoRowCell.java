@@ -2,6 +2,7 @@ package com.github.curiousoddman.curious_images.ui.nodes.photogrid;
 
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.PhotoCellData;
+import com.github.curiousoddman.curious_images.model.bundle.PhotoCellResources;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridRowController;
@@ -20,9 +21,9 @@ public class PhotoRowCell extends ListCell<PhotoGridRow> {
 
     private List<PhotoCellData> currentPhotos;
 
-    public PhotoRowCell(PhotoGridCallbacks callbacks, FxmlLoader fxmlLoader) {
+    public PhotoRowCell(PhotoGridCallbacks callbacks, FxmlLoader fxmlLoader, PhotoCellResources photoCellResources) {
         this.callbacks = callbacks;
-        LoadedFxml<PhotoGridRowController> loaded = fxmlLoader.load(FxmlView.PHOTO_GRID_ROW, null);
+        LoadedFxml<PhotoGridRowController> loaded = fxmlLoader.load(FxmlView.PHOTO_GRID_ROW, photoCellResources);
         this.rowNode = loaded.parent();
         this.rowController = loaded.controller();
         rowController.bindOnce(
