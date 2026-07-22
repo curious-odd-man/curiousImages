@@ -64,6 +64,36 @@ public class PersonRepository {
                   .fetch();
     }
 
+    /**
+     * Case-insensitive exact-name lookup for the {@code @person} search filter. Excludes
+     * persons who have been merged away ({@code merged_into_id} set) — merge redirects exist
+     * for stale UI/deep-link IDs (see {@link #resolveCurrentPersonId}), not for name search, so
+     * a merged-away name should behave as "no such person" rather than silently resolving to
+     * the merge target under a different name.
+     */
+    public Optional<Long> findIdByName(String name) {
+        return Optional.ofNullable(
+                dsl.select(PERSON.ID)
+                   .from(PERSON)
+                   .where(PERSON.NAME.equalIgnoreCase(name))
+                   .and(PERSON.MERGED_INTO_ID.isNull())
+                   .fetchOne(PERSON.ID));
+    }
+
+    /**
+     * Case-insensitive prefix search over non-merged person names, for the {@code @}-mention
+     * autocomplete in the library search field.
+     */
+    public List<String> findNameSuggestions(String prefix, int limit) {
+        return dsl.select(PERSON.NAME)
+                  .from(PERSON)
+                  .where(PERSON.NAME.likeIgnoreCase(prefix + "%"))
+                  .and(PERSON.MERGED_INTO_ID.isNull())
+                  .orderBy(PERSON.NAME)
+                  .limit(limit)
+                  .fetch(PERSON.NAME);
+    }
+
     public Optional<PersonRecord> findById(long id) {
         return Optional.ofNullable(
                 dsl.selectFrom(PERSON)

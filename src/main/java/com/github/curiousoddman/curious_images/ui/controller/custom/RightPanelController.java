@@ -195,15 +195,6 @@ public class RightPanelController implements Initializable {
         }
 
         showAnimation.playFromStart();
-
-        System.out.println(rootVbox.getPrefWidth());
-        System.out.println(rootVbox.getWidth());
-        System.out.println(rootVbox.getMaxWidth());
-        showAnimation.setOnFinished(v -> {
-            System.out.println(rootVbox.getPrefWidth());
-            System.out.println(rootVbox.getWidth());
-            System.out.println(rootVbox.getMaxWidth());
-        });
     }
 
     private static Node createChip(String name, String confidence) {

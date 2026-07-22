@@ -3,6 +3,7 @@ package com.github.curiousoddman.curious_images.ui.controller.screen;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.domain.ai.ModelDownloadJob;
 import com.github.curiousoddman.curious_images.domain.ai.ModelPaths;
+import com.github.curiousoddman.curious_images.domain.search.SearchAutocompleteManager;
 import com.github.curiousoddman.curious_images.domain.search.SearchService;
 import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferencesService;
 import com.github.curiousoddman.curious_images.event.model.BackgroundProcessEvent;
@@ -92,10 +93,11 @@ public class LibraryController implements Initializable {
     private final SearchService          searchService;
     private final JobManager             jobManager;
     private final ModelPaths             modelPaths;
-    private final TreeManager            treeManager;
-    private final PhotoGridManager       photoGridManager;
-    private final LibraryViewManager     libraryViewManager;
-    private final NotificationsService   notificationsService;
+    private final TreeManager                treeManager;
+    private final PhotoGridManager           photoGridManager;
+    private final LibraryViewManager         libraryViewManager;
+    private final NotificationsService      notificationsService;
+    private final SearchAutocompleteManager searchAutocompleteManager;
 
     // ── FXML nodes ────────────────────────────────────────────────────────────
 
@@ -161,6 +163,11 @@ public class LibraryController implements Initializable {
                 onSearchClicked(null);
             }
         });
+
+        // @person / #tag suggestion popup. Installed as an event filter internally, so it
+        // intercepts Down/Up/Ctrl+Enter/Ctrl+Space/Escape ahead of the plain-Enter handler above
+        // while its popup is open, and otherwise gets out of the way.
+        searchAutocompleteManager.initialize(searchField);
 
         LoadedFxml<PhotoGridController> photoGridLoaded = fxmlLoader.load(FxmlView.PHOTO_GRID, new PhotoCellResources(this::onShowRightPanel));
         photoGridController = photoGridLoaded.controller();
@@ -315,7 +322,7 @@ public class LibraryController implements Initializable {
         long myGeneration = photoGridController.initiateChange();
         runOnDaemonThread("Search", () -> {
             try {
-                List<Long> photoIds = searchService.semanticSearch(query, SEARCH_TOP_K);
+                List<Long> photoIds = searchService.search(query, SEARCH_TOP_K);
                 List<PhotoRecord> photos = photoIds.stream()
                                                    .map(id -> photoRepository.findById(id)
                                                                              .orElse(null))
@@ -328,7 +335,7 @@ public class LibraryController implements Initializable {
                     photoGridManager.populate(photos);
                 });
             } catch (Exception e) {
-                log.error("Semantic search failed for query '{}'", query, e);
+                log.error("Search failed for query '{}'", query, e);
                 runOnFxThread(() -> {
                     if (myGeneration == photoGridController.currentChange()) {
                         photoGridController.displayError(e.getMessage());
