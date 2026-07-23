@@ -1,7 +1,7 @@
 package com.github.curiousoddman.curious_images.ui.controller.services;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.model.GridCellData;
+import com.github.curiousoddman.curious_images.model.Media;
 import com.github.curiousoddman.curious_images.util.CollectionUtils;
 
 import java.util.List;
@@ -11,8 +11,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class PhotoGridModel {
     private final AtomicLong generation = new AtomicLong();
 
-    private List<GridCellData> photos     = List.of();
-    private Map<Long, Integer> photoIndex = Map.of();
+    private List<GridCellData> cells     = List.of();
+    private Map<Long, Integer> cellIndex = Map.of();
 
     public long nextGeneration() {
         return generation.incrementAndGet();
@@ -22,33 +22,38 @@ public class PhotoGridModel {
         return generation.get();
     }
 
-    public void setPhotos(List<GridCellData> photos) {
-        this.photos = List.copyOf(photos);
-        this.photoIndex = CollectionUtils.getIdToIndexMap(photos, r -> r.photo()
-                                                                        .getId());
+    public void setCells(List<GridCellData> cells) {
+        this.cells = List.copyOf(cells);
+        this.cellIndex = CollectionUtils.getIdToIndexMap(cells, r -> r.photo()
+                                                                      .getId());
     }
 
     public void clear() {
-        photos = List.of();
-        photoIndex = Map.of();
+        cells = List.of();
+        cellIndex = Map.of();
         nextGeneration();
     }
 
-    public List<PhotoRecord> photos() {
-        return photos.stream()
-                     .map(GridCellData::photo)
-                     .toList();
+    public List<GridCellData> cells() {
+        return cells.stream()
+                    .toList();
     }
 
     public int size() {
-        return photos.size();
+        return cells.size();
     }
 
     public List<GridCellData> photosSlice(int offset, int bound) {
-        return photos.subList(offset, Math.min(bound, size()));
+        return cells.subList(offset, Math.min(bound, size()));
     }
 
     public Integer indexById(long id) {
-        return photoIndex.get(id);
+        return cellIndex.get(id);
+    }
+
+    public List<Media> media() {
+        return cells.stream()
+                    .map(GridCellData::media)
+                    .toList();
     }
 }

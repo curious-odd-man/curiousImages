@@ -7,7 +7,7 @@
 
 <!--
     One side (one folder) of a folder-level duplicate pair: a "keep this folder" checkbox, a
-    summary of what's in it, and a wrapping grid of thumbnails for every photo in this folder that
+    summary of what's in it, and a wrapping grid of thumbnails for every media in this folder that
     belongs to the pair's duplicate groups. Thumbnails themselves are built and loaded by
     FolderDuplicatesController (same debounced-loading pattern as the file-level Duplicates tab) —
     this FXML only provides the FlowPane they get dropped into. See FolderDuplicateCellController.

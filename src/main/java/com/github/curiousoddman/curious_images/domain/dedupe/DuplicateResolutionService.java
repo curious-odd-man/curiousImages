@@ -1,13 +1,14 @@
 package com.github.curiousoddman.curious_images.domain.dedupe;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import com.github.curiousoddman.curious_images.model.DupResolveStrategy;
 import com.github.curiousoddman.curious_images.model.DuplicateGroup;
 import com.github.curiousoddman.curious_images.model.FolderDuplicatePair;
+import com.github.curiousoddman.curious_images.model.Media;
+import com.github.curiousoddman.curious_images.model.MediaWithThumbnail;
 import com.github.curiousoddman.curious_images.model.PhotoFailure;
-import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
-import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
+import com.github.curiousoddman.curious_images.persistence.MediaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
@@ -20,14 +21,14 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Resolves a duplicate group from the Duplicates tab: for each photo being dropped, moves its
+ * Resolves a duplicate group from the Duplicates tab: for each media being dropped, moves its
  * file to the OS recycle bin via {@link Desktop#moveToTrash(File)} and — only if that succeeds —
  * deletes its {@code DUPLICATE_GROUP_MEMBER}, {@code THUMBNAIL}, and {@code PHOTO} rows in one
  * transaction. A file that can't be trashed (locked, already missing, unsupported platform) is
  * reported back as a failure and its DB rows are left untouched, so the DB never points at a
  * file that's been silently lost track of.
  * <p>
- * Once at least one photo from a group is removed, the group is re-checked: if fewer than 2
+ * Once at least one media from a group is removed, the group is re-checked: if fewer than 2
  * members remain it's no longer a meaningful duplicate set, so the group itself is deleted too.
  */
 @Slf4j
@@ -35,7 +36,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class DuplicateResolutionService {
     private final DSLContext               dsl;
-    private final PhotoRepository          photoRepository;
+    private final MediaRepository          mediaRepository;
     private final DuplicateGroupRepository duplicateGroupRepository;
 
     /**
@@ -44,7 +45,7 @@ public class DuplicateResolutionService {
      *                     the controller from {@link DuplicateGroup}) to avoid a redundant fetch
      * @param strategy
      */
-    public Result resolve(long groupId, List<PhotoRecord> photosToDrop, DupResolveStrategy strategy) {
+    public Result resolve(long groupId, List<MediaPhotoRecord> photosToDrop, DupResolveStrategy strategy) {
         if (strategy == DupResolveStrategy.KEEP_ALL) {
             duplicateGroupRepository.markGroupResolved(groupId);
             return new Result(List.of(), List.of());
@@ -56,14 +57,14 @@ public class DuplicateResolutionService {
                 && Desktop.getDesktop()
                           .isSupported(Desktop.Action.MOVE_TO_TRASH);
         if (!trashSupported) {
-            for (PhotoRecord photo : photosToDrop) {
+            for (MediaPhotoRecord photo : photosToDrop) {
                 failures.add(new PhotoFailure(photo, "Recycle bin is not supported on this system"));
             }
             return new Result(deletedPhotoIds, failures);
         }
         Desktop desktop = Desktop.getDesktop();
 
-        for (PhotoRecord photo : photosToDrop) {
+        for (MediaPhotoRecord photo : photosToDrop) {
             File    file = new File(photo.getAbsolutePath());
             boolean trashed;
             try {
@@ -83,7 +84,7 @@ public class DuplicateResolutionService {
             dsl.transaction(cfg -> {
                 DSLContext ctx = cfg.dsl();
                 duplicateGroupRepository.deleteMember(ctx, groupId, photo.getId());
-                photoRepository.deleteById(ctx, photo.getId());
+                mediaRepository.deleteById(ctx, photo.getId());
             });
             deletedPhotoIds.add(photo.getId());
         }
@@ -101,7 +102,7 @@ public class DuplicateResolutionService {
     }
 
     /**
-     * Folder-level resolution: applies the exact same per-photo trash + DB-delete logic as
+     * Folder-level resolution: applies the exact same per-media trash + DB-delete logic as
      * {@link #resolve} to every group in a {@link FolderDuplicatePair} in one pass.
      * <p>
      * For {@code KEEP_ALL}, every group in the pair is marked resolved with nothing deleted,
@@ -115,12 +116,12 @@ public class DuplicateResolutionService {
      * </ul>
      * Because a group here always spans exactly two folders (see
      * {@link FolderDuplicateGroupingService}), this never has to guess which member to keep
-     * within a folder — every photo in a dropped folder is dropped, every photo in a kept folder
+     * within a folder — every media in a dropped folder is dropped, every media in a kept folder
      * survives.
      */
     public FolderPairResult resolveFolderPair(FolderDuplicatePair pair,
-                                               DupResolveStrategy strategy,
-                                               Set<Long> keptFolderIds) {
+                                              DupResolveStrategy strategy,
+                                              Set<Long> keptFolderIds) {
         List<Long>         deletedPhotoIds = new ArrayList<>();
         List<PhotoFailure> failures        = new ArrayList<>();
 
@@ -129,11 +130,12 @@ public class DuplicateResolutionService {
                 duplicateGroupRepository.markGroupResolved(group.groupId());
                 continue;
             }
-            List<PhotoRecord> toDrop = group.photos()
-                                             .stream()
-                                             .map(PhotoWithThumbnail::photo)
-                                             .filter(p -> !keptFolderIds.contains(p.getFolderId()))
-                                             .toList();
+            List<MediaPhotoRecord> toDrop = group.photos()
+                                                 .stream()
+                                                 .map(MediaWithThumbnail::media)
+                                                 .filter(p -> !keptFolderIds.contains(p.getFolderId()))
+                                                 .map(Media::photo)
+                                                 .toList();
             Result result = resolve(group.groupId(), toDrop, strategy);
             deletedPhotoIds.addAll(result.deletedPhotoIds());
             failures.addAll(result.failures());

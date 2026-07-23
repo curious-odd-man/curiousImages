@@ -12,8 +12,8 @@ import com.github.curiousoddman.curious_images.model.TimelineData;
 import com.github.curiousoddman.curious_images.persistence.AlbumRepository;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
+import com.github.curiousoddman.curious_images.persistence.MediaRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
-import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeNode;
 import com.github.curiousoddman.curious_images.ui.nodes.NodePayload;
 import javafx.collections.ObservableList;
@@ -47,9 +47,9 @@ public class TreeManager {
             new AlbumTypeGroup("SIMILARITY", "Similarity", LibraryTreeNode.NodeType.ALBUM_SIMILARITY_ROOT, LibraryTreeNode.NodeType.ALBUM_SIMILARITY));
 
     private final ImportRootRepository importRootRepository;
-    private final FolderRepository     folderRepository;
-    private final PhotoRepository      photoRepository;
-    private final AlbumRepository      albumRepository;
+    private final FolderRepository folderRepository;
+    private final MediaRepository  mediaRepository;
+    private final AlbumRepository  albumRepository;
     private final PersonRepository     personRepository;
 
     private TreeView<LibraryTreeNode> libraryTreeView;
@@ -77,7 +77,7 @@ public class TreeManager {
     }
 
     public List<TreeItem<LibraryTreeNode>> buildTimelineItems() {
-        TimelineData data = photoRepository.findTimelineData();
+        TimelineData data = mediaRepository.findTimelineData();
 
         Map<Integer, Map<Integer, List<TimelineData.TimelineDay>>> byYearMonth = new LinkedHashMap<>();
         for (TimelineData.TimelineDay day : data.days()) {
@@ -212,7 +212,7 @@ public class TreeManager {
                 personsRoot.setExpanded(false);
 
                 // Pure grouping node (like albumsRoot above) with two selectable children: the
-                // original per-photo resolution view, and the new per-folder-pair one. Selecting
+                // original per-media resolution view, and the new per-folder-pair one. Selecting
                 // either child shows its duplicates-review view (see onTreeSelectionChanged).
                 TreeItem<LibraryTreeNode> duplicatesFileItem = new TreeItem<>(
                         new LibraryTreeNode("Files", null, LibraryTreeNode.NodeType.DUPLICATES_FILE_ROOT));

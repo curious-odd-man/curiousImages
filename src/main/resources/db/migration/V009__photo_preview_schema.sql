@@ -7,7 +7,7 @@
 -- (findByFolderId, etc.) stay lean — most callers don't need the preview bytes. See
 -- implementation plan "Instant quick preview" section.
 --
--- ON DELETE CASCADE: this is disposable, regeneratable-on-rescan data tied 1:1 to a photo, same
+-- ON DELETE CASCADE: this is disposable, regeneratable-on-rescan data tied 1:1 to a media, same
 -- lifecycle as CLIP_EMBEDDING — no separate cleanup step needed when a PHOTO row is deleted.
 CREATE TABLE photo_preview
 (

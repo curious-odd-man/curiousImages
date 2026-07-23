@@ -21,7 +21,7 @@ public class PixelHasher {
     /**
      * @return a result with a non-null {@code pixelHash}, or one with a {@code null} pixelHash if
      * the file couldn't be decoded at all (corrupt file, CR2 with no usable preview). The latter
-     * is not an error — the caller should simply skip that photo for this run, same policy as
+     * is not an error — the caller should simply skip that media for this run, same policy as
      * thumbnail generation skipping undecodable files during import.
      */
     public MediaHashResult hash(long photoId, Path file, String extension, long fileSize) {

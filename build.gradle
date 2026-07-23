@@ -100,6 +100,13 @@ jooq {
                     packageName = "com.github.curiousoddman.curious_images.dbobj"
                     directory = "${layout.projectDirectory}/src/main/java"
                 }
+                forcedTypes {
+                    forcedType {
+                        userType = "com.github.curiousoddman.curious_images.model.MediaType"
+                        enumConverter = true
+                        includeExpression = "media_type"
+                    }
+                }
             }
         }
     }

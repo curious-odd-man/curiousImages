@@ -5,6 +5,7 @@ package com.github.curiousoddman.curious_images.dbobj.tables.records;
 
 
 import com.github.curiousoddman.curious_images.dbobj.tables.MediaPhoto;
+import com.github.curiousoddman.curious_images.model.MediaType;
 
 import java.time.LocalDateTime;
 
@@ -89,15 +90,15 @@ public class MediaPhotoRecord extends TableRecordImpl<MediaPhotoRecord> {
     /**
      * Setter for <code>public.MEDIA_PHOTO.MEDIA_TYPE</code>.
      */
-    public void setMediaType(String value) {
+    public void setMediaType(MediaType value) {
         set(4, value);
     }
 
     /**
      * Getter for <code>public.MEDIA_PHOTO.MEDIA_TYPE</code>.
      */
-    public String getMediaType() {
-        return (String) get(4);
+    public MediaType getMediaType() {
+        return (MediaType) get(4);
     }
 
     /**
@@ -450,7 +451,7 @@ public class MediaPhotoRecord extends TableRecordImpl<MediaPhotoRecord> {
     /**
      * Create a detached, initialised MediaPhotoRecord
      */
-    public MediaPhotoRecord(Long id, Integer orientation, String lensModel, JSON exifExtra, String mediaType, Long folderId, String absolutePath, String filename, String extension, Long fileSize, Integer width, Integer height, LocalDateTime captureDate, String captureDateSource, LocalDateTime importedAt, LocalDateTime lastSeenAt, String cameraMake, String cameraModel, Double gpsLat, Double gpsLon, Double gpsAltitude, Boolean aiFaceDetectDone, Boolean aiFaceEmbedDone, Boolean aiClipEmbedDone, Boolean aiTagDone, Boolean aiLuceneIndexDone, String aiLastError, Short aiRetryCount, LocalDateTime aiUpdatedAt) {
+    public MediaPhotoRecord(Long id, Integer orientation, String lensModel, JSON exifExtra, MediaType mediaType, Long folderId, String absolutePath, String filename, String extension, Long fileSize, Integer width, Integer height, LocalDateTime captureDate, String captureDateSource, LocalDateTime importedAt, LocalDateTime lastSeenAt, String cameraMake, String cameraModel, Double gpsLat, Double gpsLon, Double gpsAltitude, Boolean aiFaceDetectDone, Boolean aiFaceEmbedDone, Boolean aiClipEmbedDone, Boolean aiTagDone, Boolean aiLuceneIndexDone, String aiLastError, Short aiRetryCount, LocalDateTime aiUpdatedAt) {
         super(MediaPhoto.MEDIA_PHOTO);
 
         setId(id);

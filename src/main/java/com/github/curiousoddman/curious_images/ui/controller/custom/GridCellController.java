@@ -1,7 +1,6 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import com.github.curiousoddman.curious_images.model.GridCellData;
 import com.github.curiousoddman.curious_images.model.PersonDetails;
 import com.github.curiousoddman.curious_images.model.bundle.GridCellResources;
@@ -79,7 +78,7 @@ public class GridCellController implements Initializable {
     private ImageView  imageView;
 
     @Setter
-    private Consumer<PhotoRecord> onPhotoClicked;
+    private Consumer<MediaPhotoRecord> onPhotoClicked;
 
     @Getter
     private GridCellData gridCellData;
@@ -99,7 +98,7 @@ public class GridCellController implements Initializable {
         cellTooltip.setShowDelay(Duration.millis(500));
         imageView.setPreserveRatio(true);
 
-        cellRoot.setOnContextMenuRequested(e -> gridContextMenu.show(gridCellData, cellRoot, e));
+        cellRoot.setOnContextMenuRequested(e -> gridContextMenu.show(gridCellData.media(), cellRoot, e));
         if (resources instanceof GridCellResources cellResources) {
             imageDetailsConsumer = cellResources.getImageDetailsConsumer();
         }
@@ -141,8 +140,8 @@ public class GridCellController implements Initializable {
 
     public void showImage(GridCellData data) {
         log.debug("Showing all data... {}", gridCellData.mediaId());
-        MediaRecord media = data.media();
-        if (gridCellData.media() != media) {
+        MediaPhotoRecord media = data.photo();
+        if (gridCellData.photo() != media) {
             log.debug("oops, media changed..");
             return;
         }

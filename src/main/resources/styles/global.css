@@ -47,13 +47,13 @@
     -fx-border-radius: 3;
 }
 
-/* ListCell wrapper for one row of the virtualized photo grid (replaces inline setStyle in PhotoRowCell) */
+/* ListCell wrapper for one row of the virtualized media grid (replaces inline setStyle in PhotoRowCell) */
 .photo-row-cell {
     -fx-background-color: transparent;
     -fx-padding: 0;
 }
 
-/* Shared monospace text style (photo details labels / tooltips) */
+/* Shared monospace text style (media details labels / tooltips) */
 .monospace-text {
     -fx-font-family: "Consolas";
     -fx-font-size: 15;

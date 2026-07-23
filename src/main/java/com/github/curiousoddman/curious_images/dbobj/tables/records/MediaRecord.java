@@ -5,6 +5,7 @@ package com.github.curiousoddman.curious_images.dbobj.tables.records;
 
 
 import com.github.curiousoddman.curious_images.dbobj.tables.Media;
+import com.github.curiousoddman.curious_images.model.MediaType;
 
 import java.time.LocalDateTime;
 
@@ -47,15 +48,15 @@ public class MediaRecord extends UpdatableRecordImpl<MediaRecord> {
     /**
      * Setter for <code>public.MEDIA.MEDIA_TYPE</code>.
      */
-    public void setMediaType(String value) {
+    public void setMediaType(MediaType value) {
         set(1, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.MEDIA_TYPE</code>.
      */
-    public String getMediaType() {
-        return (String) get(1);
+    public MediaType getMediaType() {
+        return (MediaType) get(1);
     }
 
     /**
@@ -417,7 +418,7 @@ public class MediaRecord extends UpdatableRecordImpl<MediaRecord> {
     /**
      * Create a detached, initialised MediaRecord
      */
-    public MediaRecord(Long id, String mediaType, Long folderId, String absolutePath, String filename, String extension, Long fileSize, Integer width, Integer height, LocalDateTime captureDate, String captureDateSource, LocalDateTime importedAt, LocalDateTime lastSeenAt, String cameraMake, String cameraModel, Double gpsLat, Double gpsLon, Double gpsAltitude, Boolean aiFaceDetectDone, Boolean aiFaceEmbedDone, Boolean aiClipEmbedDone, Boolean aiTagDone, Boolean aiLuceneIndexDone, String aiLastError, Short aiRetryCount, LocalDateTime aiUpdatedAt) {
+    public MediaRecord(Long id, MediaType mediaType, Long folderId, String absolutePath, String filename, String extension, Long fileSize, Integer width, Integer height, LocalDateTime captureDate, String captureDateSource, LocalDateTime importedAt, LocalDateTime lastSeenAt, String cameraMake, String cameraModel, Double gpsLat, Double gpsLon, Double gpsAltitude, Boolean aiFaceDetectDone, Boolean aiFaceEmbedDone, Boolean aiClipEmbedDone, Boolean aiTagDone, Boolean aiLuceneIndexDone, String aiLastError, Short aiRetryCount, LocalDateTime aiUpdatedAt) {
         super(Media.MEDIA);
 
         setId(id);

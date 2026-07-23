@@ -46,7 +46,7 @@ public class FolderDuplicateCellController implements Initializable {
             folderPathLabel.setText(bundle.getFolderPath());
             summaryLabel.setText(
                     bundle.getGroupCount() + " duplicate group" + (bundle.getGroupCount() == 1 ? "" : "s")
-                            + "  •  " + bundle.getPhotoCount() + " photo" + (bundle.getPhotoCount() == 1 ? "" : "s")
+                            + "  •  " + bundle.getPhotoCount() + " media" + (bundle.getPhotoCount() == 1 ? "" : "s")
                             + "  •  " + HumanReadableUtils.size(bundle.getTotalSize()));
             checkBox.setSelected(bundle.isInitiallyChecked());
         }

@@ -5,7 +5,7 @@ import com.github.curiousoddman.curious_images.domain.dedupe.hasher.PixelHasher;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.DuplicateJobRepository;
 import com.github.curiousoddman.curious_images.persistence.MediaHashRepository;
-import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
+import com.github.curiousoddman.curious_images.persistence.MediaRepository;
 import com.github.curiousoddman.curious_images.util.QueryBuffer;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import com.github.curiousoddman.curious_images.util.async.jobs.BackgroundJob;
@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * same file extension — comparison never crosses file types, per the product spec ("JPEG and CR3
  * with same image -> not duplicate").
  * <p>
- * Resumability: each photo's hash is cached in PHOTO_HASH alongside the file size it was computed
+ * Resumability: each media's hash is cached in PHOTO_HASH alongside the file size it was computed
  * from. A rerun only (re)hashes photos whose current file size doesn't match what's cached —
  * everything else is reused for free. This means an interrupted run isn't wasted work: whatever
  * was hashed before the interrupt stays cached for next time.
@@ -49,9 +49,9 @@ public class DuplicateDetectionJob extends BackgroundJob {
     public static final String        DUPLICATE_DETECTION = "Duplicate Detection";
     public static final AtomicInteger THREAD_COUNTER      = new AtomicInteger();
 
-    private final DSLContext               dsl;
-    private final PhotoRepository          photoRepository;
-    private final MediaHashRepository      photoHashRepository;
+    private final DSLContext          dsl;
+    private final MediaRepository     mediaRepository;
+    private final MediaHashRepository photoHashRepository;
     private final DuplicateJobRepository   duplicateJobRepository;
     private final DuplicateGroupRepository duplicateGroupRepository;
     private final PixelHasher              pixelHasher;
@@ -61,20 +61,20 @@ public class DuplicateDetectionJob extends BackgroundJob {
     @Override
     public void runImpl() {
         log.info("Starting duplicate detection");
-        publishStarted("Loading photo library...");
+        publishStarted("Loading media library...");
         long jobId = -1;
         try {
-            List<PhotoForHashing>      photos         = photoRepository.findAllForHashing();
+            List<MediaForHashing>      photos         = mediaRepository.findAllForHashing();
             Map<Long, MediaHashRecord> existingHashes = photoHashRepository.findAllAsMap();
 
             jobId = duplicateJobRepository.insertRunning(timeProvider.now(), photos.size());
 
             Map<Long, HashEntry>  hashByPhoto  = new HashMap<>(photos.size());
-            List<PhotoForHashing> needsHashing = new ArrayList<>();
-            for (PhotoForHashing photo : photos) {
+            List<MediaForHashing> needsHashing = new ArrayList<>();
+            for (MediaForHashing photo : photos) {
                 MediaHashRecord cached = existingHashes.get(photo.id());
                 if (cached != null && cached.getHashedFileSize() == photo.fileSize()) {
-                    hashByPhoto.put(photo.id(), new HashEntry(photo.extension(), cached.getPixelHash()));
+                    hashByPhoto.put(photo.id(), new HashEntry(photo.extension(), cached.getContentHash()));
                 } else {
                     needsHashing.add(photo);
                 }
@@ -120,7 +120,7 @@ public class DuplicateDetectionJob extends BackgroundJob {
      *
      * @return {@code true} if the run was interrupted partway through
      */
-    private boolean hashAndPersist(List<PhotoForHashing> needsHashing, int totalPhotos,
+    private boolean hashAndPersist(List<MediaForHashing> needsHashing, int totalPhotos,
                                    AtomicInteger processed, Map<Long, HashEntry> hashByPhoto) {
         LocalDateTime now = timeProvider.now();
 
@@ -131,7 +131,7 @@ public class DuplicateDetectionJob extends BackgroundJob {
         })) {
             CompletionService<PixelHasher.MediaHashResult> completionService = new ExecutorCompletionService<>(executor);
 
-            for (PhotoForHashing photo : needsHashing) {
+            for (MediaForHashing photo : needsHashing) {
                 completionService.submit(() ->
                         pixelHasher.hash(photo.id(), Path.of(photo.absolutePath()), photo.extension(), photo.fileSize()));
             }
@@ -153,7 +153,7 @@ public class DuplicateDetectionJob extends BackgroundJob {
                         executor.shutdownNow();
                         return true;
                     } catch (ExecutionException ee) {
-                        log.warn("Failed to hash a photo", ee.getCause());
+                        log.warn("Failed to hash a media", ee.getCause());
                         processed.incrementAndGet();
                         continue;
                     }

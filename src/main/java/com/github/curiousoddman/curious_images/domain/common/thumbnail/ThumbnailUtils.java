@@ -38,7 +38,7 @@ public class ThumbnailUtils {
                     GridCellData existingCellData = cell.getGridCellData();
                     runOnFxThread(() -> cell.showImage(
                             new GridCellData(
-                                    existingCellData.photo(),
+                                    existingCellData.media(),
                                     loadThumbnailImage(thumbs.get(entry.getKey())),
                                     existingCellData.tags(),
                                     existingCellData.persons(),

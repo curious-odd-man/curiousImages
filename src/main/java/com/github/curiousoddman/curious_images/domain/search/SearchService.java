@@ -21,7 +21,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Exposes semantic text-to-image search and similar-photo discovery backed by the
+ * Exposes semantic text-to-image search and similar-media discovery backed by the
  * Lucene CLIP vector index.
  */
 @Slf4j
@@ -37,7 +37,7 @@ public class SearchService {
     private final PhotoTagRepository      photoTagRepo;
 
     /**
-     * Encodes {@code query} with the CLIP text encoder and returns up to {@code topK} photo
+     * Encodes {@code query} with the CLIP text encoder and returns up to {@code topK} media
      * IDs ordered by descending cosine similarity.
      */
     public List<Long> semanticSearch(String query, int topK) throws Exception {
@@ -46,13 +46,13 @@ public class SearchService {
     }
 
     /**
-     * Returns up to {@code topK} photo IDs visually similar to {@code photoId}, excluding
-     * the query photo itself.
+     * Returns up to {@code topK} media IDs visually similar to {@code photoId}, excluding
+     * the query media itself.
      */
     public List<Long> similarPhotos(long photoId, int topK) throws Exception {
-        ClipEmbeddingRecord rec = clipEmbeddingRepo.findByPhotoId(photoId)
+        ClipEmbeddingRecord rec = clipEmbeddingRepo.findByMediaId(photoId)
                                                    .orElseThrow(() -> new IllegalStateException(
-                                                           "No CLIP embedding for photo " + photoId +
+                                                           "No CLIP embedding for media " + photoId +
                                                                    " — run the AI pipeline first."));
         float[]    embedding = EmbeddingMath.getFloats(rec.getEmbedding());
         List<Long> results   = clipVectorIndex.search(embedding, topK + 1);
@@ -76,7 +76,7 @@ public class SearchService {
      * AND'd together (multiple of the same kind means "all of them", not "any of them" — see
      * {@link ParsedSearchQuery}); any remaining free text then ranks the filtered set by cosine
      * similarity. A query with only {@code @}/{@code #} filters and no free text returns the
-     * filtered set ordered by photo ID descending (a recency proxy — there's no photo-date field
+     * filtered set ordered by media ID descending (a recency proxy — there's no media-date field
      * plumbed through here) rather than by any similarity score, since there's no query text to
      * rank against.
      */
@@ -109,7 +109,7 @@ public class SearchService {
     }
 
     /**
-     * Resolves the {@code @}/{@code #} filters to the photo IDs matching ALL of them.
+     * Resolves the {@code @}/{@code #} filters to the media IDs matching ALL of them.
      * <p>
      * Returns {@link Optional#empty()} when there are no filters at all — callers should fall
      * back to unfiltered/plain semantic search in that case. A present-but-empty set specifically
@@ -131,7 +131,7 @@ public class SearchService {
             }
             Set<Long> personPhotoIds = faceRepo.findByPersonId(personId.get())
                                                .stream()
-                                               .map(FaceRecord::getPhotoId)
+                                               .map(FaceRecord::getMediaId)
                                                .collect(Collectors.toSet());
             result = intersect(result, personPhotoIds);
             if (result.isEmpty()) {

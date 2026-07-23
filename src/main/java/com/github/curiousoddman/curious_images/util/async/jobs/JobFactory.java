@@ -34,8 +34,8 @@ import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceThumbnailsRepository;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
+import com.github.curiousoddman.curious_images.persistence.MediaRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoPreviewRepository;
-import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoTagRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.util.ImageUtils;
@@ -51,9 +51,9 @@ import java.util.List;
 public class JobFactory {
     private final DSLContext             dsl;
     private final ImportRootRepository   importRootRepository;
-    private final FolderRepository       folderRepository;
-    private final PhotoRepository        photoRepository;
-    private final ThumbnailRepository    thumbnailRepository;
+    private final FolderRepository    folderRepository;
+    private final MediaRepository     mediaRepository;
+    private final ThumbnailRepository thumbnailRepository;
     private final PhotoPreviewRepository photoPreviewRepository;
     private final PhotoMetadataExtractor photoMetadataExtractor;
     private final ThumbnailGenerator     thumbnailGenerator;
@@ -90,7 +90,7 @@ public class JobFactory {
                 dsl,
                 importRootRepository,
                 folderRepository,
-                photoRepository,
+                mediaRepository,
                 photoPreviewRepository,
                 photoMetadataExtractor,
                 timeProvider,
@@ -99,13 +99,13 @@ public class JobFactory {
     }
 
     /**
-     * Supersedable, on-demand real-thumbnail generation for a page/selection of photo IDs — see
+     * Supersedable, on-demand real-thumbnail generation for a page/selection of media IDs — see
      * implementation plan §5/§6. Submitted by {@code LibraryController} whenever the grid is
-     * about to render a set of photo IDs, never as a bulk sweep.
+     * about to render a set of media IDs, never as a bulk sweep.
      */
     public ThumbnailGenerationJob createThumbnailGenerationJob(List<Long> photoIds) {
         return new ThumbnailGenerationJob(
-                photoRepository,
+                mediaRepository,
                 thumbnailRepository,
                 imageUtils,
                 thumbnailGenerator,
@@ -117,7 +117,7 @@ public class JobFactory {
     public DuplicateDetectionJob createDuplicateDetectionJob() {
         return new DuplicateDetectionJob(
                 dsl,
-                photoRepository,
+                mediaRepository,
                 photoHashRepository,
                 duplicateJobRepository,
                 duplicateGroupRepository,
@@ -130,7 +130,7 @@ public class JobFactory {
     public AiPipelineJob createAiPipelineJob(JobManager jobManager) {
         return new AiPipelineJob(
                 dsl,
-                photoRepository,
+                mediaRepository,
                 faceRepository,
                 clusterRepository,
                 faceEmbeddingRepository,
@@ -169,7 +169,7 @@ public class JobFactory {
                 aiConfig,
                 timeProvider,
                 personService,
-                photoRepository
+                mediaRepository
         );
     }
 

@@ -1,10 +1,10 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaTagRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
 import com.github.curiousoddman.curious_images.model.GridCellData;
+import com.github.curiousoddman.curious_images.model.Media;
 import com.github.curiousoddman.curious_images.model.PersonDetails;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -147,7 +147,7 @@ public class RightPanelController implements Initializable {
         rootVbox.setPrefWidth(0);
         fxManage(rootVbox);
 
-        MediaRecord media = gridCellData.media();
+        Media media = gridCellData.media();
         fileNameLabel.setText(media.getFilename());
         extensionLabel.setText(media.getExtension());
         pathLabel.setText(media.getAbsolutePath());
@@ -156,7 +156,7 @@ public class RightPanelController implements Initializable {
                                      .toString());
         resolutionLabel.setText(media.getWidth() + " × " + media.getHeight() + " px");
         if (gridCellData.isPhoto()) {
-            PhotoRecord photo = gridCellData.photo();
+            MediaPhotoRecord photo = gridCellData.photo();
             orientationLabel.setText("Rotate " + photo.getOrientation() + "°");
             lensModelLabel.setText(photo.getLensModel());
 

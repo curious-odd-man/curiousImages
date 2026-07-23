@@ -52,7 +52,7 @@ CREATE TABLE duplicate_job
 -- (extension, content_hash) is unique because "compares only within the same file type" means
 -- a hash collision across extensions (e.g. matching JPEG and CR2 previews) must never be
 -- grouped together. Note: PIXEL-hashed and FILE-hashed rows never collide here in practice
--- since extensions already differ between photo and video formats, but the dedupe job still
+-- since extensions already differ between media and video formats, but the dedupe job still
 -- scopes comparisons within the same media_hash.hash_type as a explicit safety rule (see
 -- video-support-plan.md §6) so a future extension overlap can't silently cross-match.
 CREATE TABLE duplicate_group
@@ -62,6 +62,7 @@ CREATE TABLE duplicate_group
     extension        VARCHAR(10),
     content_hash     VARCHAR(64),
     created_at       TIMESTAMP,
+    accepted         BOOLEAN,
     UNIQUE (extension, content_hash)
 );
 CREATE INDEX idx_duplicate_group_job ON duplicate_group (duplicate_job_id);

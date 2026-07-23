@@ -56,7 +56,7 @@ public class FolderDuplicateGroupingService {
         for (DuplicateGroup group : allGroups) {
             Set<Long> folderIds = group.photos()
                                         .stream()
-                                        .map(pwt -> pwt.photo().getFolderId())
+                                        .map(pwt -> pwt.media().getFolderId())
                                         .collect(Collectors.toSet());
             if (folderIds.size() != 2) {
                 continue;
@@ -84,18 +84,18 @@ public class FolderDuplicateGroupingService {
     }
 
     /**
-     * Derives a display path for a folder from any member photo's absolute path, rather than a
+     * Derives a display path for a folder from any member media's absolute path, rather than a
      * FOLDER-table lookup — folder_id already uniquely determines the directory, so this is exact,
      * not an approximation.
      */
     private static String pathOf(List<DuplicateGroup> groups, long folderId) {
         return groups.stream()
                       .flatMap(g -> g.photos().stream())
-                      .filter(pwt -> folderId == pwt.photo().getFolderId())
+                      .filter(pwt -> folderId == pwt.media().getFolderId())
                       .findFirst()
                       .map(pwt -> {
-                          File parent = new File(pwt.photo().getAbsolutePath()).getParentFile();
-                          return parent == null ? pwt.photo().getAbsolutePath() : parent.getAbsolutePath();
+                          File parent = new File(pwt.media().getAbsolutePath()).getParentFile();
+                          return parent == null ? pwt.media().getAbsolutePath() : parent.getAbsolutePath();
                       })
                       .orElse("(unknown folder)");
     }

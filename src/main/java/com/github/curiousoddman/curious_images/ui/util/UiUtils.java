@@ -1,8 +1,8 @@
 package com.github.curiousoddman.curious_images.ui.util;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.model.DupResolveStrategy;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
+import com.github.curiousoddman.curious_images.model.Media;
 import com.github.curiousoddman.curious_images.model.bundle.SlideshowBundle;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
@@ -41,7 +41,7 @@ public class UiUtils {
         stage.close();
     }
 
-    public static void openSlideshow(List<PhotoRecord> photos, int startIndex, Scene scene2, FxmlLoader fxmlLoader) {
+    public static void openSlideshow(List<Media> photos, int startIndex, Scene scene2, FxmlLoader fxmlLoader) {
         try {
             Stage stage = new Stage();
             stage.setTitle("Slideshow");

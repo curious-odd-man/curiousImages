@@ -45,311 +45,311 @@ public class FaceRecord extends UpdatableRecordImpl<FaceRecord> {
     }
 
     /**
-     * Setter for <code>public.FACE.MEDIA_ID</code>.
-     */
-    public void setMediaId(Long value) {
-        set(1, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.MEDIA_ID</code>.
-     */
-    public Long getMediaId() {
-        return (Long) get(1);
-    }
-
-    /**
-     * Setter for <code>public.FACE.FRAME_OFFSET_MS</code>.
-     */
-    public void setFrameOffsetMs(Long value) {
-        set(2, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.FRAME_OFFSET_MS</code>.
-     */
-    public Long getFrameOffsetMs() {
-        return (Long) get(2);
-    }
-
-    /**
-     * Setter for <code>public.FACE.BBOX_X</code>.
-     */
-    public void setBboxX(Double value) {
-        set(3, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.BBOX_X</code>.
-     */
-    public Double getBboxX() {
-        return (Double) get(3);
-    }
-
-    /**
-     * Setter for <code>public.FACE.BBOX_Y</code>.
-     */
-    public void setBboxY(Double value) {
-        set(4, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.BBOX_Y</code>.
-     */
-    public Double getBboxY() {
-        return (Double) get(4);
-    }
-
-    /**
-     * Setter for <code>public.FACE.BBOX_W</code>.
-     */
-    public void setBboxW(Double value) {
-        set(5, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.BBOX_W</code>.
-     */
-    public Double getBboxW() {
-        return (Double) get(5);
-    }
-
-    /**
-     * Setter for <code>public.FACE.BBOX_H</code>.
-     */
-    public void setBboxH(Double value) {
-        set(6, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.BBOX_H</code>.
-     */
-    public Double getBboxH() {
-        return (Double) get(6);
-    }
-
-    /**
-     * Setter for <code>public.FACE.CONFIDENCE</code>.
-     */
-    public void setConfidence(Double value) {
-        set(7, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.CONFIDENCE</code>.
-     */
-    public Double getConfidence() {
-        return (Double) get(7);
-    }
-
-    /**
-     * Setter for <code>public.FACE.LANDMARK_LEFT_EYE_X</code>.
-     */
-    public void setLandmarkLeftEyeX(Double value) {
-        set(8, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.LANDMARK_LEFT_EYE_X</code>.
-     */
-    public Double getLandmarkLeftEyeX() {
-        return (Double) get(8);
-    }
-
-    /**
-     * Setter for <code>public.FACE.LANDMARK_LEFT_EYE_Y</code>.
-     */
-    public void setLandmarkLeftEyeY(Double value) {
-        set(9, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.LANDMARK_LEFT_EYE_Y</code>.
-     */
-    public Double getLandmarkLeftEyeY() {
-        return (Double) get(9);
-    }
-
-    /**
-     * Setter for <code>public.FACE.LANDMARK_RIGHT_EYE_X</code>.
-     */
-    public void setLandmarkRightEyeX(Double value) {
-        set(10, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.LANDMARK_RIGHT_EYE_X</code>.
-     */
-    public Double getLandmarkRightEyeX() {
-        return (Double) get(10);
-    }
-
-    /**
-     * Setter for <code>public.FACE.LANDMARK_RIGHT_EYE_Y</code>.
-     */
-    public void setLandmarkRightEyeY(Double value) {
-        set(11, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.LANDMARK_RIGHT_EYE_Y</code>.
-     */
-    public Double getLandmarkRightEyeY() {
-        return (Double) get(11);
-    }
-
-    /**
-     * Setter for <code>public.FACE.LANDMARK_NOSE_X</code>.
-     */
-    public void setLandmarkNoseX(Double value) {
-        set(12, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.LANDMARK_NOSE_X</code>.
-     */
-    public Double getLandmarkNoseX() {
-        return (Double) get(12);
-    }
-
-    /**
-     * Setter for <code>public.FACE.LANDMARK_NOSE_Y</code>.
-     */
-    public void setLandmarkNoseY(Double value) {
-        set(13, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.LANDMARK_NOSE_Y</code>.
-     */
-    public Double getLandmarkNoseY() {
-        return (Double) get(13);
-    }
-
-    /**
-     * Setter for <code>public.FACE.LANDMARK_LEFT_MOUTH_X</code>.
-     */
-    public void setLandmarkLeftMouthX(Double value) {
-        set(14, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.LANDMARK_LEFT_MOUTH_X</code>.
-     */
-    public Double getLandmarkLeftMouthX() {
-        return (Double) get(14);
-    }
-
-    /**
-     * Setter for <code>public.FACE.LANDMARK_LEFT_MOUTH_Y</code>.
-     */
-    public void setLandmarkLeftMouthY(Double value) {
-        set(15, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.LANDMARK_LEFT_MOUTH_Y</code>.
-     */
-    public Double getLandmarkLeftMouthY() {
-        return (Double) get(15);
-    }
-
-    /**
-     * Setter for <code>public.FACE.LANDMARK_RIGHT_MOUTH_X</code>.
-     */
-    public void setLandmarkRightMouthX(Double value) {
-        set(16, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.LANDMARK_RIGHT_MOUTH_X</code>.
-     */
-    public Double getLandmarkRightMouthX() {
-        return (Double) get(16);
-    }
-
-    /**
-     * Setter for <code>public.FACE.LANDMARK_RIGHT_MOUTH_Y</code>.
-     */
-    public void setLandmarkRightMouthY(Double value) {
-        set(17, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.LANDMARK_RIGHT_MOUTH_Y</code>.
-     */
-    public Double getLandmarkRightMouthY() {
-        return (Double) get(17);
-    }
-
-    /**
-     * Setter for <code>public.FACE.CREATED_AT</code>.
-     */
-    public void setCreatedAt(LocalDateTime value) {
-        set(18, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.CREATED_AT</code>.
-     */
-    public LocalDateTime getCreatedAt() {
-        return (LocalDateTime) get(18);
-    }
-
-    /**
-     * Setter for <code>public.FACE.THUMBNAIL_ABSOLUTE_PATH</code>.
-     */
-    public void setThumbnailAbsolutePath(String value) {
-        set(19, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.THUMBNAIL_ABSOLUTE_PATH</code>.
-     */
-    public String getThumbnailAbsolutePath() {
-        return (String) get(19);
-    }
-
-    /**
-     * Setter for <code>public.FACE.ASSIGNMENT_LOCKED</code>.
-     */
-    public void setAssignmentLocked(Boolean value) {
-        set(20, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.ASSIGNMENT_LOCKED</code>.
-     */
-    public Boolean getAssignmentLocked() {
-        return (Boolean) get(20);
-    }
-
-    /**
-     * Setter for <code>public.FACE.EXCLUDED</code>.
-     */
-    public void setExcluded(Boolean value) {
-        set(21, value);
-    }
-
-    /**
-     * Getter for <code>public.FACE.EXCLUDED</code>.
-     */
-    public Boolean getExcluded() {
-        return (Boolean) get(21);
-    }
-
-    /**
      * Setter for <code>public.FACE.CLUSTER_ID</code>.
      */
     public void setClusterId(Long value) {
-        set(22, value);
+        set(1, value);
     }
 
     /**
      * Getter for <code>public.FACE.CLUSTER_ID</code>.
      */
     public Long getClusterId() {
-        return (Long) get(22);
+        return (Long) get(1);
+    }
+
+    /**
+     * Setter for <code>public.FACE.MEDIA_ID</code>.
+     */
+    public void setMediaId(Long value) {
+        set(2, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.MEDIA_ID</code>.
+     */
+    public Long getMediaId() {
+        return (Long) get(2);
+    }
+
+    /**
+     * Setter for <code>public.FACE.FRAME_OFFSET_MS</code>.
+     */
+    public void setFrameOffsetMs(Long value) {
+        set(3, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.FRAME_OFFSET_MS</code>.
+     */
+    public Long getFrameOffsetMs() {
+        return (Long) get(3);
+    }
+
+    /**
+     * Setter for <code>public.FACE.BBOX_X</code>.
+     */
+    public void setBboxX(Double value) {
+        set(4, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.BBOX_X</code>.
+     */
+    public Double getBboxX() {
+        return (Double) get(4);
+    }
+
+    /**
+     * Setter for <code>public.FACE.BBOX_Y</code>.
+     */
+    public void setBboxY(Double value) {
+        set(5, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.BBOX_Y</code>.
+     */
+    public Double getBboxY() {
+        return (Double) get(5);
+    }
+
+    /**
+     * Setter for <code>public.FACE.BBOX_W</code>.
+     */
+    public void setBboxW(Double value) {
+        set(6, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.BBOX_W</code>.
+     */
+    public Double getBboxW() {
+        return (Double) get(6);
+    }
+
+    /**
+     * Setter for <code>public.FACE.BBOX_H</code>.
+     */
+    public void setBboxH(Double value) {
+        set(7, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.BBOX_H</code>.
+     */
+    public Double getBboxH() {
+        return (Double) get(7);
+    }
+
+    /**
+     * Setter for <code>public.FACE.CONFIDENCE</code>.
+     */
+    public void setConfidence(Double value) {
+        set(8, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.CONFIDENCE</code>.
+     */
+    public Double getConfidence() {
+        return (Double) get(8);
+    }
+
+    /**
+     * Setter for <code>public.FACE.LANDMARK_LEFT_EYE_X</code>.
+     */
+    public void setLandmarkLeftEyeX(Double value) {
+        set(9, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.LANDMARK_LEFT_EYE_X</code>.
+     */
+    public Double getLandmarkLeftEyeX() {
+        return (Double) get(9);
+    }
+
+    /**
+     * Setter for <code>public.FACE.LANDMARK_LEFT_EYE_Y</code>.
+     */
+    public void setLandmarkLeftEyeY(Double value) {
+        set(10, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.LANDMARK_LEFT_EYE_Y</code>.
+     */
+    public Double getLandmarkLeftEyeY() {
+        return (Double) get(10);
+    }
+
+    /**
+     * Setter for <code>public.FACE.LANDMARK_RIGHT_EYE_X</code>.
+     */
+    public void setLandmarkRightEyeX(Double value) {
+        set(11, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.LANDMARK_RIGHT_EYE_X</code>.
+     */
+    public Double getLandmarkRightEyeX() {
+        return (Double) get(11);
+    }
+
+    /**
+     * Setter for <code>public.FACE.LANDMARK_RIGHT_EYE_Y</code>.
+     */
+    public void setLandmarkRightEyeY(Double value) {
+        set(12, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.LANDMARK_RIGHT_EYE_Y</code>.
+     */
+    public Double getLandmarkRightEyeY() {
+        return (Double) get(12);
+    }
+
+    /**
+     * Setter for <code>public.FACE.LANDMARK_NOSE_X</code>.
+     */
+    public void setLandmarkNoseX(Double value) {
+        set(13, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.LANDMARK_NOSE_X</code>.
+     */
+    public Double getLandmarkNoseX() {
+        return (Double) get(13);
+    }
+
+    /**
+     * Setter for <code>public.FACE.LANDMARK_NOSE_Y</code>.
+     */
+    public void setLandmarkNoseY(Double value) {
+        set(14, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.LANDMARK_NOSE_Y</code>.
+     */
+    public Double getLandmarkNoseY() {
+        return (Double) get(14);
+    }
+
+    /**
+     * Setter for <code>public.FACE.LANDMARK_LEFT_MOUTH_X</code>.
+     */
+    public void setLandmarkLeftMouthX(Double value) {
+        set(15, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.LANDMARK_LEFT_MOUTH_X</code>.
+     */
+    public Double getLandmarkLeftMouthX() {
+        return (Double) get(15);
+    }
+
+    /**
+     * Setter for <code>public.FACE.LANDMARK_LEFT_MOUTH_Y</code>.
+     */
+    public void setLandmarkLeftMouthY(Double value) {
+        set(16, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.LANDMARK_LEFT_MOUTH_Y</code>.
+     */
+    public Double getLandmarkLeftMouthY() {
+        return (Double) get(16);
+    }
+
+    /**
+     * Setter for <code>public.FACE.LANDMARK_RIGHT_MOUTH_X</code>.
+     */
+    public void setLandmarkRightMouthX(Double value) {
+        set(17, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.LANDMARK_RIGHT_MOUTH_X</code>.
+     */
+    public Double getLandmarkRightMouthX() {
+        return (Double) get(17);
+    }
+
+    /**
+     * Setter for <code>public.FACE.LANDMARK_RIGHT_MOUTH_Y</code>.
+     */
+    public void setLandmarkRightMouthY(Double value) {
+        set(18, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.LANDMARK_RIGHT_MOUTH_Y</code>.
+     */
+    public Double getLandmarkRightMouthY() {
+        return (Double) get(18);
+    }
+
+    /**
+     * Setter for <code>public.FACE.CREATED_AT</code>.
+     */
+    public void setCreatedAt(LocalDateTime value) {
+        set(19, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.CREATED_AT</code>.
+     */
+    public LocalDateTime getCreatedAt() {
+        return (LocalDateTime) get(19);
+    }
+
+    /**
+     * Setter for <code>public.FACE.THUMBNAIL_ABSOLUTE_PATH</code>.
+     */
+    public void setThumbnailAbsolutePath(String value) {
+        set(20, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.THUMBNAIL_ABSOLUTE_PATH</code>.
+     */
+    public String getThumbnailAbsolutePath() {
+        return (String) get(20);
+    }
+
+    /**
+     * Setter for <code>public.FACE.ASSIGNMENT_LOCKED</code>.
+     */
+    public void setAssignmentLocked(Boolean value) {
+        set(21, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.ASSIGNMENT_LOCKED</code>.
+     */
+    public Boolean getAssignmentLocked() {
+        return (Boolean) get(21);
+    }
+
+    /**
+     * Setter for <code>public.FACE.EXCLUDED</code>.
+     */
+    public void setExcluded(Boolean value) {
+        set(22, value);
+    }
+
+    /**
+     * Getter for <code>public.FACE.EXCLUDED</code>.
+     */
+    public Boolean getExcluded() {
+        return (Boolean) get(22);
     }
 
     // -------------------------------------------------------------------------
@@ -375,10 +375,11 @@ public class FaceRecord extends UpdatableRecordImpl<FaceRecord> {
     /**
      * Create a detached, initialised FaceRecord
      */
-    public FaceRecord(Long id, Long mediaId, Long frameOffsetMs, Double bboxX, Double bboxY, Double bboxW, Double bboxH, Double confidence, Double landmarkLeftEyeX, Double landmarkLeftEyeY, Double landmarkRightEyeX, Double landmarkRightEyeY, Double landmarkNoseX, Double landmarkNoseY, Double landmarkLeftMouthX, Double landmarkLeftMouthY, Double landmarkRightMouthX, Double landmarkRightMouthY, LocalDateTime createdAt, String thumbnailAbsolutePath, Boolean assignmentLocked, Boolean excluded, Long clusterId) {
+    public FaceRecord(Long id, Long clusterId, Long mediaId, Long frameOffsetMs, Double bboxX, Double bboxY, Double bboxW, Double bboxH, Double confidence, Double landmarkLeftEyeX, Double landmarkLeftEyeY, Double landmarkRightEyeX, Double landmarkRightEyeY, Double landmarkNoseX, Double landmarkNoseY, Double landmarkLeftMouthX, Double landmarkLeftMouthY, Double landmarkRightMouthX, Double landmarkRightMouthY, LocalDateTime createdAt, String thumbnailAbsolutePath, Boolean assignmentLocked, Boolean excluded) {
         super(Face.FACE);
 
         setId(id);
+        setClusterId(clusterId);
         setMediaId(mediaId);
         setFrameOffsetMs(frameOffsetMs);
         setBboxX(bboxX);
@@ -400,7 +401,6 @@ public class FaceRecord extends UpdatableRecordImpl<FaceRecord> {
         setThumbnailAbsolutePath(thumbnailAbsolutePath);
         setAssignmentLocked(assignmentLocked);
         setExcluded(excluded);
-        setClusterId(clusterId);
         resetChangedOnNotNull();
     }
 }

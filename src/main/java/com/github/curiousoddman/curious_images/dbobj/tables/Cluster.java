@@ -215,7 +215,7 @@ public class Cluster extends TableImpl<ClusterRecord> {
      */
     public FacePath face() {
         if (_face == null)
-            _face = new FacePath(this, null, Keys.CONSTRAINT_20CE.getInverseKey());
+            _face = new FacePath(this, null, Keys.CONSTRAINT_20C.getInverseKey());
 
         return _face;
     }

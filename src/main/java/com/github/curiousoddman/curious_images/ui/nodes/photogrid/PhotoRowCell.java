@@ -30,7 +30,7 @@ public class PhotoRowCell extends ListCell<PhotoGridRow> {
                 callbacks.thumbnailSizeProperty(),
                 callbacks::onPhotoClicked
         );
-        getStyleClass().add("photo-row-cell");
+        getStyleClass().add("media-row-cell");
         setFocusTraversable(false);
     }
 

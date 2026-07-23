@@ -37,7 +37,7 @@ public sealed interface NodePayload
     record UndatedPayload() implements NodePayload {}
 
     /**
-     * Carries an {@code ALBUM.id}; selecting loads the album's photo members.
+     * Carries an {@code ALBUM.id}; selecting loads the album's media members.
      */
     record AlbumPayload(long albumId) implements NodePayload {}
 

@@ -1,13 +1,13 @@
 package com.github.curiousoddman.curious_images.domain.imports;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.ExtractedMetadata;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
 import com.github.curiousoddman.curious_images.event.model.LibraryUpdatedEvent;
 import com.github.curiousoddman.curious_images.persistence.FolderRepository;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
+import com.github.curiousoddman.curious_images.persistence.MediaRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoPreviewRepository;
-import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.util.FileCollectingVisitor;
 import com.github.curiousoddman.curious_images.util.FileUtils;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
@@ -42,7 +42,7 @@ public class ImportJob extends BackgroundJob {
     private final DSLContext             dsl;
     private final ImportRootRepository   importRootRepository;
     private final FolderRepository       folderRepository;
-    private final PhotoRepository        photoRepository;
+    private final MediaRepository        mediaRepository;
     private final PhotoPreviewRepository photoPreviewRepository;
     private final PhotoMetadataExtractor metadataExtractor;
     private final TimeProvider           timeProvider;
@@ -131,13 +131,13 @@ public class ImportJob extends BackgroundJob {
         long          fileSize  = Files.size(file);
         LocalDateTime now       = timeProvider.now();
 
-        Optional<PhotoRecord> existing = photoRepository.findByAbsolutePath(absolutePath);
+        Optional<MediaPhotoRecord> existing = mediaRepository.findByAbsolutePath(absolutePath);
 
         if (existing.isPresent() && existing.get()
                                             .getFileSize() == fileSize) {
             // Cheap rescan: file unchanged. Touch last_seen_at; do NOT reset AI status flags —
             // partial AI progress from a previous run is preserved.
-            buffer.add(photoRepository.touchLastSeenAtQuery(existing.get()
+            buffer.add(mediaRepository.touchLastSeenAtQuery(existing.get()
                                                                     .getId(), now));
             return ImportOutcome.SKIPPED_UNCHANGED;
         }
@@ -147,19 +147,19 @@ public class ImportJob extends BackgroundJob {
         if (existing.isPresent()) {
             long photoId = existing.get()
                                    .getId();
-            buffer.add(photoRepository.updateMetadataQuery(photoId, fileSize,
+            buffer.addAll(mediaRepository.updateMetadataQuery(photoId, fileSize,
                     metadata.width(), metadata.height(),
                     metadata.captureDate(), metadata.captureDateSource(),
                     metadata.orientationDegrees(), metadata.cameraMake(),
                     metadata.cameraModel(), metadata.lensModel(),
                     metadata.exifExtraJson(), now));
             queuePreview(photoId, metadata, buffer);
-            buffer.add(photoRepository.resetAiFields(photoId));
+            buffer.add(mediaRepository.resetAiFields(photoId));
             return ImportOutcome.UPDATED;
         }
 
-        // Brand-new photo: insert returns the generated ID immediately.
-        long photoId = photoRepository.insert(folderId, absolutePath, filename, extension, fileSize,
+        // Brand-new media: insert returns the generated ID immediately.
+        long photoId = mediaRepository.insertPhoto(folderId, absolutePath, filename, extension, fileSize,
                 metadata.width(), metadata.height(),
                 metadata.captureDate(), metadata.captureDateSource(),
                 metadata.orientationDegrees(), metadata.cameraMake(),

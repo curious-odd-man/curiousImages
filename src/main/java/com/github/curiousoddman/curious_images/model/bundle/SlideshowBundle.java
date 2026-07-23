@@ -1,6 +1,6 @@
 package com.github.curiousoddman.curious_images.model.bundle;
 
-import com.github.curiousoddman.curious_images.model.GridCellData;
+import com.github.curiousoddman.curious_images.model.Media;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -14,8 +14,8 @@ import java.util.ListResourceBundle;
 @Getter
 @RequiredArgsConstructor
 public class SlideshowBundle extends ListResourceBundle {
-    private final List<GridCellData> mediaRecords;
-    private final int                startIndex;
+    private final List<Media> mediaRecords;
+    private final int         startIndex;
 
     @Override
     protected Object[][] getContents() {

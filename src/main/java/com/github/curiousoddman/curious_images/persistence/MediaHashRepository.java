@@ -27,8 +27,8 @@ public class MediaHashRepository {
 
     /**
      * Loads every existing PHOTO_HASH row, keyed by photo_id. Called once per duplicate-detection
-     * run to decide, per photo, whether the cached hash can be reused — a single bulk query
-     * rather than one lookup per photo, since this runs against up to 25,000 rows.
+     * run to decide, per media, whether the cached hash can be reused — a single bulk query
+     * rather than one lookup per media, since this runs against up to 25,000 rows.
      */
     public Map<Long, MediaHashRecord> findAllAsMap() {
         return dsl.selectFrom(MEDIA_HASH)

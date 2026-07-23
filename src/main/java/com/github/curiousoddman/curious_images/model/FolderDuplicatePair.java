@@ -13,7 +13,7 @@ import java.util.List;
  * which folder came first in a given group's member list.
  *
  * @param folderAId   lower folder id of the pair
- * @param folderAPath immediate-parent directory path for folder A (derived from a member photo's
+ * @param folderAPath immediate-parent directory path for folder A (derived from a member media's
  *                    absolute path, not a separate FOLDER-table lookup)
  * @param folderBId   higher folder id of the pair
  * @param folderBPath immediate-parent directory path for folder B
@@ -35,7 +35,7 @@ public record FolderDuplicatePair(
         return (int) groups.stream()
                            .flatMap(g -> g.photos()
                                           .stream())
-                           .filter(pwt -> folderId == pwt.photo()
+                           .filter(pwt -> folderId == pwt.media()
                                                          .getFolderId())
                            .count();
     }
@@ -44,10 +44,10 @@ public record FolderDuplicatePair(
         return groups.stream()
                      .flatMap(g -> g.photos()
                                     .stream())
-                     .filter(pwt -> folderId == pwt.photo()
+                     .filter(pwt -> folderId == pwt.media()
                                                    .getFolderId())
-                     .mapToLong(pwt -> pwt.photo()
-                                          .getFileSize() == null ? 0L : pwt.photo()
+                     .mapToLong(pwt -> pwt.media()
+                                          .getFileSize() == null ? 0L : pwt.media()
                                                                            .getFileSize())
                      .sum();
     }

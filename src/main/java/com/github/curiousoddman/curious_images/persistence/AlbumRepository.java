@@ -25,15 +25,12 @@ public class AlbumRepository {
 
     private final DSLContext dsl;
 
-    /**
-     * Inserts a new album and returns its generated ID. Executes immediately (not batched).
-     */
     public long insert(String name, String type, Long coverPhotoId,
                        String metaJson, LocalDateTime now) {
         return dsl.insertInto(ALBUM)
                   .set(ALBUM.NAME, name)
                   .set(ALBUM.TYPE, type)
-                  .set(ALBUM.COVER_PHOTO_ID, coverPhotoId)
+                  .set(ALBUM.COVER_MEDIA_ID, coverPhotoId)
                   .set(ALBUM.META_JSON, metaJson)
                   .set(ALBUM.CREATED_AT, now)
                   .returning(ALBUM.ID)

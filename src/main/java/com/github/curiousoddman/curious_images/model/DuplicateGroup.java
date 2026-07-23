@@ -6,6 +6,6 @@ public record DuplicateGroup(
         long groupId,
         String extension,
         String pixelHash,
-        List<PhotoWithThumbnail> photos
+        List<MediaWithThumbnail> photos
 ) {
 }

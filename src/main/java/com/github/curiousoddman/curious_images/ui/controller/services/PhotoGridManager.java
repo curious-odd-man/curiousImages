@@ -1,16 +1,17 @@
 package com.github.curiousoddman.curious_images.ui.controller.services;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaTagRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
-import com.github.curiousoddman.curious_images.model.PersonDetails;
 import com.github.curiousoddman.curious_images.model.GridCellData;
+import com.github.curiousoddman.curious_images.model.Media;
+import com.github.curiousoddman.curious_images.model.PersonDetails;
 import com.github.curiousoddman.curious_images.persistence.AlbumPhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
+import com.github.curiousoddman.curious_images.persistence.MediaRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
-import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoTagRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.controller.custom.GridController;
@@ -39,7 +40,7 @@ import static com.sun.javafx.util.Utils.runOnFxThread;
 public class PhotoGridManager {
     private static final int THUMBNAIL_GEN_DEBOUNCE_MS = 150;
 
-    private final PhotoRepository          photoRepository;
+    private final MediaRepository          mediaRepository;
     private final AlbumPhotoRepository     albumPhotoRepository;
     private final PhotoTagRepository       photoTagRepository;
     private final PersonRepository         personRepository;
@@ -56,7 +57,7 @@ public class PhotoGridManager {
         this.gridController = gridController;
     }
 
-    public void populate(List<PhotoRecord> photos) {
+    public void populate(List<MediaPhotoRecord> photos) {
         List<GridCellData> data = createData(photos);
         runOnFxThread(() -> gridController.populatePhotoGrid(data));
     }
@@ -69,7 +70,7 @@ public class PhotoGridManager {
     public void loadPhotosForFolder(long folderId) {
         long myGeneration = gridController.initiateChange();
         runOnDaemonThread("LoadFolder", () -> {
-            List<PhotoRecord> photos = photoRepository.findByFolderId(folderId);
+            List<MediaPhotoRecord> photos = mediaRepository.findByFolderId(folderId);
             loadSelectionResult(myGeneration, photos);
         });
     }
@@ -77,15 +78,17 @@ public class PhotoGridManager {
     public void loadPhotosForTimeline(int year, int month, Integer day) {
         long myGeneration = gridController.initiateChange();
         runOnDaemonThread("LoadTimeline", () -> {
-            List<PhotoRecord> photos = photoRepository.findByCaptureDate(year, month, day);
-            loadSelectionResult(myGeneration, photos);
+            List<Media> photos = mediaRepository.findByCaptureDate(year, month, day);
+            loadSelectionResult(myGeneration, photos.stream()
+                                                    .map(Media::photo)
+                                                    .toList());
         });
     }
 
     public void loadPhotosUndated() {
         long myGeneration = gridController.initiateChange();
         runOnDaemonThread("LoadUndated", () -> {
-            List<PhotoRecord> photos = photoRepository.findByNullCaptureDate();
+            List<MediaPhotoRecord> photos = mediaRepository.findByNullCaptureDate();
             loadSelectionResult(myGeneration, photos);
         });
     }
@@ -94,18 +97,18 @@ public class PhotoGridManager {
         long myGeneration = gridController.initiateChange();
         runOnDaemonThread("LoadAlbum", () -> {
             List<Long> photoIds = albumPhotoRepository.findPhotoIdsByAlbumId(albumId);
-            List<PhotoRecord> photos = photoIds.stream()
-                                               .map(id -> photoRepository.findById(id)
-                                                                         .orElse(null))
-                                               .filter(Objects::nonNull)
-                                               .toList();
+            List<MediaPhotoRecord> photos = photoIds.stream()
+                                                    .map(id -> mediaRepository.findById(id)
+                                                                              .orElse(null))
+                                                    .filter(Objects::nonNull)
+                                                    .toList();
             loadSelectionResult(myGeneration, photos);
         });
     }
 
-    public List<GridCellData> createData(List<PhotoRecord> photos) {
+    public List<GridCellData> createData(List<MediaPhotoRecord> photos) {
         List<Long> ids = photos.stream()
-                               .map(PhotoRecord::getId)
+                               .map(MediaPhotoRecord::getId)
                                .toList();
 
         Map<Long, Map<MediaTagRecord, TagEmbeddingRecord>> tags       = photoTagRepository.findForPhotos(ids);
@@ -116,20 +119,20 @@ public class PhotoGridManager {
         List<Long> missing = new ArrayList<>();
         List<GridCellData> cellData = photos
                 .stream()
-                .map(photoRecord -> {
-                    ThumbnailRecord thumbnail  = thumbs.get(photoRecord.getId());
+                .map(mediaPhotoRecord -> {
+                    ThumbnailRecord thumbnail  = thumbs.get(mediaPhotoRecord.getId());
                     Image           thumbImage = null;
                     if (thumbnail != null && hasCachedFile(thumbnail)) {
                         thumbImage = ThumbnailUtils.loadThumbnailImage(thumbnail);
                     } else {
-                        missing.add(photoRecord.getId());
+                        missing.add(mediaPhotoRecord.getId());
                     }
                     return new GridCellData(
-                            photoRecord,
+                            Media.photo(mediaPhotoRecord),
                             thumbImage,
-                            tags.getOrDefault(photoRecord.getId(), Map.of()),
-                            persons.getOrDefault(photoRecord.getId(), List.of()),
-                            duplicates.getOrDefault(photoRecord.getId(), 0) > 1
+                            tags.getOrDefault(mediaPhotoRecord.getId(), Map.of()),
+                            persons.getOrDefault(mediaPhotoRecord.getId(), List.of()),
+                            duplicates.getOrDefault(mediaPhotoRecord.getId(), 0) > 1
 
                     );
                 })
@@ -154,7 +157,7 @@ public class PhotoGridManager {
         });
     }
 
-    private void loadSelectionResult(long myGeneration, List<PhotoRecord> photos) {
+    private void loadSelectionResult(long myGeneration, List<MediaPhotoRecord> photos) {
         if (myGeneration == gridController.currentChange()) {
             populate(photos);
         }

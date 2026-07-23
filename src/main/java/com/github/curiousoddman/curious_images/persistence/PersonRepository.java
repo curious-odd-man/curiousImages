@@ -246,7 +246,7 @@ public class PersonRepository {
 
         return dsl
                 .select(
-                        FACE.PHOTO_ID,
+                        FACE.MEDIA_ID,
                         PERSON.NAME,
                         COVER_FACE.THUMBNAIL_ABSOLUTE_PATH
                 )
@@ -257,7 +257,7 @@ public class PersonRepository {
                 .on(CLUSTER.PERSON_ID.eq(PERSON.ID))
                 .join(COVER_FACE)
                 .on(COVER_FACE.ID.eq(PERSON.COVER_FACE_ID))
-                .where(FACE.PHOTO_ID.in(ids))
+                .where(FACE.MEDIA_ID.in(ids))
                 .fetch()
                 .stream()
                 .collect(groupingBy(

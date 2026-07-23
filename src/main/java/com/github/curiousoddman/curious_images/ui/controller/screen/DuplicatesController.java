@@ -1,16 +1,17 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateResolutionService;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.model.DupResolveStrategy;
 import com.github.curiousoddman.curious_images.model.DuplicateGroup;
-import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.GridCellData;
+import com.github.curiousoddman.curious_images.model.LoadedFxml;
+import com.github.curiousoddman.curious_images.model.Media;
+import com.github.curiousoddman.curious_images.model.MediaWithThumbnail;
 import com.github.curiousoddman.curious_images.model.PhotoFailure;
-import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import com.github.curiousoddman.curious_images.model.bundle.DuplicateCellDataBundle;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
@@ -180,16 +181,16 @@ public class DuplicatesController implements Initializable {
 
             List<Long> ids = new ArrayList<>();
 
-            List<PhotoRecord> groupPhotos = currentGroup
+            List<Media> groupPhotos = currentGroup
                     .photos()
                     .stream()
-                    .map(PhotoWithThumbnail::photo)
+                    .map(MediaWithThumbnail::media)
                     .toList();
 
             currentGroup
                     .photos()
                     .forEach(pwt -> {
-                        Long id = pwt.photo()
+                        Long id = pwt.media()
                                      .getId();
                         DuplicateCell duplicateCell = createDuplicateCell(pwt, allValues, groupPhotos, cells.size());
                         visiblePhotoCells.put(id, duplicateCell.controller());
@@ -215,9 +216,9 @@ public class DuplicatesController implements Initializable {
         Map<Long, Map<String, DetailRow>> allValues = currentGroup
                 .photos()
                 .stream()
-                .map(PhotoWithThumbnail::photo)
+                .map(MediaWithThumbnail::media)
                 .collect(Collectors.toMap(
-                        PhotoRecord::getId,
+                        Media::getId,
                         GridCellData::getMediaDetails
                 ));
 
@@ -246,8 +247,8 @@ public class DuplicatesController implements Initializable {
         return allValues;
     }
 
-    private DuplicateCell createDuplicateCell(PhotoWithThumbnail pwt, Map<Long, Map<String, DetailRow>> allValues, List<PhotoRecord> groupPhotos, int index) {
-        Map<String, DetailRow> details = allValues.get(pwt.photo()
+    private DuplicateCell createDuplicateCell(MediaWithThumbnail pwt, Map<Long, Map<String, DetailRow>> allValues, List<Media> groupPhotos, int index) {
+        Map<String, DetailRow> details = allValues.get(pwt.media()
                                                           .getId());
         DuplicateCellDataBundle resourceBundle = new DuplicateCellDataBundle(
                 getImage(pwt.thumbnail(), null),
@@ -342,16 +343,17 @@ public class DuplicatesController implements Initializable {
     }
 
     private void resolveActivePane(DupResolveStrategy strategy) {
-        List<PhotoRecord> toDrop       = new ArrayList<>();
-        DuplicateGroup    currentGroup = knownGroups.get(currentGroupIndex);
-        for (PhotoWithThumbnail photoWithThumbnail : currentGroup.photos()) {
-            PhotoRecord             photoRecord             = photoWithThumbnail.photo();
-            DuplicateCellController duplicateCellController = visiblePhotoCells.get(photoRecord.getId());
+        List<MediaPhotoRecord> toDrop       = new ArrayList<>();
+        DuplicateGroup         currentGroup = knownGroups.get(currentGroupIndex);
+        for (MediaWithThumbnail mediaWithThumbnail : currentGroup.photos()) {
+            MediaPhotoRecord MediaPhotoRecord = mediaWithThumbnail.media()
+                                                                  .photo();
+            DuplicateCellController duplicateCellController = visiblePhotoCells.get(MediaPhotoRecord.getId());
             boolean currentImageSelected = duplicateCellController.checkBox()
                                                                   .isSelected();
 
             if (isDropped(strategy, currentImageSelected)) {
-                toDrop.add(photoRecord);
+                toDrop.add(MediaPhotoRecord);
             }
         }
 
@@ -391,7 +393,7 @@ public class DuplicatesController implements Initializable {
         duplicateCounterLabel.setText("Duplicate " + (currentGroupIndex + 1) + " of " + knownGroups.size());
     }
 
-    private record DuplicateCell(PhotoWithThumbnail photoWithThumbnail, CheckBox checkBox,
+    private record DuplicateCell(MediaWithThumbnail mediaWithThumbnail, CheckBox checkBox,
                                  DuplicateCellController controller, Pane pane) {
     }
 }

@@ -19,7 +19,7 @@
                 <Rectangle fx:id="placeholderRect" arcHeight="10.0" arcWidth="10.0" fill="#d8d8d8" />
                 <Label fx:id="placeholderLabel" text="Loading..." textFill="#1a00ff">
                <font>
-                  <Font name="Consolas Bold" size="26.0" />
+                  <Font name="Consolas Bold" size="20.0" />
                </font></Label>
                 <ImageView fx:id="imageView" managed="false" preserveRatio="true" visible="false" />
             </children>

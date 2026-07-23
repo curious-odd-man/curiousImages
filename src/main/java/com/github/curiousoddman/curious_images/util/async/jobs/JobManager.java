@@ -222,8 +222,8 @@ public class JobManager {
     }
 
     /**
-     * Requests on-demand real-thumbnail generation for a page/selection of photo IDs — submitted
-     * by {@code LibraryController} whenever the grid is about to render a set of photo IDs.
+     * Requests on-demand real-thumbnail generation for a page/selection of media IDs — submitted
+     * by {@code LibraryController} whenever the grid is about to render a set of media IDs.
      * Supersedable (see {@code ThumbnailGenerationJob#isSupersedable()}) — a fresh call always
      * takes priority over one still queued or running for a previous selection.
      */

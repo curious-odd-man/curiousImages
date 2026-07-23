@@ -2246,7 +2246,7 @@ MERGE INTO tag_embedding t
             ('objects', 'pepper shaker'),
             ('objects', 'perfume'),
             ('objects', 'phone'),
-            ('objects', 'photo album'),
+            ('objects', 'media album'),
             ('objects', 'picture frame'),
             ('objects', 'piece of gum'),
             ('objects', 'pillow'),

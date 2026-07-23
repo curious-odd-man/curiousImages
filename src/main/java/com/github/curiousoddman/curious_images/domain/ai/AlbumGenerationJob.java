@@ -2,14 +2,14 @@ package com.github.curiousoddman.curious_images.domain.ai;
 
 import com.github.curiousoddman.curious_images.config.AiConfig;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ClipEmbeddingRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.PersonService;
 import com.github.curiousoddman.curious_images.event.model.AiPipelineCompleteEvent;
 import com.github.curiousoddman.curious_images.persistence.AlbumPhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.AlbumRepository;
 import com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository;
-import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
+import com.github.curiousoddman.curious_images.persistence.MediaRepository;
 import com.github.curiousoddman.curious_images.util.EmbeddingMath;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import com.github.curiousoddman.curious_images.util.async.jobs.BackgroundJob;
@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static com.github.curiousoddman.curious_images.util.EmbeddingMath.getFloats;
 import static com.github.curiousoddman.curious_images.util.EmbeddingMath.dot;
+import static com.github.curiousoddman.curious_images.util.EmbeddingMath.getFloats;
 import static com.github.curiousoddman.curious_images.util.EmbeddingMath.l2Normalize;
 
 @Slf4j
@@ -41,7 +41,7 @@ public class AlbumGenerationJob extends BackgroundJob {
     private final AiConfig                aiConfig;
     private final TimeProvider            timeProvider;
     private final PersonService           personService;
-    private final PhotoRepository         photoRepository;
+    private final MediaRepository         mediaRepository;
 
 
     @Override
@@ -99,21 +99,21 @@ public class AlbumGenerationJob extends BackgroundJob {
     // ── Event albums ──────────────────────────────────────────────────────────
 
     private void buildEventAlbums() {
-        List<PhotoRecord> dated = photoRepository.findOrderedByCaptureDate();
+        List<MediaPhotoRecord> dated = mediaRepository.findOrderedByCaptureDate();
         if (dated.isEmpty()) {
             return;
         }
 
-        long                    gapMillis = TimeUnit.HOURS.toMillis(aiConfig.getEventGapHours());
-        List<List<PhotoRecord>> events    = new ArrayList<>();
-        List<PhotoRecord>       current   = new ArrayList<>();
+        long                         gapMillis = TimeUnit.HOURS.toMillis(aiConfig.getEventGapHours());
+        List<List<MediaPhotoRecord>> events    = new ArrayList<>();
+        List<MediaPhotoRecord>       current   = new ArrayList<>();
         current.add(dated.getFirst());
 
         publishProgressThrottled("Build Event Albums", 0, dated.size(), "", false);
 
         for (int i = 1; i < dated.size(); i++) {
-            PhotoRecord prev = dated.get(i - 1);
-            PhotoRecord next = dated.get(i);
+            MediaPhotoRecord prev = dated.get(i - 1);
+            MediaPhotoRecord next = dated.get(i);
             long gap = Duration.between(prev.getCaptureDate(), next.getCaptureDate())
                                .toMillis();
             if (gap > gapMillis) {
@@ -133,12 +133,12 @@ public class AlbumGenerationJob extends BackgroundJob {
             for (int j = 0; j < events.size(); j++) {
                 publishProgressThrottled("Build Event Albums", j + dated.size(), dated.size() + events.size(), "", false);
 
-                List<PhotoRecord> eventPhotos = events.get(j);
+                List<MediaPhotoRecord> eventPhotos = events.get(j);
                 if (eventPhotos.size() < aiConfig.getMinEventSize()) {
                     continue;
                 }
 
-                // Name = date of first photo; cover = sharpest photo in event
+                // Name = date of first media; cover = sharpest media in event
                 String name = eventPhotos.getFirst()
                                          .getCaptureDate()
                                          .toLocalDate()
@@ -160,19 +160,19 @@ public class AlbumGenerationJob extends BackgroundJob {
      */
     private void buildLocationAlbums() {
         publishProgressThrottled("Build Location Albums", 0, 1, "", false);
-        List<PhotoRecord> withGps = photoRepository.findAllWithGps();
+        List<MediaPhotoRecord> withGps = mediaRepository.findAllWithGps();
         if (withGps.isEmpty()) {
             return;
         }
 
-        Map<String, List<PhotoRecord>> cells = new LinkedHashMap<>();
+        Map<String, List<MediaPhotoRecord>> cells = new LinkedHashMap<>();
         for (int i = 0; i < withGps.size(); i++) {
             publishProgressThrottled("Build Event Albums", i, withGps.size() + cells.size(), "", false);
 
-            PhotoRecord p   = withGps.get(i);
-            double      lat = Math.round(p.getGpsLat() * 100.0) / 100.0;
-            double      lon = Math.round(p.getGpsLon() * 100.0) / 100.0;
-            String      key = lat + "," + lon;
+            MediaPhotoRecord p   = withGps.get(i);
+            double           lat = Math.round(p.getGpsLat() * 100.0) / 100.0;
+            double           lon = Math.round(p.getGpsLon() * 100.0) / 100.0;
+            String           key = lat + "," + lon;
             cells.computeIfAbsent(key, k -> new ArrayList<>())
                  .add(p);
         }
@@ -183,10 +183,10 @@ public class AlbumGenerationJob extends BackgroundJob {
             LocalDateTime now = timeProvider.now();
 
             int i = 0;
-            for (Map.Entry<String, List<PhotoRecord>> entry : cells.entrySet()) {
+            for (Map.Entry<String, List<MediaPhotoRecord>> entry : cells.entrySet()) {
                 i++;
                 publishProgressThrottled("Build Event Albums", withGps.size() + i, withGps.size() + cells.size(), "", false);
-                List<PhotoRecord> group = entry.getValue();
+                List<MediaPhotoRecord> group = entry.getValue();
                 if (group.size() < aiConfig.getMinLocationSize()) {
                     continue;
                 }
@@ -216,11 +216,11 @@ public class AlbumGenerationJob extends BackgroundJob {
         int k     = Math.max(2, (int) Math.sqrt(total / 2.0));
         log.info("CLIP k-means: {} photos, k={}", total, k);
 
-        long[]    photoIds = new long[total];
+        long[]    mediaIds = new long[total];
         float[][] vectors  = new float[total][];
         for (int i = 0; i < total; i++) {
-            photoIds[i] = all.get(i)
-                             .getPhotoId();
+            mediaIds[i] = all.get(i)
+                             .getMediaId();
             vectors[i] = getFloats(all.get(i)
                                       .getEmbedding());
         }
@@ -263,12 +263,12 @@ public class AlbumGenerationJob extends BackgroundJob {
                 // to avoid a circular dependency. Full zero-shot naming requires ClipTextEncoder.
                 String name = "Cluster " + (entry.getKey() + 1);
 
-                long coverId = photoIds[members.getFirst()];
+                long coverId = mediaIds[members.getFirst()];
                 long albumId = albumRepo.insert(name, "SIMILARITY", coverId, null, now);
 
                 List<Query> buf = new ArrayList<>(members.size());
                 for (int i = 0; i < members.size(); i++) {
-                    buf.add(albumPhotoRepo.insertQuery(albumId, photoIds[members.get(i)], i, now));
+                    buf.add(albumPhotoRepo.insertQuery(albumId, mediaIds[members.get(i)], i, now));
                 }
                 ctx.batch(buf)
                    .execute();
@@ -292,7 +292,7 @@ public class AlbumGenerationJob extends BackgroundJob {
         return "Album generation";
     }
 
-    private void prepareAndExecuteBatch(DSLContext ctx, LocalDateTime now, List<PhotoRecord> event, long albumId) {
+    private void prepareAndExecuteBatch(DSLContext ctx, LocalDateTime now, List<MediaPhotoRecord> event, long albumId) {
         List<Query> buf = new ArrayList<>(event.size());
         for (int i = 0; i < event.size(); i++) {
             buf.add(albumPhotoRepo.insertQuery(albumId, event.get(i)

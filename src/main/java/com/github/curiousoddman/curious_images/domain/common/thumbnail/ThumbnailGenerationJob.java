@@ -1,8 +1,8 @@
 package com.github.curiousoddman.curious_images.domain.common.thumbnail;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
-import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
+import com.github.curiousoddman.curious_images.persistence.MediaRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.util.ImageUtils;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Generates real (not quick-preview) thumbnails for a specific page/selection of photo IDs — the
+ * Generates real (not quick-preview) thumbnails for a specific page/selection of media IDs — the
  * UI's "on-demand real thumbnail generation" from the implementation plan. Never a bulk sweep:
  * only photos the grid is actually about to render ever get a job submitted for them.
  * <p>
@@ -39,7 +39,7 @@ public class ThumbnailGenerationJob extends BackgroundJob {
 
     public static final String THUMBNAIL_GENERATION = "Generating thumbnails";
 
-    private final PhotoRepository     photoRepository;
+    private final MediaRepository     mediaRepository;
     private final ThumbnailRepository thumbnailRepository;
     private final ImageUtils          imageUtils;
     private final ThumbnailGenerator  thumbnailGenerator;
@@ -60,11 +60,11 @@ public class ThumbnailGenerationJob extends BackgroundJob {
     public void runImpl() {
         publishStarted("Generating thumbnails…");
 
-        List<PhotoRecord> photos = photoRepository.findByIdIn(photoIds)
-                                                  .stream()
-                                                  .filter(p -> p.getAbsolutePath() != null)
-                                                  .sorted(Comparator.comparing(PhotoRecord::getAbsolutePath))
-                                                  .toList();
+        List<MediaPhotoRecord> photos = mediaRepository.findByIdIn(photoIds)
+                                                       .stream()
+                                                       .filter(p -> p.getAbsolutePath() != null)
+                                                       .sorted(Comparator.comparing(MediaPhotoRecord::getAbsolutePath))
+                                                       .toList();
 
         if (photos.isEmpty()) {
             publishEnded("Nothing to generate");
@@ -75,7 +75,7 @@ public class ThumbnailGenerationJob extends BackgroundJob {
         AtomicInteger completed = new AtomicInteger(0);
 
         publishProgressThrottled("Generating thumbnails", completed.get(), total, "", false);
-        for (PhotoRecord photo : photos) {
+        for (MediaPhotoRecord photo : photos) {
             if (isInterruptRequested()) {
                 break; // don't start decoding anything else — an in-flight read can't be aborted
             }
@@ -108,7 +108,7 @@ public class ThumbnailGenerationJob extends BackgroundJob {
                                .execute();
             eventPublisher.publishEvent(new ThumbnailsReadyEvent(this, Set.of(photoId)));
         } catch (Exception e) {
-            log.warn("Failed to write on-demand thumbnail for photo {} ({})", photoId, file, e);
+            log.warn("Failed to write on-demand thumbnail for media {} ({})", photoId, file, e);
         }
     }
 }

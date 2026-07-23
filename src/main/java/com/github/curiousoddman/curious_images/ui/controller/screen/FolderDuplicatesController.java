@@ -1,6 +1,6 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateResolutionService;
@@ -9,8 +9,9 @@ import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.model.DupResolveStrategy;
 import com.github.curiousoddman.curious_images.model.FolderDuplicatePair;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
+import com.github.curiousoddman.curious_images.model.Media;
+import com.github.curiousoddman.curious_images.model.MediaWithThumbnail;
 import com.github.curiousoddman.curious_images.model.PhotoFailure;
-import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import com.github.curiousoddman.curious_images.model.bundle.FolderDuplicateCellBundle;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
@@ -65,7 +66,6 @@ import static com.sun.javafx.util.Utils.runOnFxThread;
  * <p>
  * Mirrors {@link DuplicatesController}'s thumbnail-loading/debounce pattern and reuses its
  * {@link DupResolveStrategy} enum and keep/drop branch logic verbatim (see
- * {@link #isDropped}) so folder-level "Keep checked" / "Remove checked" behave identically to the
  * file-level buttons of the same name.
  */
 @Lazy
@@ -192,7 +192,7 @@ public class FolderDuplicatesController implements Initializable {
 
         // Cell construction (fxmlLoader.load) and tile population happen off the FX thread before
         // anything is attached to the live scene graph, then swapped in on the FX thread — the
-        // same convention DuplicatesController#loadCurrentDuplicatesView uses for its per-photo
+        // same convention DuplicatesController#loadCurrentDuplicatesView uses for its per-media
         // cells.
         runOnDaemonThread("LoadFolderDuplicatePair", () -> {
             FolderDuplicateCellController aCell = loadFolderCell(pair, pair.folderAId(), pair.folderAPath());
@@ -242,25 +242,25 @@ public class FolderDuplicatesController implements Initializable {
         pane.getChildren()
             .clear();
 
-        List<PhotoWithThumbnail> sidePhotos = activePair.groups()
+        List<MediaWithThumbnail> sidePhotos = activePair.groups()
                                                         .stream()
                                                         .flatMap(g -> g.photos()
                                                                        .stream())
-                                                        .filter(pwt -> folderId == pwt.photo()
+                                                        .filter(pwt -> folderId == pwt.media()
                                                                                       .getFolderId())
                                                         .toList();
 
         List<Long> needsThumbnail = new ArrayList<>();
         for (int i = 0; i < sidePhotos.size(); i++) {
-            PhotoWithThumbnail pwt = sidePhotos.get(i);
-            List<PhotoRecord> orderedForSlideshow = sidePhotos.stream()
-                                                              .map(PhotoWithThumbnail::photo)
-                                                              .toList();
+            MediaWithThumbnail pwt = sidePhotos.get(i);
+            List<Media> orderedForSlideshow = sidePhotos.stream()
+                                                        .map(MediaWithThumbnail::media)
+                                                        .toList();
             pane.getChildren()
                 .add(createPhotoTile(pwt, orderedForSlideshow, i));
             ThumbnailRecord thumbnail = pwt.thumbnail();
             if (thumbnail == null || !ThumbnailUtils.hasCachedFile(thumbnail)) {
-                needsThumbnail.add(pwt.photo()
+                needsThumbnail.add(pwt.media()
                                       .getId());
             }
         }
@@ -269,9 +269,10 @@ public class FolderDuplicatesController implements Initializable {
         }
     }
 
-    private Node createPhotoTile(PhotoWithThumbnail pwt, List<PhotoRecord> orderedFolderPhotos, int index) {
-        PhotoRecord photo     = pwt.photo();
-        ImageView   imageView = new ImageView(getImage(pwt.thumbnail(), null));
+    private Node createPhotoTile(MediaWithThumbnail pwt, List<Media> orderedFolderPhotos, int index) {
+        MediaPhotoRecord photo     = pwt.media()
+                                        .photo();
+        ImageView        imageView = new ImageView(getImage(pwt.thumbnail(), null));
         imageView.setFitWidth(TILE_SIZE);
         imageView.setFitHeight(TILE_SIZE);
         imageView.setPreserveRatio(true);

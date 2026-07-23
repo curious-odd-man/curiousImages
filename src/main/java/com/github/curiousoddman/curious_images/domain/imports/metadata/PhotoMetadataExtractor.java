@@ -33,7 +33,7 @@ import java.util.Set;
 
 /**
  * Extracts capture date, full-resolution width/height, orientation, camera/lens identity, and
- * (for JPEG, and CR2 via the single-arg overload) the embedded EXIF preview from a photo file,
+ * (for JPEG, and CR2 via the single-arg overload) the embedded EXIF preview from a media file,
  * using {@code metadata-extractor}.
  * See implementation plan §9 for the full rationale behind the capture-date priority ordering —
  * this class mirrors it exactly.
@@ -74,7 +74,7 @@ public class PhotoMetadataExtractor {
      * a dedicated field: orientation, camera make/model, lens model, the capture-date tags (see
      * {@link #extractCaptureDate}), and the width/height tags (see {@link #extractDimensions}).
      * {@link ExifThumbnailDirectory} is skipped wholesale below rather than tag-by-tag — its
-     * offset/length/compression tags describe the embedded preview file, not the photo.
+     * offset/length/compression tags describe the embedded preview file, not the media.
      */
     private static final Set<DirectoryTagKey> PROMOTED_TAGS = Set.of(
             new DirectoryTagKey(ExifIFD0Directory.class, ExifIFD0Directory.TAG_ORIENTATION),
@@ -330,7 +330,7 @@ public class PhotoMetadataExtractor {
     /**
      * Generic dump of every tag metadata-extractor found, across every directory, except the
      * handful already promoted to a dedicated field (see {@link #PROMOTED_TAGS}) and the whole of
-     * {@link ExifThumbnailDirectory} (internal preview plumbing, not photo metadata). Grouped by
+     * {@link ExifThumbnailDirectory} (internal preview plumbing, not media metadata). Grouped by
      * directory name — e.g. {@code "GPS"}, {@code "Exif SubIFD"}, {@code "Canon Makernote"} — so
      * the resulting JSON stays readable rather than one flat bag of tag names. Returns
      * {@code null} (not an empty object) when nothing is left to dump, e.g. a PNG with no

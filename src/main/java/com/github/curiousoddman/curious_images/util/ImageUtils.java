@@ -1,6 +1,6 @@
 package com.github.curiousoddman.curious_images.util;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import com.github.curiousoddman.curious_images.domain.imports.metadata.PhotoMetadataExtractor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,9 +28,9 @@ public class ImageUtils {
 
     private final PhotoMetadataExtractor metadataExtractor;
 
-    public Optional<Mat> imageOrCr2Preview(PhotoRecord photoRecord) {
-        int orientation = Objects.requireNonNullElse(photoRecord.getOrientation(), 0);
-        return imageOrCr2Preview(Path.of(photoRecord.getAbsolutePath()), photoRecord.getExtension(), orientation);
+    public Optional<Mat> imageOrCr2Preview(MediaPhotoRecord MediaPhotoRecord) {
+        int orientation = Objects.requireNonNullElse(MediaPhotoRecord.getOrientation(), 0);
+        return imageOrCr2Preview(Path.of(MediaPhotoRecord.getAbsolutePath()), MediaPhotoRecord.getExtension(), orientation);
     }
 
     /**

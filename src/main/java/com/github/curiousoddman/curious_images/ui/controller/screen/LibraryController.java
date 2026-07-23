@@ -1,6 +1,6 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import com.github.curiousoddman.curious_images.domain.ai.ModelDownloadJob;
 import com.github.curiousoddman.curious_images.domain.ai.ModelPaths;
 import com.github.curiousoddman.curious_images.domain.search.SearchAutocompleteManager;
@@ -15,7 +15,7 @@ import com.github.curiousoddman.curious_images.model.UiElement;
 import com.github.curiousoddman.curious_images.model.bundle.AddFilesBundle;
 import com.github.curiousoddman.curious_images.model.bundle.GridCellResources;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
-import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
+import com.github.curiousoddman.curious_images.persistence.MediaRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.custom.GridController;
@@ -88,9 +88,9 @@ public class LibraryController implements Initializable {
     private static final int SEARCH_TOP_K = 50;
 
     private final FxmlLoader                fxmlLoader;
-    private final UserPreferencesService    userPreferencesService;
-    private final PhotoRepository           photoRepository;
-    private final SearchService             searchService;
+    private final UserPreferencesService userPreferencesService;
+    private final MediaRepository        mediaRepository;
+    private final SearchService          searchService;
     private final JobManager                jobManager;
     private final ModelPaths                modelPaths;
     private final TreeManager               treeManager;
@@ -323,8 +323,8 @@ public class LibraryController implements Initializable {
         runOnDaemonThread("Search", () -> {
             try {
                 List<Long> photoIds = searchService.search(query, SEARCH_TOP_K);
-                List<PhotoRecord> photos = photoIds.stream()
-                                                   .map(id -> photoRepository.findById(id)
+                List<MediaPhotoRecord> photos = photoIds.stream()
+                                                   .map(id -> mediaRepository.findById(id)
                                                                              .orElse(null))
                                                    .filter(Objects::nonNull)
                                                    .toList();

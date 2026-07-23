@@ -17,7 +17,7 @@ import static com.github.curiousoddman.curious_images.dbobj.Tables.PHOTO_PREVIEW
  * extracted for free during the Phase 1 metadata scan (JPEG only, see
  * {@code PhotoMetadataExtractor}), used as an instant "quick preview" while the real on-demand
  * thumbnail is generated in the background. See implementation plan "Instant quick preview"
- * section. {@code photo_id} is the primary key (1:1 with {@code photo}), so a write is always an
+ * section. {@code photo_id} is the primary key (1:1 with {@code media}), so a write is always an
  * upsert, mirroring {@link ThumbnailRepository}.
  */
 @Repository

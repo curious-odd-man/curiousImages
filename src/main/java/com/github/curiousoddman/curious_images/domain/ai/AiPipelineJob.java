@@ -17,7 +17,7 @@ import com.github.curiousoddman.curious_images.persistence.ClusterRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceEmbeddingRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.FaceThumbnailsRepository;
-import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
+import com.github.curiousoddman.curious_images.persistence.MediaRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoTagRepository;
 import com.github.curiousoddman.curious_images.util.EmbeddingMath;
 import com.github.curiousoddman.curious_images.util.ImageUtils;
@@ -56,7 +56,7 @@ public class AiPipelineJob extends BackgroundJob {
     private static final String CLIP_TEXT_MODEL_VER  = "text_vit_b32";
 
     private final DSLContext               dsl;
-    private final PhotoRepository          photoRepo;
+    private final MediaRepository          photoRepo;
     private final FaceRepository           faceRepo;
     private final ClusterRepository        clusterRepo;
     private final FaceEmbeddingRepository  faceEmbeddingRepo;
@@ -154,13 +154,13 @@ public class AiPipelineJob extends BackgroundJob {
 
                 for (TagScore tagScore : priorityQueue) {
                     queryBuffer.add(
-                            tagRepository.upsert(clipEmbedding.getPhotoId(), tagScore.tag(), tagScore.score()),
-                            photoRepo.markTaggingDone(clipEmbedding.getPhotoId())
+                            tagRepository.upsert(clipEmbedding.getMediaId(), tagScore.tag(), tagScore.score()),
+                            photoRepo.markTaggingDone(clipEmbedding.getMediaId())
 
                     );
                 }
                 publishProgressThrottled("Processing photos", i + 1, clipEmbeddings.size(),
-                        "Photo id = " + clipEmbedding.getPhotoId(), i == clipEmbeddings.size() - 1);
+                        "Photo id = " + clipEmbedding.getMediaId(), i == clipEmbeddings.size() - 1);
             }
         }
     }
@@ -272,13 +272,13 @@ public class AiPipelineJob extends BackgroundJob {
                 );
             }
         } catch (IrrecoverableIterationException e) {
-            log.warn("Face/CLIP processing failed for photo {}", photoId, e);
+            log.warn("Face/CLIP processing failed for media {}", photoId, e);
             buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
             log.error("Exiting loop - cannot recover from that....");
             publishFailed(e.getCause());
             return true;
         } catch (Exception e) {
-            log.error("Face/CLIP processing failed for photo {}", photoId, e);
+            log.error("Face/CLIP processing failed for media {}", photoId, e);
             eventPublisher.publishEvent(new UserNotificationEvent(this, new FaceClipProcessingFailed(photo, e)));
             buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
         } finally {
@@ -314,7 +314,7 @@ public class AiPipelineJob extends BackgroundJob {
                 LocalDateTime now     = timeProvider.now();
                 try {
                     // Index CLIP embedding
-                    ClipEmbeddingRecord clipRec = clipEmbeddingRepo.findByPhotoId(photoId)
+                    ClipEmbeddingRecord clipRec = clipEmbeddingRepo.findByMediaId(photoId)
                                                                    .orElse(null);
                     if (clipRec != null) {
                         float[] clipEmbed = EmbeddingMath.getFloats(clipRec.getEmbedding());
@@ -346,7 +346,7 @@ public class AiPipelineJob extends BackgroundJob {
 
                     buffer.add(photoRepo.markLuceneIndexDoneQuery(photoId, now));
                 } catch (Exception e) {
-                    log.warn("Lucene indexing failed for photo {}", photoId, e);
+                    log.warn("Lucene indexing failed for media {}", photoId, e);
                     buffer.add(photoRepo.markErrorQuery(photoId, e.getMessage(), now));
                 }
 

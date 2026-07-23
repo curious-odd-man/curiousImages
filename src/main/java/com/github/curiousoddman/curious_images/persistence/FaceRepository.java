@@ -210,12 +210,12 @@ public class FaceRepository {
     }
 
     /**
-     * Deletes all face rows for a photo. Call inside a transaction before deleting the photo.
+     * Deletes all face rows for a media. Call inside a transaction before deleting the media.
      * Mirrors the pattern in {@code ThumbnailRepository}.
      */
-    public void deleteByPhotoId(DSLContext ctx, long photoId) {
+    public void deleteByMediaId(DSLContext ctx, long mediaId) {
         ctx.deleteFrom(FACE)
-           .where(FACE.PHOTO_ID.eq(photoId))
+           .where(FACE.MEDIA_ID.eq(mediaId))
            .execute();
     }
 
@@ -238,7 +238,7 @@ public class FaceRepository {
 
     private InsertSetMoreStep<FaceRecord> createRecord(long photoId, double x, double y, double w, double h, double confidence, FaceLandmarks faceLandmarks, LocalDateTime now, Path thumbnailPath) {
         return dsl.insertInto(FACE)
-                  .set(FACE.PHOTO_ID, photoId)
+                  .set(FACE.MEDIA_ID, photoId)
                   .set(FACE.BBOX_X, x)
                   .set(FACE.BBOX_Y, y)
                   .set(FACE.BBOX_W, w)

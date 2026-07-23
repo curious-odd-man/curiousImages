@@ -14,7 +14,7 @@ class ThumbnailRepositoryTest extends AbstractRepositoryH2Test {
     private long aPhotoId() {
         long importRootId = new ImportRootRepository(dsl).findOrCreate("D:\\Photos", LocalDateTime.now());
         long folderId     = new FolderRepository(dsl).findOrCreate(importRootId, null, "", "Photos");
-        return new PhotoRepository(dsl, new TimeProvider()).insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg",
+        return new MediaRepository(dsl, new TimeProvider()).insertPhoto(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg",
                 100L, 800, 600, null, CaptureDateSource.FILESYSTEM, 0, "", "", "", "{}", LocalDateTime.now());
     }
 

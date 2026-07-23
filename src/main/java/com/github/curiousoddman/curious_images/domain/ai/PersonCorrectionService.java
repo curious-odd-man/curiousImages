@@ -204,13 +204,13 @@ public class PersonCorrectionService {
         return pickBestCluster(targetPersonId, referenceVector);
     }
 
-    // ── Used by PhotoRotationService — manual rotation correction wipes a photo's faces ───────
+    // ── Used by PhotoRotationService — manual rotation correction wipes a media's faces ───────
 
     /**
      * Wipes clustering involvement for every one of {@code faceIds} — recomputes or deletes
      * whichever cluster(s) they belonged to — without assigning them anywhere new. Used by
      * {@code PhotoRotationService} right before it deletes the corresponding {@code FACE} rows
-     * outright: a photo whose rotation was manually corrected has meaningless bounding
+     * outright: a media whose rotation was manually corrected has meaningless bounding
      * boxes/embeddings for its existing faces, so unlike FR1/FR3/FR5 there is no "new home" for
      * them — they're simply going away. Unclustered IDs in {@code faceIds} are silently skipped
      * (nothing to clean up for them).

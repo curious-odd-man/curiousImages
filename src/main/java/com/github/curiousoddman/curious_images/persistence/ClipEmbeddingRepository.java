@@ -25,7 +25,7 @@ public class ClipEmbeddingRepository {
     /**
      * Returns an unexecuted MERGE (upsert) for a CLIP embedding row.
      *
-     * @param photoId      the photo row id
+     * @param photoId      the media row id
      * @param embedding    512-dim float array, already L2-normalised
      * @param modelVersion e.g. {@code "clip_vit_b32"}
      */
@@ -33,17 +33,17 @@ public class ClipEmbeddingRepository {
         byte[] bytes = EmbeddingMath.toBytes(embedding);
         return dsl.mergeInto(CLIP_EMBEDDING)
                   .using(dsl.selectOne())
-                  .on(CLIP_EMBEDDING.PHOTO_ID.eq(photoId))
+                  .on(CLIP_EMBEDDING.MEDIA_ID.eq(photoId))
                   .whenMatchedThenUpdate()
                   .set(CLIP_EMBEDDING.EMBEDDING, bytes)
                   .set(CLIP_EMBEDDING.MODEL_VER, modelVersion)
-                  .whenNotMatchedThenInsert(CLIP_EMBEDDING.PHOTO_ID, CLIP_EMBEDDING.EMBEDDING, CLIP_EMBEDDING.MODEL_VER)
+                  .whenNotMatchedThenInsert(CLIP_EMBEDDING.MEDIA_ID, CLIP_EMBEDDING.EMBEDDING, CLIP_EMBEDDING.MODEL_VER)
                   .values(photoId, bytes, modelVersion);
     }
 
-    public Optional<ClipEmbeddingRecord> findByPhotoId(long photoId) {
+    public Optional<ClipEmbeddingRecord> findByMediaId(long mediaId) {
         return Optional.ofNullable(dsl.selectFrom(CLIP_EMBEDDING)
-                                      .where(CLIP_EMBEDDING.PHOTO_ID.eq(photoId))
+                                      .where(CLIP_EMBEDDING.MEDIA_ID.eq(mediaId))
                                       .fetchOne());
     }
 
@@ -56,19 +56,19 @@ public class ClipEmbeddingRepository {
     }
 
     /**
-     * Deletes the CLIP embedding row for a photo, if any. Call inside the same transaction as the
+     * Deletes the CLIP embedding row for a media, if any. Call inside the same transaction as the
      * corresponding {@code PHOTO}/{@code FACE} row changes — see {@code PhotoRotationService}, the
-     * only current caller (manual rotation correction wipes a photo's AI data outright).
+     * only current caller (manual rotation correction wipes a media's AI data outright).
      */
     public void deleteByPhotoId(DSLContext ctx, long photoId) {
         ctx.deleteFrom(CLIP_EMBEDDING)
-           .where(CLIP_EMBEDDING.PHOTO_ID.eq(photoId))
+           .where(CLIP_EMBEDDING.MEDIA_ID.eq(photoId))
            .execute();
     }
 
     public List<ClipEmbeddingRecord> findByPhotoIds(List<Long> photoIds) {
         return dsl.selectFrom(CLIP_EMBEDDING)
-                  .where(CLIP_EMBEDDING.PHOTO_ID.in(photoIds))
+                  .where(CLIP_EMBEDDING.MEDIA_ID.in(photoIds))
                   .fetch();
     }
 }

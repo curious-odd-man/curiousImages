@@ -21,6 +21,7 @@ import com.github.curiousoddman.curious_images.dbobj.tables.TagEmbedding.TagEmbe
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail.ThumbnailPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.Video.VideoPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaRecord;
+import com.github.curiousoddman.curious_images.model.MediaType;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -49,6 +50,7 @@ import org.jooq.TableField;
 import org.jooq.TableOptions;
 import org.jooq.UniqueKey;
 import org.jooq.impl.DSL;
+import org.jooq.impl.EnumConverter;
 import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
 
@@ -90,7 +92,7 @@ public class Media extends TableImpl<MediaRecord> {
     /**
      * The column <code>public.MEDIA.MEDIA_TYPE</code>.
      */
-    public final TableField<MediaRecord, String> MEDIA_TYPE = createField(DSL.name("MEDIA_TYPE"), SQLDataType.VARCHAR(10).nullable(false), this, "");
+    public final TableField<MediaRecord, MediaType> MEDIA_TYPE = createField(DSL.name("MEDIA_TYPE"), SQLDataType.VARCHAR(10).nullable(false), this, "", new EnumConverter<String, MediaType>(String.class, MediaType.class));
 
     /**
      * The column <code>public.MEDIA.FOLDER_ID</code>.
@@ -331,7 +333,7 @@ public class Media extends TableImpl<MediaRecord> {
      */
     public FacePath face() {
         if (_face == null)
-            _face = new FacePath(this, null, Keys.CONSTRAINT_20C.getInverseKey());
+            _face = new FacePath(this, null, Keys.CONSTRAINT_20CE.getInverseKey());
 
         return _face;
     }

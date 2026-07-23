@@ -22,24 +22,32 @@ import static org.kordamp.ikonli.bootstrapicons.BootstrapIcons.FOLDER2_OPEN;
 import static org.kordamp.ikonli.bootstrapicons.BootstrapIcons.SERVER;
 import static org.kordamp.ikonli.bootstrapicons.BootstrapIcons.TAG;
 
-public record GridCellData(MediaPhotoRecord photo, MediaVideoRecord video, Image image,
+public record GridCellData(Media media, Image image,
                            Map<MediaTagRecord, TagEmbeddingRecord> tags, List<PersonDetails> persons,
                            boolean hasDuplicates) {
 
     public Long mediaId() {
-        return photo.getId();
+        return media.getId();
     }
 
     public boolean isPhoto() {
-        return photo != null;
+        return media.isPhoto();
     }
 
     public boolean isVideo() {
         return !isPhoto();
     }
 
+    public MediaPhotoRecord photo() {
+        return media.photo();
+    }
+
+    public MediaVideoRecord video() {
+        return media.video();
+    }
+
     public String tooltipText() {
-        Map<String, DetailRow> mediaDetails = getMediaDetails(photo, video);
+        Map<String, DetailRow> mediaDetails = getMediaDetails(media);
         StringBuilder          sb           = new StringBuilder();
 
         mediaDetails.values()
@@ -52,10 +60,11 @@ public record GridCellData(MediaPhotoRecord photo, MediaVideoRecord video, Image
         return sb.toString();
     }
 
-    public static Map<String, DetailRow> getMediaDetails(MediaPhotoRecord photo, MediaVideoRecord video) {
-        MediaRecord media = photo == null
-                ? video.into(MediaRecord.class)
-                : photo.into(MediaRecord.class);
+    public static Map<String, DetailRow> getMediaDetails(Media rawMedia) {
+        MediaRecord media = rawMedia.map(
+                v -> v.into(MediaRecord.class),
+                v -> v.into(MediaRecord.class)
+        );
 
         Map<String, DetailRow> details = new LinkedHashMap<>();
 

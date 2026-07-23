@@ -1,9 +1,10 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.model.GridCellData;
+import com.github.curiousoddman.curious_images.model.Media;
 import com.github.curiousoddman.curious_images.model.bundle.GridCellResources;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridModel;
@@ -97,8 +98,8 @@ public class GridController implements Initializable, PhotoGridCallbacks, Thumbn
     public void populatePhotoGrid(List<GridCellData> photos) {
         photoGridModel.nextGeneration();
         visiblePhotoCells.clear();
-        photoGridModel.setPhotos(photos);
-        photoCountLabel.setText(photos.size() + " photo" + (photos.size() == 1 ? "" : "s"));
+        photoGridModel.setCells(photos);
+        photoCountLabel.setText(photos.size() + " media" + (photos.size() == 1 ? "" : "s"));
         recomputeGridMetrics(true); // force a regroup even if the column count is unchanged
     }
 
@@ -135,10 +136,10 @@ public class GridController implements Initializable, PhotoGridCallbacks, Thumbn
     }
 
     @Override
-    public void onPhotoClicked(PhotoRecord photo) {
+    public void onPhotoClicked(MediaPhotoRecord photo) {
         Integer idx = photoGridModel.indexById(photo.getId());
         if (idx != null) {
-            openSlideshow(photoGridModel.photos(), idx);
+            openSlideshow(photoGridModel.media(), idx);
         }
     }
 
@@ -191,8 +192,7 @@ public class GridController implements Initializable, PhotoGridCallbacks, Thumbn
         }
     }
 
-
-    private void openSlideshow(List<PhotoRecord> photos, int startIndex) {
+    private void openSlideshow(List<Media> photos, int startIndex) {
         UiUtils.openSlideshow(photos, startIndex, listView.getScene(), fxmlLoader);
     }
 }

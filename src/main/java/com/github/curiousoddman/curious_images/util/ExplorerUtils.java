@@ -8,7 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Windows-only "Reveal in Explorer" for the photo grid's context menu. Per product decision, no
+ * Windows-only "Reveal in Explorer" for the media grid's context menu. Per product decision, no
  * cross-platform fallback (Finder/{@code xdg-open}) is implemented — this simply shells out to
  * {@code explorer.exe /select,<path>}.
  */

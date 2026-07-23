@@ -16,7 +16,7 @@ import static com.github.curiousoddman.curious_images.dbobj.Tables.THUMBNAIL;
 
 /**
  * Hand-written jOOQ repository for {@code thumbnail}. {@code photo_id} is the primary key (1:1
- * with {@code photo}), so a thumbnail write is always an upsert.
+ * with {@code media}), so a thumbnail write is always an upsert.
  */
 @Repository
 @RequiredArgsConstructor
@@ -48,7 +48,7 @@ public class ThumbnailRepository {
     }
 
     /**
-     * Batch lookup for a page/folder of photos — avoids one query per photo when populating the
+     * Batch lookup for a page/folder of photos — avoids one query per media when populating the
      * grid. Photos with no thumbnail row simply have no entry in the returned map.
      */
     public Map<Long, ThumbnailRecord> findByPhotoIds(Collection<Long> photoIds) {

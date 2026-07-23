@@ -1,4 +1,4 @@
--- CLIP 512-dim image embedding. One row per photo, or one row per sampled frame for a video
+-- CLIP 512-dim image embedding. One row per media, or one row per sampled frame for a video
 -- (frame_offset_ms distinguishes them) — see video-support-plan.md §5.
 CREATE TABLE clip_embedding
 (

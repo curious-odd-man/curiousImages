@@ -22,7 +22,7 @@ public class PersonService {
     public List<Long> getPersonPhotoIds(PersonRecord person) {
         return findFacesByPerson(person)
                 .stream()
-                .map(FaceRecord::getPhotoId)
+                .map(FaceRecord::getMediaId)
                 .distinct()
                 .toList();
     }

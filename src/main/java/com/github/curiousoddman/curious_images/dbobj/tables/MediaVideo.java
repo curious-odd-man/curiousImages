@@ -6,6 +6,7 @@ package com.github.curiousoddman.curious_images.dbobj.tables;
 
 import com.github.curiousoddman.curious_images.dbobj.Public;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaVideoRecord;
+import com.github.curiousoddman.curious_images.model.MediaType;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
@@ -25,6 +26,7 @@ import org.jooq.Table;
 import org.jooq.TableField;
 import org.jooq.TableOptions;
 import org.jooq.impl.DSL;
+import org.jooq.impl.EnumConverter;
 import org.jooq.impl.SQLDataType;
 import org.jooq.impl.TableImpl;
 
@@ -86,7 +88,7 @@ public class MediaVideo extends TableImpl<MediaVideoRecord> {
     /**
      * The column <code>public.MEDIA_VIDEO.MEDIA_TYPE</code>.
      */
-    public final TableField<MediaVideoRecord, String> MEDIA_TYPE = createField(DSL.name("MEDIA_TYPE"), SQLDataType.VARCHAR(10), this, "");
+    public final TableField<MediaVideoRecord, MediaType> MEDIA_TYPE = createField(DSL.name("MEDIA_TYPE"), SQLDataType.VARCHAR(10), this, "", new EnumConverter<String, MediaType>(String.class, MediaType.class));
 
     /**
      * The column <code>public.MEDIA_VIDEO.FOLDER_ID</code>.

@@ -1,9 +1,10 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.common.photo.PhotoRotationService;
 import com.github.curiousoddman.curious_images.model.GridCellData;
+import com.github.curiousoddman.curious_images.model.Media;
 import com.github.curiousoddman.curious_images.model.bundle.SlideshowBundle;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
 import com.github.curiousoddman.curious_images.ui.util.GridContextMenu;
@@ -87,8 +88,8 @@ public class SlideshowController implements Initializable {
     private Button closeButton;
 
     // ── Slideshow state ─────────────────────────────────────────────────────
-    private List<GridCellData> gridCellData;
-    private int                currentIndex;
+    private List<Media> slideshowMedia;
+    private int         currentIndex;
 
     // ── Zoom / pan state ────────────────────────────────────────────────────
     private static final double ZOOM_MIN  = 0.5;
@@ -141,11 +142,11 @@ public class SlideshowController implements Initializable {
     // ────────────────────────────────────────────────────────────────────────
 
     /**
-     * Seeds the slideshow with the photo list and opens the image at {@code startIndex}.
+     * Seeds the slideshow with the media list and opens the image at {@code startIndex}.
      * Must be called on the FX thread after {@link #initialize} has run.
      */
     public void initSlideshow(SlideshowBundle bundle) {
-        this.gridCellData = bundle.getMediaRecords();
+        this.slideshowMedia = bundle.getMediaRecords();
         this.currentIndex = bundle.getStartIndex();
         showPhoto(currentIndex);
         rootPane.requestFocus();
@@ -156,28 +157,28 @@ public class SlideshowController implements Initializable {
     // ────────────────────────────────────────────────────────────────────────
 
     private void showPhoto(int index) {
-        if (gridCellData == null || gridCellData.isEmpty()) {
+        if (slideshowMedia == null || slideshowMedia.isEmpty()) {
             return;
         }
         fileNotFoundPathLabel.setVisible(false);
 
         // Clamp
-        index = Math.max(0, Math.min(index, gridCellData.size() - 1));
+        index = Math.max(0, Math.min(index, slideshowMedia.size() - 1));
         currentIndex = index;
 
-        GridCellData cellData = gridCellData.get(index);
+        Media media = slideshowMedia.get(index);
 
-        // Reset zoom/pan and rotation for each new cellData
+        // Reset zoom/pan and rotation for each new media
         resetZoomPan();
 
         // Update UI labels
-        photoNameLabel.setText(cellData.media().getFilename());
-        counterLabel.setText((index + 1) + " / " + gridCellData.size());
+        photoNameLabel.setText(media.getFilename());
+        counterLabel.setText((index + 1) + " / " + slideshowMedia.size());
         prevButton.setDisable(index == 0);
-        nextButton.setDisable(index == gridCellData.size() - 1);
+        nextButton.setDisable(index == slideshowMedia.size() - 1);
 
         // 1. Load and show thumbnail immediately
-        ThumbnailRecord thumbnailRecord = thumbnailRepository.findByMediaId(cellData.media().getId())
+        ThumbnailRecord thumbnailRecord = thumbnailRepository.findByMediaId(media.getId())
                                                              .orElse(null);
         Image thumb = loadThumbnailImage(thumbnailRecord);
         thumbnailImageView.setImage(thumb);
@@ -186,8 +187,8 @@ public class SlideshowController implements Initializable {
         fullImageView.setImage(null);
 
         // 2. Try to load full-res original in background
-        String absolutePath = cellData.media().getAbsolutePath();
-        File   sourceFile   = absolutePath != null ? new File(absolutePath) : null;
+        String absolutePath = media.getAbsolutePath();
+        File sourceFile = absolutePath != null ? new File(absolutePath) : null;
 
         if (sourceFile != null && sourceFile.isFile()) {
 
@@ -198,9 +199,10 @@ public class SlideshowController implements Initializable {
                      .addListener((obs, oldVal, newVal) -> {
                          if (newVal.doubleValue() >= 1.0 && !fullImage.isError()) {
                              // Only apply if the user hasn't navigated away
-                             if (gridCellData.get(currentIndex) == cellData) {
+                             if (slideshowMedia.get(currentIndex) == media) {
                                  fullImageView.setImage(fullImage);
-                                 rotateIfNeeded(cellData.photo().getOrientation());
+                                 rotateIfNeeded(media.photo()
+                                                     .getOrientation());
                                  crossFadeToFull();
                                  runOnFxThread(() -> rootPane.requestFocus());
                              }
@@ -234,7 +236,7 @@ public class SlideshowController implements Initializable {
     private void navigate(int delta) {
         log.info("Navigate {}", delta);
         int next = currentIndex + delta;
-        if (next >= 0 && next < gridCellData.size()) {
+        if (next >= 0 && next < slideshowMedia.size()) {
             showPhoto(next);
         }
     }
@@ -427,18 +429,18 @@ public class SlideshowController implements Initializable {
      */
     private void setupContextMenu() {
         rootPane.setOnContextMenuRequested(e -> {
-            if (gridCellData == null || gridCellData.isEmpty()) {
+            if (slideshowMedia == null || slideshowMedia.isEmpty()) {
                 return;
             }
-            GridCellData cellData = gridCellData.get(currentIndex);
-            gridContextMenu.show(cellData, rootPane, e);
+            Media media = slideshowMedia.get(currentIndex);
+            gridContextMenu.show(media, rootPane, e);
         });
     }
 
     /**
-     * Rotates the currently-displayed photo. The DB write + AI-data wipe (see
-     * {@link PhotoRotationService}) runs off the FX thread; once it's done, this photo's
-     * in-memory {@link PhotoRecord#getOrientation()} is updated and the full-res view is
+     * Rotates the currently-displayed media. The DB write + AI-data wipe (see
+     * {@link PhotoRotationService}) runs off the FX thread; once it's done, this media's
+     * in-memory {@link MediaPhotoRecord#getOrientation()} is updated and the full-res view is
      * re-rotated immediately, without waiting for the async thumbnail regeneration job to finish.
      */
 

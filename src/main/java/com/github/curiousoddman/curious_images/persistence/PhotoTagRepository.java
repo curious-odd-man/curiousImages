@@ -64,7 +64,7 @@ public class PhotoTagRepository {
     /**
      * Photo IDs carrying ALL of the given tag IDs (AND semantics — a search query like
      * {@code #beach #sunset} means both, not either). Returns an empty set for an empty
-     * {@code tagIds}, rather than treating "no tags requested" as "match every photo" — that
+     * {@code tagIds}, rather than treating "no tags requested" as "match every media" — that
      * distinction is {@code SearchService}'s to make, not this repository's.
      */
     public Set<Long> findPhotoIdsHavingAllTags(Collection<Long> tagIds) {

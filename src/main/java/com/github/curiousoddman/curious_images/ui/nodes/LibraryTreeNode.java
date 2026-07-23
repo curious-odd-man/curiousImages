@@ -49,7 +49,7 @@ public record LibraryTreeNode(String displayName, NodePayload payload, NodeType 
         PERSONS_ROOT,
         PERSON,
         // Duplicates review — a pure grouping parent (DUPLICATES_ROOT) with two selectable
-        // children: file-level (per-photo) and folder-level (per-folder-pair) resolution.
+        // children: file-level (per-media) and folder-level (per-folder-pair) resolution.
         DUPLICATES_ROOT,
         DUPLICATES_FILE_ROOT,
         DUPLICATES_FOLDER_ROOT

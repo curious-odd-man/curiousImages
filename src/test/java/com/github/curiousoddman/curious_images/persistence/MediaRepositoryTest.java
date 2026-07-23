@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class PhotoRepositoryTest extends AbstractRepositoryH2Test {
+class MediaRepositoryTest extends AbstractRepositoryH2Test {
 
     private long aFolderId() {
         long importRootId = new ImportRootRepository(dsl).findOrCreate("D:\\Photos", LocalDateTime.now());
@@ -22,20 +22,20 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
 
     @Test
     void findByAbsolutePathReturnsEmptyWhenNotImportedYet() {
-        PhotoRepository repository = new PhotoRepository(dsl, new TimeProvider());
+        MediaRepository repository = new MediaRepository(dsl, new TimeProvider());
 
         assertTrue(repository.findByAbsolutePath("D:\\Photos\\a.jpg")
                              .isEmpty());
     }
 
     @Test
-    void insertThenFindByAbsolutePathRoundTrips() {
-        PhotoRepository repository  = new PhotoRepository(dsl, new TimeProvider());
-        long            folderId    = aFolderId();
+    void insertPhotoThenFindByAbsolutePathRoundTrips() {
+        MediaRepository repository = new MediaRepository(dsl, new TimeProvider());
+        long            folderId   = aFolderId();
         LocalDateTime   now         = LocalDateTime.of(2024, 6, 1, 12, 0);
         LocalDateTime   captureDate = LocalDateTime.of(2023, 6, 15, 14, 30);
 
-        long photoId = repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg",
+        long photoId = repository.insertPhoto(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg",
                 12345L, 800, 600, captureDate, CaptureDateSource.EXIF_ORIGINAL, 0, "", "", "", "{}", now);
 
         Optional<?> found = repository.findByAbsolutePath("D:\\Photos\\a.jpg");
@@ -58,22 +58,22 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
 
     @Test
     void absolutePathIsUniqueAcrossInserts() {
-        PhotoRepository repository = new PhotoRepository(dsl, new TimeProvider());
+        MediaRepository repository = new MediaRepository(dsl, new TimeProvider());
         long            folderId   = aFolderId();
         LocalDateTime   now        = LocalDateTime.now();
 
-        repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg", 100L, 1, 1, null, null, 0, "", "", "", "{}", now);
+        repository.insertPhoto(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg", 100L, 1, 1, null, null, 0, "", "", "", "{}", now);
 
         assertThrows(Exception.class, () ->
-                repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg", 200L, 1, 1, null, null, 0, "", "", "", "{}", now));
+                repository.insertPhoto(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg", 200L, 1, 1, null, null, 0, "", "", "", "{}", now));
     }
 
     @Test
     void touchLastSeenAtQueryOnlyUpdatesThatColumn() {
-        PhotoRepository repository = new PhotoRepository(dsl, new TimeProvider());
+        MediaRepository repository = new MediaRepository(dsl, new TimeProvider());
         long            folderId   = aFolderId();
         LocalDateTime   importedAt = LocalDateTime.of(2024, 1, 1, 0, 0);
-        long photoId = repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg",
+        long photoId = repository.insertPhoto(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg",
                 100L, 800, 600, null, null, 0, "", "", "", "{}", importedAt);
 
         LocalDateTime rescannedAt = LocalDateTime.of(2024, 6, 1, 0, 0);
@@ -90,9 +90,9 @@ class PhotoRepositoryTest extends AbstractRepositoryH2Test {
 
     @Test
     void updateMetadataQueryUpdatesFileSizeDimensionsAndCaptureDate() {
-        PhotoRepository repository = new PhotoRepository(dsl, new TimeProvider());
+        MediaRepository repository = new MediaRepository(dsl, new TimeProvider());
         long            folderId   = aFolderId();
-        long photoId = repository.insert(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg",
+        long photoId = repository.insertPhoto(folderId, "D:\\Photos\\a.jpg", "a.jpg", "jpg",
                 100L, 800, 600, null, null, 0, "", "", "", "{}", LocalDateTime.now());
 
         LocalDateTime now            = LocalDateTime.of(2024, 6, 1, 0, 0);

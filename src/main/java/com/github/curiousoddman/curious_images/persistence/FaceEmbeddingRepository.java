@@ -69,7 +69,7 @@ public class FaceEmbeddingRepository {
     /**
      * Deletes embedding rows for the given face IDs. Call inside the same transaction as the
      * corresponding {@code FACE} row deletion — see {@code PhotoRotationService}, which is the
-     * only current caller (a photo's rotation was manually corrected, so its faces/embeddings are
+     * only current caller (a media's rotation was manually corrected, so its faces/embeddings are
      * being wiped outright rather than reassigned anywhere).
      */
     public void deleteByFaceIds(DSLContext ctx, Collection<Long> faceIds) {

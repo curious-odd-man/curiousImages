@@ -1,16 +1,16 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.domain.ai.PersonCorrectionService;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.event.model.TreeViewUpdateEvent;
 import com.github.curiousoddman.curious_images.event.payload.TreeViewUpdatePayload;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
+import com.github.curiousoddman.curious_images.persistence.MediaRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
-import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.custom.GridController;
@@ -69,7 +69,7 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
 
     private final PersonRepository          personRepository;
     private final FaceRepository            faceRepository;
-    private final PhotoRepository           photoRepository;
+    private final MediaRepository           mediaRepository;
     private final FxmlLoader                fxmlLoader;
     private final PersonCorrectionService   personCorrectionService;
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -100,7 +100,7 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
 
     // ── State ─────────────────────────────────────────────────────────────────
 
-    private Image               noImageAvailable;
+    private Image          noImageAvailable;
     private PersonRecord   currentPerson;
     private GridController gridController;
 
@@ -121,7 +121,7 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
      * Photos grouped by year (calendar year of capture_date), ordered by date taken.
      * Key {@code null} = undated.
      */
-    private Map<Integer, List<PhotoRecord>> photosByYear = new LinkedHashMap<>();
+    private Map<Integer, List<MediaPhotoRecord>> photosByYear = new LinkedHashMap<>();
 
     // ── Initialisation ────────────────────────────────────────────────────────
 
@@ -162,21 +162,21 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
             int              startIndex = pickInitialFaceIndex(person, faces);
 
             // Collect all photos for this person, deduplicated, ordered by capture date
-            List<Long> photoIds = new ArrayList<>(
+            List<Long> mediaIds = new ArrayList<>(
                     new LinkedHashSet<>(
                             faces.stream()
-                                 .map(FaceRecord::getPhotoId)
+                                 .map(FaceRecord::getMediaId)
                                  .toList()));
-            List<PhotoRecord> photos = photoIds.stream()
-                                               .map(id -> photoRepository.findById(id)
-                                                                         .orElse(null))
-                                               .filter(Objects::nonNull)
-                                               .sorted(PersonDetailController::compareByDate)
-                                               .toList();
+            List<MediaPhotoRecord> photos = mediaIds.stream()
+                                                    .map(id -> mediaRepository.findById(id)
+                                                                              .orElse(null))
+                                                    .filter(Objects::nonNull)
+                                                    .sorted(PersonDetailController::compareByDate)
+                                                    .toList();
 
             // Thumbnails are no longer prefetched in bulk here — the virtualized grid looks them
             // up (and triggers generation for whatever's missing) per visible row, see onRowShown.
-            Map<Integer, List<PhotoRecord>> byYear = groupByYear(photos);
+            Map<Integer, List<MediaPhotoRecord>> byYear = groupByYear(photos);
 
             runOnFxThread(() -> {
                 if (myGeneration != gridController.currentChange()) {
@@ -320,7 +320,7 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
                 personRepository.updateDob(currentPerson.getId(), dob, LocalDateTime.now());
                 currentPerson.setDateOfBirth(dob);
                 // Rebuild age albums if DoB changed (ages recalculate)
-                Map<Integer, List<PhotoRecord>> byYear = photosByYear; // already collected
+                Map<Integer, List<MediaPhotoRecord>> byYear = photosByYear; // already collected
                 runOnFxThread(() -> buildAgeAlbumTree(byYear));
             } catch (Exception ex) {
                 log.error("Failed to save DoB for person {}", currentPerson.getId(), ex);
@@ -414,7 +414,7 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
             }
             if (controller.didCorrectionsHappen()) {
                 // Faces may have been reassigned/excluded out from under this person — reload
-                // everything (face list, photo grid, age albums) rather than patching in place.
+                // everything (face list, media grid, age albums) rather than patching in place.
                 loadPerson(currentPerson.getId());
             }
         } catch (Exception ex) {
@@ -485,9 +485,9 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
      * Groups photos by calendar year of capture_date.
      * Key {@code null} collects undated photos.
      */
-    private static Map<Integer, List<PhotoRecord>> groupByYear(List<PhotoRecord> photos) {
-        Map<Integer, List<PhotoRecord>> map = new LinkedHashMap<>();
-        for (PhotoRecord p : photos) {
+    private static Map<Integer, List<MediaPhotoRecord>> groupByYear(List<MediaPhotoRecord> photos) {
+        Map<Integer, List<MediaPhotoRecord>> map = new LinkedHashMap<>();
+        for (MediaPhotoRecord p : photos) {
             Integer year = (p.getCaptureDate() != null)
                     ? p.getCaptureDate()
                        .getYear()
@@ -502,11 +502,11 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
      * Builds the left-hand age-album {@link TreeView}.
      * <p>
      * If {@link PersonRecord#getDateOfBirth()} is set, the year node label shows
-     * the person's age in that year alongside the photo count.
+     * the person's age in that year alongside the media count.
      * If DoB is not set, only the year and count are shown.
      * Undated photos get a dedicated leaf at the bottom.
      */
-    private void buildAgeAlbumTree(Map<Integer, List<PhotoRecord>> byYear) {
+    private void buildAgeAlbumTree(Map<Integer, List<MediaPhotoRecord>> byYear) {
         TreeItem<String> root = new TreeItem<>("root");
         root.setExpanded(false);
 
@@ -558,8 +558,8 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
             return;
         }
 
-        String            label = item.getValue();
-        List<PhotoRecord> toShow;
+        String                 label = item.getValue();
+        List<MediaPhotoRecord> toShow;
 
         if (label.startsWith("All")) {
             // flatten all years + undated
@@ -605,7 +605,7 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
         });
     }
 
-    private static int compareByDate(PhotoRecord a, PhotoRecord b) {
+    private static int compareByDate(MediaPhotoRecord a, MediaPhotoRecord b) {
         if (a.getCaptureDate() == null && b.getCaptureDate() == null) {
             return 0;
         }

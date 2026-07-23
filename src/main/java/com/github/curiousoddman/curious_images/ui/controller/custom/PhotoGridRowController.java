@@ -1,6 +1,6 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.GridCellData;
 import com.github.curiousoddman.curious_images.model.bundle.GridCellResources;
@@ -23,11 +23,11 @@ import java.util.ResourceBundle;
 import java.util.function.Consumer;
 
 /**
- * Controller for one visible row of the virtualized photo grid ({@code photo_grid_row.fxml}) — the
+ * Controller for one visible row of the virtualized media grid ({@code photo_grid_row.fxml}) — the
  * graphic of one {@link PhotoRowCell} ({@code ListView<PhotoGridRow>} cell).
  * <p>
  * Holds a pool of {@link GridCellController} image slots, grown lazily as the column count
- * increases and never shrunk — extra slots beyond the current row's photo count are just hidden
+ * increases and never shrunk — extra slots beyond the current row's media count are just hidden
  * ({@link GridCellController#showEmpty()}), so growing the column count back up after a shrink
  * doesn't need to reload any FXML.
  * <p>
@@ -52,7 +52,7 @@ public class PhotoGridRowController implements Initializable {
     private final List<GridCellController> pool = new ArrayList<>();
 
     private ObservableValue<Number> thumbnailSize;
-    private Consumer<PhotoRecord> onPhotoClicked;
+    private Consumer<MediaPhotoRecord> onPhotoClicked;
     private GridCellResources     gridCellResources;
 
     @Getter
@@ -67,7 +67,7 @@ public class PhotoGridRowController implements Initializable {
     }
 
     public void bindOnce(ObservableValue<Number> thumbnailSize,
-                         Consumer<PhotoRecord> onPhotoClicked) {
+                         Consumer<MediaPhotoRecord> onPhotoClicked) {
         this.thumbnailSize = thumbnailSize;
         this.onPhotoClicked = onPhotoClicked;
     }
@@ -92,8 +92,8 @@ public class PhotoGridRowController implements Initializable {
     }
 
     /**
-     * Applies a looked-up image to whichever pool slot is currently showing {@code photo} — a
-     * no-op if that slot has since been recycled to a different photo, or {@code photo} isn't
+     * Applies a looked-up image to whichever pool slot is currently showing {@code media} — a
+     * no-op if that slot has since been recycled to a different media, or {@code media} isn't
      * part of this row any more. Callers should also check {@link #getShowToken()} against a
      * captured value before calling this, to avoid the (harmless but wasted) lookup-vs-slot
      * mismatch entirely.

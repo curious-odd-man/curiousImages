@@ -20,7 +20,7 @@ CREATE TABLE folder
 );
 
 -- ── Shared media identity ────────────────────────────────────────────────
--- Every imported item (photo or video) gets exactly one MEDIA row: this owns the file
+-- Every imported item (media or video) gets exactly one MEDIA row: this owns the file
 -- identity (path/filename/size), the metadata that's meaningful across both types
 -- (capture date, GPS, camera make/model), and the AI-pipeline status flags. PHOTO/VIDEO
 -- are thin subtype tables keyed 1:1 on MEDIA.id, holding only what's genuinely
@@ -28,7 +28,7 @@ CREATE TABLE folder
 -- see docs/video/video-support-plan.md §1 for the full rationale. Every other table that
 -- used to reference PHOTO directly (thumbnail, dedupe hash, face, clip_embedding, album
 -- membership, tags) now references MEDIA instead, so a video can flow through the exact
--- same pipelines a photo does.
+-- same pipelines a media does.
 CREATE TABLE media
 (
     id                   BIGSERIAL PRIMARY KEY,

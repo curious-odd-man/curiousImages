@@ -61,7 +61,7 @@ import java.util.Set;
  * grouped into one collapsible section per prototype (cluster) the person owns, plus an
  * "Unclustered" section for anything not currently assigned to one — so it's visually obvious
  * which faces the app currently considers "the same appearance group" for this person.
- * Originally just a cover-photo chooser (plain click → pick cover → close, still unchanged —
+ * Originally just a cover-media chooser (plain click → pick cover → close, still unchanged —
  * see {@link #onFaceChosen}), this dialog is also the FR1/FR2/FR3/FR5 correction entry point
  * from {@code face-person-correction-requirements.md}:
  * <ul>

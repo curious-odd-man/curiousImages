@@ -21,7 +21,7 @@ public class AlbumPhotoRepository {
     private final DSLContext dsl;
 
     /**
-     * Returns an unexecuted INSERT for a single album-photo membership row.
+     * Returns an unexecuted INSERT for a single album-media membership row.
      * Queue into a buffer and flush as a batch.
      */
     public Query insertQuery(long albumId, long photoId, int sortOrder, LocalDateTime now) {

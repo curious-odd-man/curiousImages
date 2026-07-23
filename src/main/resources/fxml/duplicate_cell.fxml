@@ -8,7 +8,7 @@
 <?import javafx.scene.text.*?>
 
 <!--
-    One photo within a duplicate group on the Duplicates tab: thumbnail, full metadata shown
+    One media within a duplicate group on the Duplicates tab: thumbnail, full metadata shown
     inline (not a hover tooltip - the whole point is comparing photos side by side), and a
     "keep" checkbox. See DuplicateCellController.
 -->

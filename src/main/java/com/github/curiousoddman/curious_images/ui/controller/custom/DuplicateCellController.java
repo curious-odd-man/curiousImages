@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.model.GridCellData;
+import com.github.curiousoddman.curious_images.model.Media;
 import com.github.curiousoddman.curious_images.model.bundle.DuplicateCellDataBundle;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.util.UiUtils;
@@ -47,8 +48,8 @@ public class DuplicateCellController implements Initializable {
     @FXML
     private CheckBox  checkBox;
 
-    private List<PhotoRecord> groupPhotos;
-    private int               currentIndex;
+    private List<Media> groupPhotos;
+    private int                currentIndex;
 
     private final FxmlLoader fxmlLoader;
 
@@ -127,7 +128,7 @@ public class DuplicateCellController implements Initializable {
         }
     }
 
-    private void openSlideshow(List<PhotoRecord> photos, int startIndex) {
+    private void openSlideshow(List<Media> photos, int startIndex) {
         UiUtils.openSlideshow(photos, startIndex, imageView.getScene(), fxmlLoader);
     }
 }

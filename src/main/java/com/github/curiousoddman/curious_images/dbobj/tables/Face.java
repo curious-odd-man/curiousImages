@@ -78,6 +78,11 @@ public class Face extends TableImpl<FaceRecord> {
     public final TableField<FaceRecord, Long> ID = createField(DSL.name("ID"), SQLDataType.BIGINT.nullable(false).identity(true), this, "");
 
     /**
+     * The column <code>public.FACE.CLUSTER_ID</code>.
+     */
+    public final TableField<FaceRecord, Long> CLUSTER_ID = createField(DSL.name("CLUSTER_ID"), SQLDataType.BIGINT, this, "");
+
+    /**
      * The column <code>public.FACE.MEDIA_ID</code>.
      */
     public final TableField<FaceRecord, Long> MEDIA_ID = createField(DSL.name("MEDIA_ID"), SQLDataType.BIGINT.nullable(false), this, "");
@@ -182,11 +187,6 @@ public class Face extends TableImpl<FaceRecord> {
      */
     public final TableField<FaceRecord, Boolean> EXCLUDED = createField(DSL.name("EXCLUDED"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field(DSL.raw("FALSE"), SQLDataType.BOOLEAN)), this, "");
 
-    /**
-     * The column <code>public.FACE.CLUSTER_ID</code>.
-     */
-    public final TableField<FaceRecord, Long> CLUSTER_ID = createField(DSL.name("CLUSTER_ID"), SQLDataType.BIGINT, this, "");
-
     private Face(Name alias, Table<FaceRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }
@@ -282,18 +282,6 @@ public class Face extends TableImpl<FaceRecord> {
         return Arrays.asList(Keys.CONSTRAINT_20C, Keys.CONSTRAINT_20CE);
     }
 
-    private transient MediaPath _media;
-
-    /**
-     * Get the implicit join path to the <code>public.MEDIA</code> table.
-     */
-    public MediaPath media() {
-        if (_media == null)
-            _media = new MediaPath(this, Keys.CONSTRAINT_20C, null);
-
-        return _media;
-    }
-
     private transient ClusterPath _cluster;
 
     /**
@@ -301,9 +289,21 @@ public class Face extends TableImpl<FaceRecord> {
      */
     public ClusterPath cluster() {
         if (_cluster == null)
-            _cluster = new ClusterPath(this, Keys.CONSTRAINT_20CE, null);
+            _cluster = new ClusterPath(this, Keys.CONSTRAINT_20C, null);
 
         return _cluster;
+    }
+
+    private transient MediaPath _media;
+
+    /**
+     * Get the implicit join path to the <code>public.MEDIA</code> table.
+     */
+    public MediaPath media() {
+        if (_media == null)
+            _media = new MediaPath(this, Keys.CONSTRAINT_20CE, null);
+
+        return _media;
     }
 
     private transient FaceEmbeddingPath _faceEmbedding;

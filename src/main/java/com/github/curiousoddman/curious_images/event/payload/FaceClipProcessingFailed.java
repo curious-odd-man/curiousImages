@@ -1,6 +1,6 @@
 package com.github.curiousoddman.curious_images.event.payload;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -11,13 +11,13 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class FaceClipProcessingFailed implements UserNotificationPayload {
     private final String      title = "Face/CLIP processing failed";
-    private final PhotoRecord photoRecord;
+    private final MediaPhotoRecord MediaPhotoRecord;
     private final Exception   e;
 
     @Override
     public List<String> getDescription() {
         return List.of(
-                photoRecord.getAbsolutePath(),
+                MediaPhotoRecord.getAbsolutePath(),
                 Objects.requireNonNullElse(e.getMessage(), e.getClass().getSimpleName())
         );
     }
