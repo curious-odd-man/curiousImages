@@ -1,6 +1,5 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
-import com.github.curiousoddman.curious_images.model.GridCellData;
 import com.github.curiousoddman.curious_images.model.Media;
 import com.github.curiousoddman.curious_images.model.bundle.DuplicateCellDataBundle;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;

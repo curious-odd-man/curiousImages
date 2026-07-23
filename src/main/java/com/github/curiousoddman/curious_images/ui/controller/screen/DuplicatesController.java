@@ -259,7 +259,7 @@ public class DuplicatesController implements Initializable {
         LoadedFxml<DuplicateCellController> loaded = fxmlLoader.load(FxmlView.DUPLICATE_CELL, resourceBundle);
         DuplicateCellController             cell   = loaded.controller();
 
-        return new DuplicateCell(pwt, cell.checkBox(), cell, (Pane) loaded.parent());
+        return new DuplicateCell(pwt, cell.checkBox(), cell, loaded.parent());
     }
 
     // ----------------------------------------------------------------------------------------

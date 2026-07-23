@@ -1,7 +1,6 @@
 package com.github.curiousoddman.curious_images.ui.controller.screen;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRecord;
-import com.github.curiousoddman.curious_images.domain.imports.ImportJob;
 import com.github.curiousoddman.curious_images.persistence.ImportRootRepository;
 import com.github.curiousoddman.curious_images.ui.util.AlertHelper;
 import com.github.curiousoddman.curious_images.ui.util.UiUtils;
@@ -22,15 +21,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
 
-/**
- * Controller for {@code rescan_roots.fxml}.
- * <p>
- * Shows a checkbox list of every known import root so the user can pick which
- * ones to rescan. Clicking "Rescan selected" hands the chosen paths to
- * {@link ImportJob#startMultiRootScan(List)}, which runs them sequentially
- * inside a single background job. If a scan is already running the service
- * returns {@code false} and a blocking alert is shown instead.
- */
 @Lazy
 @Slf4j
 @Component

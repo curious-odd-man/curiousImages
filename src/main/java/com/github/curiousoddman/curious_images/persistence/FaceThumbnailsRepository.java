@@ -3,7 +3,6 @@ package com.github.curiousoddman.curious_images.persistence;
 import com.github.curiousoddman.curious_images.domain.ai.DetectedFace;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import org.springframework.stereotype.Repository;
 
 import java.awt.*;

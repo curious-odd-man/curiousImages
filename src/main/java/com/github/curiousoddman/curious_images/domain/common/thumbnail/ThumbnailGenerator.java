@@ -11,15 +11,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * Generates and caches 512px (longest-edge) JPEG thumbnails for imported photos.
- * <p>
- * Decoding itself (including the CR2-embedded-preview special case) now lives in
- * {@link SourceImageDecoder}, shared with duplicate detection's pixel hashing — this class is
- * "decode, rotate to the correct orientation, resize, write to cache path". Rotation is baked
- * into the cached file: nothing that displays a thumbnail (grid, duplicates review) needs to
- * apply its own rotation transform.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

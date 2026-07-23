@@ -252,12 +252,11 @@ public class SearchAutocompleteManager {
      */
     private void commit(String value) {
         String text  = searchField.getText();
-        int    caret = searchField.getCaretPosition();
 
         // Find the end of the current token even if the caret isn't at the very end of it —
         // i.e. re-run the same "token at caret" match but anchored, then extend to any trailing
         // run of prefix/space-marker characters past the caret too.
-        int tokenEnd = caret;
+        int tokenEnd = searchField.getCaretPosition();
         while (tokenEnd < text.length() &&
                (!Character.isWhitespace(text.charAt(tokenEnd)) || text.charAt(tokenEnd) == SPACE_MARKER)) {
             tokenEnd++;

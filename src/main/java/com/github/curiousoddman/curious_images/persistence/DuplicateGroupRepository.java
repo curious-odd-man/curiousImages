@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 
 import static com.github.curiousoddman.curious_images.dbobj.Tables.MEDIA;
-import static com.github.curiousoddman.curious_images.dbobj.Tables.PHOTO;
 import static com.github.curiousoddman.curious_images.dbobj.Tables.THUMBNAIL;
 import static com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroup.DUPLICATE_GROUP;
 import static com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroupMember.DUPLICATE_GROUP_MEMBER;

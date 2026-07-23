@@ -27,23 +27,6 @@ import java.util.function.Consumer;
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
-/**
- * Controller for one cell of {@code face_picker.fxml}'s grid — a single face thumbnail.
- * <p>
- * Three interactions, all wired via {@link #bind}:
- * <ul>
- *   <li><b>Plain click</b> — reports the face as the chosen cover and closes the dialog
- *       (original behavior, unchanged — see {@link FacePickerController#onFaceChosen}).</li>
- *   <li><b>Ctrl/Shift-click</b> — toggles this cell into/out of the dialog's multi-selection
- *       (FR3) without closing the dialog or touching the cover face.</li>
- *   <li><b>Right-click</b> — requests a context menu (FR1/FR2/FR5: "Not this person…",
- *       "Confirm", "Exclude") positioned at the click, again without closing the dialog.</li>
- * </ul>
- * <b>Scope:</b> {@code prototype}, not the app's usual singleton {@code @Component} — a single
- * dialog invocation instantiates one of these per face (via {@code FxmlLoader}, whose
- * controller factory resolves through the Spring context), so each cell needs its own instance
- * rather than all of them sharing one bean and clobbering each other's {@link #face}/callbacks.
- */
 @Slf4j
 @Component
 @Scope("prototype")
@@ -60,10 +43,10 @@ public class FacePickerCellController implements Initializable {
 
     private static Image noImageAvailable;
 
-    private FaceRecord           face;
+    private FaceRecord                         face;
     @Getter
-    private boolean              selected;
-    private Consumer<FaceRecord> onPrimaryClick;
+    private boolean                            selected;
+    private Consumer<FaceRecord>               onPrimaryClick;
     private Consumer<FaceRecord>               onToggleSelect;
     private BiConsumer<FaceRecord, MouseEvent> onContextMenuRequested;
 
