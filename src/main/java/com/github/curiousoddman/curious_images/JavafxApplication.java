@@ -1,6 +1,7 @@
 package com.github.curiousoddman.curious_images;
 
 import com.github.curiousoddman.curious_images.app.preloader.MainSceneVisible;
+import com.github.curiousoddman.curious_images.config.RuntimeSettingsBootstrap;
 import com.github.curiousoddman.curious_images.config.StageManager;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.controller.screen.LibraryController;
@@ -20,6 +21,7 @@ public class JavafxApplication extends Application {
     @Override
     public void init() {
         applicationContext = new SpringApplicationBuilder(Main.class).headless(false)
+                                                                     .properties(RuntimeSettingsBootstrap.loadOverrides())
                                                                      .run();
     }
 

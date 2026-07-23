@@ -86,6 +86,18 @@ public class OnnxModelRegistry implements DisposableBean {
     }
 
     /**
+     * Evicts and closes every currently-loaded session, without closing the shared
+     * {@link OrtEnvironment}. Used when a setting that affects session creation (execution
+     * provider, intra-op thread count) changes at runtime: the next {@link #getOrLoad} call for
+     * each model will transparently recreate its session with the new {@link AiConfig} values.
+     */
+    public void evictAll() {
+        sessions.keySet()
+                .forEach(this::evict);
+        log.info("Evicted all ONNX sessions (settings change)");
+    }
+
+    /**
      * Closes all sessions and the shared {@link OrtEnvironment} on Spring shutdown.
      */
     @Override

@@ -16,6 +16,7 @@ import com.github.curiousoddman.curious_images.ui.controller.screen.LibraryContr
 import com.github.curiousoddman.curious_images.ui.controller.screen.PersonDetailController;
 import com.github.curiousoddman.curious_images.ui.controller.screen.ReScanLibraryController;
 import com.github.curiousoddman.curious_images.ui.controller.screen.RescanRootsController;
+import com.github.curiousoddman.curious_images.ui.controller.screen.SettingsController;
 import com.github.curiousoddman.curious_images.ui.controller.screen.SlideshowController;
 
 public record FxmlView<T>(String fxmlPath, Class<T> controllerClass) {
@@ -36,4 +37,5 @@ public record FxmlView<T>(String fxmlPath, Class<T> controllerClass) {
     public static final FxmlView<PhotoGridController>            PHOTO_GRID              = new FxmlView<>("/fxml/photo_grid.fxml", PhotoGridController.class);
     public static final FxmlView<NotificationMenuItemController> NOTIFICATIONS_MENU_ITEM = new FxmlView<>("/fxml/notification_menu_item.fxml", NotificationMenuItemController.class);
     public static final FxmlView<RightPanelController>           RIGHT_PANEL             = new FxmlView<>("/fxml/right_panel.fxml", RightPanelController.class);
+    public static final FxmlView<SettingsController>             SETTINGS                = new FxmlView<>("/fxml/settings.fxml", SettingsController.class);
 }

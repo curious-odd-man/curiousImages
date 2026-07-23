@@ -101,6 +101,20 @@ public class AiConfig {
      */
     private float minClusterSimilarity = 0.6f;
 
+    /**
+     * Thread-pool size for {@code DuplicateDetectionJob}'s hashing phase. Not bound directly from
+     * {@code app.duplicate-detection.thread-count} (kept here instead so it's mutable at runtime
+     * via {@code AiSettingsService}); seeded from that property at startup.
+     */
+    private int duplicateDetectionThreadCount = 4;
+
+    /**
+     * When {@code true}, the AI pipeline only runs face detection/recognition and skips CLIP
+     * embedding generation. Seeded from {@code ai.features.face-only} at startup, then mutable
+     * at runtime via {@code AiSettingsService}.
+     */
+    private boolean faceOnly = false;
+
     public enum ExecutionProvider {
         /**
          * Run on CPU only (ONNX Runtime default).

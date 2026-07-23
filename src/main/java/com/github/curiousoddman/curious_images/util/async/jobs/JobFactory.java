@@ -42,7 +42,6 @@ import com.github.curiousoddman.curious_images.util.ImageUtils;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -66,8 +65,6 @@ public class JobFactory {
     private final DuplicateGroupRepository duplicateGroupRepository;
     private final PixelHasher              pixelHasher;
 
-    @Value("${app.duplicate-detection.thread-count:4}")
-    private final int                      duplicateDetectionThreadCount;
     private final FaceRepository           faceRepository;
     private final FaceEmbeddingRepository  faceEmbeddingRepository;
     private final ClipEmbeddingRepository  clipEmbeddingRepository;
@@ -79,8 +76,6 @@ public class JobFactory {
     private final FaceVectorIndex          faceVectorIndex;
     private final PersonClusteringService  personClusteringService;
     private final FaceThumbnailsRepository faceThumbnailsRepository;
-    @Value("${ai.features.face-only:true}")
-    private final boolean                  aiFaceDetectionOnly;
     private final AlbumRepository          albumRepository;
     private final AlbumPhotoRepository     albumPhotoRepository;
     private final AiConfig                 aiConfig;
@@ -128,7 +123,7 @@ public class JobFactory {
                 duplicateGroupRepository,
                 pixelHasher,
                 timeProvider,
-                duplicateDetectionThreadCount
+                aiConfig.getDuplicateDetectionThreadCount()
         );
     }
 
@@ -151,7 +146,7 @@ public class JobFactory {
                 faceThumbnailsRepository,
                 jobManager,
                 imageUtils,
-                aiFaceDetectionOnly,
+                aiConfig.isFaceOnly(),
                 clipTextEncoder,
                 photoTagRepository
         );

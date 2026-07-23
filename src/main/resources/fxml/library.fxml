@@ -84,6 +84,8 @@
                         <MenuItem mnemonicParsing="false" onAction="#onFindDuplicates" text="Find duplicates" />
                         <MenuItem mnemonicParsing="false" onAction="#onTriggerAiPipeline" text="Trigger AI pipeline" />
                         <SeparatorMenuItem />
+                        <MenuItem mnemonicParsing="false" onAction="#onSettingsMenuClicked" text="Settings..." />
+                        <SeparatorMenuItem />
                         <MenuItem mnemonicParsing="false" text="Close" />
                     </items>
                 </Menu>

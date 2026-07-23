@@ -397,6 +397,20 @@ public class LibraryController implements Initializable {
     }
 
     @FXML
+    @SneakyThrows
+    public void onSettingsMenuClicked(ActionEvent actionEvent) {
+        Stage stage = new Stage();
+        Parent root = fxmlLoader.load(FxmlView.SETTINGS, null)
+                                .parent();
+        stage.setScene(new Scene(root));
+        stage.setTitle("Settings");
+        stage.initModality(Modality.APPLICATION_MODAL);
+        stage.initOwner(backgroundProcessCancelButton.getScene()
+                                                     .getWindow());
+        stage.showAndWait();
+    }
+
+    @FXML
     public void onFindDuplicates(ActionEvent event) {
         jobManager.submitDuplicatesJob();
     }

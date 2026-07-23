@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<!--
+    Modal: Settings screen.
+    Controller: SettingsController
+    Bundle key in FxmlView: SETTINGS
+
+    Two kinds of controls in here:
+      • Performance / Album tuning — apply live via AiSettingsService as soon as changed.
+      • Storage — staged in the text fields, only written (to a restart-required properties
+        file) when "Save storage paths" is clicked.
+-->
+<VBox fx:id="root" spacing="14.0" prefWidth="560.0"
+      xmlns="http://javafx.com/javafx/17.0.12"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.github.curiousoddman.curious_images.ui.controller.screen.SettingsController">
+    <padding>
+        <Insets bottom="18.0" left="18.0" right="18.0" top="18.0" />
+    </padding>
+
+    <Label text="Settings" styleClass="bold-label" style="-fx-font-size: 16px;" />
+
+    <!-- ── Section 1: Performance (live) ─────────────────────────────────── -->
+    <Label text="AI performance" styleClass="bold-label" />
+    <Label text="Changes here apply immediately. Switching engine/threads reloads AI models on next use."
+           wrapText="true" style="-fx-font-size: 11px; -fx-text-fill: gray;" />
+
+    <GridPane hgap="10.0" vgap="8.0">
+        <columnConstraints>
+            <ColumnConstraints minWidth="180.0" />
+            <ColumnConstraints hgrow="ALWAYS" />
+        </columnConstraints>
+
+        <Label text="Compute engine:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+        <ChoiceBox fx:id="executionProviderChoice" GridPane.rowIndex="0" GridPane.columnIndex="1" />
+
+        <Label text="Intra-op threads:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+        <Spinner fx:id="intraOpThreadsSpinner" editable="true" GridPane.rowIndex="1" GridPane.columnIndex="1" />
+
+        <Label text="Batch size:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+        <Spinner fx:id="batchSizeSpinner" editable="true" GridPane.rowIndex="2" GridPane.columnIndex="1" />
+
+        <Label text="Duplicate-detection threads:" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+        <Spinner fx:id="dedupeThreadCountSpinner" editable="true" GridPane.rowIndex="3" GridPane.columnIndex="1" />
+
+        <Label text="Face-only AI pipeline:" GridPane.rowIndex="4" GridPane.columnIndex="0" />
+        <CheckBox fx:id="faceOnlyCheckBox" text="Skip CLIP embeddings, detect/recognize faces only"
+                  mnemonicParsing="false" GridPane.rowIndex="4" GridPane.columnIndex="1" />
+    </GridPane>
+
+    <Separator />
+
+    <!-- ── Section 2: Album generation tuning (live) ─────────────────────── -->
+    <Label text="Album generation" styleClass="bold-label" />
+    <Label text="Affects the next time albums are (re)generated, not existing albums."
+           wrapText="true" style="-fx-font-size: 11px; -fx-text-fill: gray;" />
+
+    <GridPane hgap="10.0" vgap="8.0">
+        <columnConstraints>
+            <ColumnConstraints minWidth="180.0" />
+            <ColumnConstraints hgrow="ALWAYS" />
+        </columnConstraints>
+
+        <Label text="Event gap (hours):" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+        <Spinner fx:id="eventGapHoursSpinner" editable="true" GridPane.rowIndex="0" GridPane.columnIndex="1" />
+
+        <Label text="Min photos per event:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+        <Spinner fx:id="minEventSizeSpinner" editable="true" GridPane.rowIndex="1" GridPane.columnIndex="1" />
+
+        <Label text="Min photos per location:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+        <Spinner fx:id="minLocationSizeSpinner" editable="true" GridPane.rowIndex="2" GridPane.columnIndex="1" />
+
+        <Label text="Min photos per similarity cluster:" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+        <Spinner fx:id="minClusterSizeSpinner" editable="true" GridPane.rowIndex="3" GridPane.columnIndex="1" />
+
+        <Label text="Min cluster similarity:" GridPane.rowIndex="4" GridPane.columnIndex="0" />
+        <Spinner fx:id="minClusterSimilaritySpinner" editable="true" GridPane.rowIndex="4" GridPane.columnIndex="1" />
+    </GridPane>
+
+    <Separator />
+
+    <!-- ── Section 3: Storage (restart required) ─────────────────────────── -->
+    <Label text="Storage paths" styleClass="bold-label" />
+    <Label fx:id="restartNoticeLabel" text="Requires an app restart to take effect."
+           wrapText="true" style="-fx-font-size: 11px; -fx-text-fill: gray;" />
+
+    <VBox spacing="6.0">
+        <HBox spacing="8.0" alignment="CENTER_LEFT">
+            <Label text="Model directory:" minWidth="160.0" />
+            <TextField fx:id="modelDirField" HBox.hgrow="ALWAYS" />
+        </HBox>
+        <HBox spacing="8.0" alignment="CENTER_LEFT">
+            <Label text="Search index root:" minWidth="160.0" />
+            <TextField fx:id="indexRootField" HBox.hgrow="ALWAYS" />
+        </HBox>
+        <HBox spacing="8.0" alignment="CENTER_LEFT">
+            <Label text="Thumbnail cache dir:" minWidth="160.0" />
+            <TextField fx:id="thumbnailCacheDirField" HBox.hgrow="ALWAYS" />
+        </HBox>
+        <HBox alignment="CENTER_RIGHT">
+            <Button text="Save storage paths" onAction="#onSaveStorageSettings" mnemonicParsing="false" />
+        </HBox>
+    </VBox>
+
+    <Separator />
+
+    <!-- ── Buttons ────────────────────────────────────────────────────────── -->
+    <HBox alignment="CENTER_RIGHT" spacing="8.0">
+        <Button text="Done" onAction="#onClose" defaultButton="true"
+                mnemonicParsing="false" styleClass="bold-label" />
+    </HBox>
+</VBox>
