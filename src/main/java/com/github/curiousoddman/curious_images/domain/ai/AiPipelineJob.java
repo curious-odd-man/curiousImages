@@ -5,14 +5,20 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.ClipEmbeddin
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ClusterRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceEmbeddingRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
 import com.github.curiousoddman.curious_images.domain.index.ClipVectorIndex;
 import com.github.curiousoddman.curious_images.domain.index.FaceVectorIndex;
 import com.github.curiousoddman.curious_images.event.model.UserNotificationEvent;
 import com.github.curiousoddman.curious_images.event.payload.FaceClipProcessingFailed;
 import com.github.curiousoddman.curious_images.model.FaceLandmarks;
-import com.github.curiousoddman.curious_images.persistence.*;
+import com.github.curiousoddman.curious_images.persistence.ClipEmbeddingRepository;
+import com.github.curiousoddman.curious_images.persistence.ClusterRepository;
+import com.github.curiousoddman.curious_images.persistence.FaceEmbeddingRepository;
+import com.github.curiousoddman.curious_images.persistence.FaceRepository;
+import com.github.curiousoddman.curious_images.persistence.FaceThumbnailsRepository;
+import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
+import com.github.curiousoddman.curious_images.persistence.PhotoTagRepository;
 import com.github.curiousoddman.curious_images.util.EmbeddingMath;
 import com.github.curiousoddman.curious_images.util.ImageUtils;
 import com.github.curiousoddman.curious_images.util.QueryBuffer;
@@ -230,11 +236,11 @@ public class AiPipelineJob extends BackgroundJob {
             return true;
         }
 
-        long          photoId       = photoIds.get(i);
-        LocalDateTime now           = timeProvider.now();
-        String        lastPhotoPath = "";
-        Mat           img           = null;
-        PhotoRecord   photo         = null;
+        long             photoId       = photoIds.get(i);
+        LocalDateTime    now           = timeProvider.now();
+        String           lastPhotoPath = "";
+        Mat              img           = null;
+        MediaPhotoRecord photo         = null;
         try {
             photo = photoRepo.findById(photoId)
                              .orElseThrow(() -> new IllegalStateException("Photo not found: " + photoId));
@@ -316,7 +322,7 @@ public class AiPipelineJob extends BackgroundJob {
                     }
 
                     // Index face embeddings
-                    List<FaceRecord> faces = faceRepo.findByPhotoId(photoId);
+                    List<FaceRecord> faces = faceRepo.findByMediaId(photoId);
                     List<Long> faceIds = faces.stream()
                                               .map(FaceRecord::getId)
                                               .toList();

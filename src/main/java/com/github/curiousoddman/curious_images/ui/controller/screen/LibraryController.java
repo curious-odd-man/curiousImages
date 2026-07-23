@@ -9,19 +9,19 @@ import com.github.curiousoddman.curious_images.domain.user.prefs.UserPreferences
 import com.github.curiousoddman.curious_images.event.model.BackgroundProcessEvent;
 import com.github.curiousoddman.curious_images.event.payload.BackgroundProcessPayload;
 import com.github.curiousoddman.curious_images.event.types.BackgroundProcessEventType;
-import com.github.curiousoddman.curious_images.model.ImageDetails;
+import com.github.curiousoddman.curious_images.model.GridCellData;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
 import com.github.curiousoddman.curious_images.model.UiElement;
 import com.github.curiousoddman.curious_images.model.bundle.AddFilesBundle;
-import com.github.curiousoddman.curious_images.model.bundle.PhotoCellResources;
+import com.github.curiousoddman.curious_images.model.bundle.GridCellResources;
 import com.github.curiousoddman.curious_images.model.bundle.RescanBundle;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
+import com.github.curiousoddman.curious_images.ui.controller.custom.GridController;
 import com.github.curiousoddman.curious_images.ui.controller.custom.RightPanelController;
-import com.github.curiousoddman.curious_images.ui.controller.services.NotificationsService;
-import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridController;
 import com.github.curiousoddman.curious_images.ui.controller.services.LibraryViewManager;
+import com.github.curiousoddman.curious_images.ui.controller.services.NotificationsService;
 import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridManager;
 import com.github.curiousoddman.curious_images.ui.controller.services.TreeManager;
 import com.github.curiousoddman.curious_images.ui.nodes.LibraryTreeCell;
@@ -87,15 +87,15 @@ import static javafx.scene.control.ProgressIndicator.INDETERMINATE_PROGRESS;
 public class LibraryController implements Initializable {
     private static final int SEARCH_TOP_K = 50;
 
-    private final FxmlLoader             fxmlLoader;
-    private final UserPreferencesService userPreferencesService;
-    private final PhotoRepository        photoRepository;
-    private final SearchService          searchService;
-    private final JobManager             jobManager;
-    private final ModelPaths             modelPaths;
-    private final TreeManager                treeManager;
-    private final PhotoGridManager           photoGridManager;
-    private final LibraryViewManager         libraryViewManager;
+    private final FxmlLoader                fxmlLoader;
+    private final UserPreferencesService    userPreferencesService;
+    private final PhotoRepository           photoRepository;
+    private final SearchService             searchService;
+    private final JobManager                jobManager;
+    private final ModelPaths                modelPaths;
+    private final TreeManager               treeManager;
+    private final PhotoGridManager          photoGridManager;
+    private final LibraryViewManager        libraryViewManager;
     private final NotificationsService      notificationsService;
     private final SearchAutocompleteManager searchAutocompleteManager;
 
@@ -141,7 +141,7 @@ public class LibraryController implements Initializable {
     public BorderPane                rootBorderPane;
 
     private PersonDetailController personDetailController;
-    private PhotoGridController    photoGridController;
+    private GridController         gridController;
     private RightPanelController   rightPanelController;
 
     private volatile boolean autoStartAiPipelineAfterModelDownload = false;
@@ -169,11 +169,11 @@ public class LibraryController implements Initializable {
         // while its popup is open, and otherwise gets out of the way.
         searchAutocompleteManager.initialize(searchField);
 
-        LoadedFxml<PhotoGridController> photoGridLoaded = fxmlLoader.load(FxmlView.PHOTO_GRID, new PhotoCellResources(this::onShowRightPanel));
-        photoGridController = photoGridLoaded.controller();
+        LoadedFxml<GridController> photoGridLoaded = fxmlLoader.load(FxmlView.PHOTO_GRID, new GridCellResources(this::onShowRightPanel));
+        gridController = photoGridLoaded.controller();
         photoGridContainer.setCenter(photoGridLoaded.parent());
 
-        photoGridManager.initialize(photoGridController);
+        photoGridManager.initialize(gridController);
         treeManager.onLibraryDataUpdated(null);
 
         LoadedFxml<DuplicatesController>       duplicatesLoaded       = fxmlLoader.loadFxmlAndAttachToParent(duplicatesContainer, FxmlView.DUPLICATES);
@@ -181,7 +181,7 @@ public class LibraryController implements Initializable {
         checkModelsAndPromptDownload();
 
         libraryViewManager.initialize(
-                new UiElement<>(photoGridContainer, photoGridController),
+                new UiElement<>(photoGridContainer, gridController),
                 new UiElement<>(duplicatesContainer, duplicatesLoaded.controller()),
                 new UiElement<>(folderDuplicatesContainer, folderDuplicatesLoaded.controller()),
                 new UiElement<>(personDetailContainer, personDetailController)
@@ -303,7 +303,7 @@ public class LibraryController implements Initializable {
                 photoGridManager.loadPhotosForAlbum(ap.albumId());
             }
             case PersonPayload pp ->
-                    personDetailController = libraryViewManager.showPersonDetail(pp.personId(), new UiElement<>(personDetailContainer, personDetailController), new PhotoCellResources(this::onShowRightPanel));
+                    personDetailController = libraryViewManager.showPersonDetail(pp.personId(), new UiElement<>(personDetailContainer, personDetailController), new GridCellResources(this::onShowRightPanel));
         }
     }
 
@@ -319,7 +319,7 @@ public class LibraryController implements Initializable {
         libraryViewManager.showPhotoGrid();
         libraryTreeView.getSelectionModel()
                        .clearSelection();
-        long myGeneration = photoGridController.initiateChange();
+        long myGeneration = gridController.initiateChange();
         runOnDaemonThread("Search", () -> {
             try {
                 List<Long> photoIds = searchService.search(query, SEARCH_TOP_K);
@@ -329,7 +329,7 @@ public class LibraryController implements Initializable {
                                                    .filter(Objects::nonNull)
                                                    .toList();
                 runOnFxThread(() -> {
-                    if (myGeneration != photoGridController.currentChange()) {
+                    if (myGeneration != gridController.currentChange()) {
                         return;
                     }
                     photoGridManager.populate(photos);
@@ -337,8 +337,8 @@ public class LibraryController implements Initializable {
             } catch (Exception e) {
                 log.error("Search failed for query '{}'", query, e);
                 runOnFxThread(() -> {
-                    if (myGeneration == photoGridController.currentChange()) {
-                        photoGridController.displayError(e.getMessage());
+                    if (myGeneration == gridController.currentChange()) {
+                        gridController.displayError(e.getMessage());
                     }
                 });
             }
@@ -484,13 +484,13 @@ public class LibraryController implements Initializable {
         event.consume();
     }
 
-    public void onShowRightPanel(ImageDetails imageDetails) {
+    public void onShowRightPanel(GridCellData gridCellData) {
         if (rightPanelController == null) {
             LoadedFxml<RightPanelController> rightPanelLoaded = fxmlLoader.load(FxmlView.RIGHT_PANEL, null);
             rightPanelController = rightPanelLoaded.controller();
             rootBorderPane.setRight(rightPanelLoaded.parent());
         }
-        rightPanelController.showDetails(imageDetails);
+        rightPanelController.showDetails(gridCellData);
     }
 
     /**

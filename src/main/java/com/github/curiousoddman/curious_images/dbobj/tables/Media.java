@@ -118,6 +118,16 @@ public class Media extends TableImpl<MediaRecord> {
     public final TableField<MediaRecord, Long> FILE_SIZE = createField(DSL.name("FILE_SIZE"), SQLDataType.BIGINT, this, "");
 
     /**
+     * The column <code>public.MEDIA.WIDTH</code>.
+     */
+    public final TableField<MediaRecord, Integer> WIDTH = createField(DSL.name("WIDTH"), SQLDataType.INTEGER, this, "");
+
+    /**
+     * The column <code>public.MEDIA.HEIGHT</code>.
+     */
+    public final TableField<MediaRecord, Integer> HEIGHT = createField(DSL.name("HEIGHT"), SQLDataType.INTEGER, this, "");
+
+    /**
      * The column <code>public.MEDIA.CAPTURE_DATE</code>.
      */
     public final TableField<MediaRecord, LocalDateTime> CAPTURE_DATE = createField(DSL.name("CAPTURE_DATE"), SQLDataType.LOCALDATETIME(6), this, "");

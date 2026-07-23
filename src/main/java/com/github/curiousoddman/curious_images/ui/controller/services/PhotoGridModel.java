@@ -1,7 +1,7 @@
 package com.github.curiousoddman.curious_images.ui.controller.services;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.model.PhotoCellData;
+import com.github.curiousoddman.curious_images.model.GridCellData;
 import com.github.curiousoddman.curious_images.util.CollectionUtils;
 
 import java.util.List;
@@ -11,8 +11,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class PhotoGridModel {
     private final AtomicLong generation = new AtomicLong();
 
-    private List<PhotoCellData> photos     = List.of();
-    private Map<Long, Integer>  photoIndex = Map.of();
+    private List<GridCellData> photos     = List.of();
+    private Map<Long, Integer> photoIndex = Map.of();
 
     public long nextGeneration() {
         return generation.incrementAndGet();
@@ -22,7 +22,7 @@ public class PhotoGridModel {
         return generation.get();
     }
 
-    public void setPhotos(List<PhotoCellData> photos) {
+    public void setPhotos(List<GridCellData> photos) {
         this.photos = List.copyOf(photos);
         this.photoIndex = CollectionUtils.getIdToIndexMap(photos, r -> r.photo()
                                                                         .getId());
@@ -36,7 +36,7 @@ public class PhotoGridModel {
 
     public List<PhotoRecord> photos() {
         return photos.stream()
-                     .map(PhotoCellData::photo)
+                     .map(GridCellData::photo)
                      .toList();
     }
 
@@ -44,7 +44,7 @@ public class PhotoGridModel {
         return photos.size();
     }
 
-    public List<PhotoCellData> photosSlice(int offset, int bound) {
+    public List<GridCellData> photosSlice(int offset, int bound) {
         return photos.subList(offset, Math.min(bound, size()));
     }
 

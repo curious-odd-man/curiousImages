@@ -18,7 +18,9 @@ import com.github.curiousoddman.curious_images.dbobj.tables.Folder;
 import com.github.curiousoddman.curious_images.dbobj.tables.ImportRoot;
 import com.github.curiousoddman.curious_images.dbobj.tables.Media;
 import com.github.curiousoddman.curious_images.dbobj.tables.MediaHash;
+import com.github.curiousoddman.curious_images.dbobj.tables.MediaPhoto;
 import com.github.curiousoddman.curious_images.dbobj.tables.MediaTag;
+import com.github.curiousoddman.curious_images.dbobj.tables.MediaVideo;
 import com.github.curiousoddman.curious_images.dbobj.tables.PendingAction;
 import com.github.curiousoddman.curious_images.dbobj.tables.Person;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
@@ -116,9 +118,19 @@ public class Tables {
     public static final MediaHash MEDIA_HASH = MediaHash.MEDIA_HASH;
 
     /**
+     * The table <code>public.MEDIA_PHOTO</code>.
+     */
+    public static final MediaPhoto MEDIA_PHOTO = MediaPhoto.MEDIA_PHOTO;
+
+    /**
      * The table <code>public.MEDIA_TAG</code>.
      */
     public static final MediaTag MEDIA_TAG = MediaTag.MEDIA_TAG;
+
+    /**
+     * The table <code>public.MEDIA_VIDEO</code>.
+     */
+    public static final MediaVideo MEDIA_VIDEO = MediaVideo.MEDIA_VIDEO;
 
     /**
      * The table <code>public.PENDING_ACTION</code>.

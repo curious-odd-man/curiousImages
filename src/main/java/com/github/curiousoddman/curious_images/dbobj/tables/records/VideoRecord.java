@@ -43,87 +43,59 @@ public class VideoRecord extends UpdatableRecordImpl<VideoRecord> {
     }
 
     /**
-     * Setter for <code>public.VIDEO.WIDTH</code>.
-     */
-    public void setWidth(Integer value) {
-        set(1, value);
-    }
-
-    /**
-     * Getter for <code>public.VIDEO.WIDTH</code>.
-     */
-    public Integer getWidth() {
-        return (Integer) get(1);
-    }
-
-    /**
-     * Setter for <code>public.VIDEO.HEIGHT</code>.
-     */
-    public void setHeight(Integer value) {
-        set(2, value);
-    }
-
-    /**
-     * Getter for <code>public.VIDEO.HEIGHT</code>.
-     */
-    public Integer getHeight() {
-        return (Integer) get(2);
-    }
-
-    /**
      * Setter for <code>public.VIDEO.DURATION_MS</code>.
      */
     public void setDurationMs(Long value) {
-        set(3, value);
+        set(1, value);
     }
 
     /**
      * Getter for <code>public.VIDEO.DURATION_MS</code>.
      */
     public Long getDurationMs() {
-        return (Long) get(3);
+        return (Long) get(1);
     }
 
     /**
      * Setter for <code>public.VIDEO.CODEC</code>.
      */
     public void setCodec(String value) {
-        set(4, value);
+        set(2, value);
     }
 
     /**
      * Getter for <code>public.VIDEO.CODEC</code>.
      */
     public String getCodec() {
-        return (String) get(4);
+        return (String) get(2);
     }
 
     /**
      * Setter for <code>public.VIDEO.FRAME_RATE</code>.
      */
     public void setFrameRate(Double value) {
-        set(5, value);
+        set(3, value);
     }
 
     /**
      * Getter for <code>public.VIDEO.FRAME_RATE</code>.
      */
     public Double getFrameRate() {
-        return (Double) get(5);
+        return (Double) get(3);
     }
 
     /**
      * Setter for <code>public.VIDEO.ROTATION</code>.
      */
     public void setRotation(Integer value) {
-        set(6, value);
+        set(4, value);
     }
 
     /**
      * Getter for <code>public.VIDEO.ROTATION</code>.
      */
     public Integer getRotation() {
-        return (Integer) get(6);
+        return (Integer) get(4);
     }
 
     // -------------------------------------------------------------------------
@@ -149,12 +121,10 @@ public class VideoRecord extends UpdatableRecordImpl<VideoRecord> {
     /**
      * Create a detached, initialised VideoRecord
      */
-    public VideoRecord(Long id, Integer width, Integer height, Long durationMs, String codec, Double frameRate, Integer rotation) {
+    public VideoRecord(Long id, Long durationMs, String codec, Double frameRate, Integer rotation) {
         super(Video.VIDEO);
 
         setId(id);
-        setWidth(width);
-        setHeight(height);
         setDurationMs(durationMs);
         setCodec(codec);
         setFrameRate(frameRate);

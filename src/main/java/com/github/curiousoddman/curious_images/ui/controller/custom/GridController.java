@@ -3,8 +3,8 @@ package com.github.curiousoddman.curious_images.ui.controller.custom;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
-import com.github.curiousoddman.curious_images.model.PhotoCellData;
-import com.github.curiousoddman.curious_images.model.bundle.PhotoCellResources;
+import com.github.curiousoddman.curious_images.model.GridCellData;
+import com.github.curiousoddman.curious_images.model.bundle.GridCellResources;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridModel;
 import com.github.curiousoddman.curious_images.ui.controller.services.ThumbnailReadyEventListener;
@@ -38,7 +38,7 @@ import static com.sun.javafx.util.Utils.runOnFxThread;
 @Component
 @Scope("prototype")
 @RequiredArgsConstructor
-public class PhotoGridController implements Initializable, PhotoGridCallbacks, ThumbnailReadyEventListener {
+public class GridController implements Initializable, PhotoGridCallbacks, ThumbnailReadyEventListener {
     public static final int MAX_THUMBNAIL_DECODE_SIZE = 320;
 
     private static final double CELL_HPADDING         = 12.0; // photo_cell.fxml left+right padding
@@ -62,13 +62,13 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, T
 
     private int lastColumns = -1;
 
-    private final PhotoGridModel                 photoGridModel      = new PhotoGridModel();
-    private final Map<Long, PhotoCellController> visiblePhotoCells   = new HashMap<>();
-    private final DelayedAction                  gridMetricsDebounce = new DelayedAction(GRID_METRICS_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
+    private final PhotoGridModel                photoGridModel      = new PhotoGridModel();
+    private final Map<Long, GridCellController> visiblePhotoCells   = new HashMap<>();
+    private final DelayedAction                 gridMetricsDebounce = new DelayedAction(GRID_METRICS_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        listView.setCellFactory(lv -> new PhotoRowCell(this, fxmlLoader, (PhotoCellResources) resources));
+        listView.setCellFactory(lv -> new PhotoRowCell(this, fxmlLoader, (GridCellResources) resources));
         listView.setFocusTraversable(false);
 
         listView.widthProperty()
@@ -94,7 +94,7 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, T
         return photoGridModel.generation();
     }
 
-    public void populatePhotoGrid(List<PhotoCellData> photos) {
+    public void populatePhotoGrid(List<GridCellData> photos) {
         photoGridModel.nextGeneration();
         visiblePhotoCells.clear();
         photoGridModel.setPhotos(photos);
@@ -143,32 +143,32 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, T
     }
 
     @Override
-    public void onRowShown(PhotoGridRowController row, List<PhotoCellData> photos) {
+    public void onRowShown(PhotoGridRowController row, List<GridCellData> photos) {
         RowInfo rowInfo = getRowInfo(row, photos, visiblePhotoCells, photoGridModel.generation());
         runOnFxThread(() -> {
             if (rowInfo.myGeneration() != photoGridModel.generation() || rowInfo.myShowToken() != row.getShowToken()) {
                 return; // selection changed, or this row now shows different photos — discard
             }
-            for (PhotoCellData photo : photos) {
+            for (GridCellData photo : photos) {
                 row.applyImage(photo);
             }
         });
     }
 
     public static RowInfo getRowInfo(PhotoGridRowController row,
-                                     List<PhotoCellData> photos,
-                                     Map<Long, PhotoCellController> visiblePhotoCells,
+                                     List<GridCellData> photos,
+                                     Map<Long, GridCellController> visiblePhotoCells,
                                      long selectionGeneration) {
-        for (PhotoCellController cell : row.getCellControllers()) {
-            PhotoCellData shown = cell.getPhotoCellData();
+        for (GridCellController cell : row.getCellControllers()) {
+            GridCellData shown = cell.getGridCellData();
             if (shown != null) {
-                visiblePhotoCells.put(shown.photoId(), cell);
+                visiblePhotoCells.put(shown.mediaId(), cell);
             }
         }
 
         long myShowToken = row.getShowToken();
         List<Long> ids = photos.stream()
-                               .map(PhotoCellData::photoId)
+                               .map(GridCellData::mediaId)
                                .toList();
         return new RowInfo(selectionGeneration, myShowToken, ids);
     }
@@ -185,9 +185,9 @@ public class PhotoGridController implements Initializable, PhotoGridCallbacks, T
     public record RowInfo(long myGeneration, long myShowToken, List<Long> ids) {}
 
     @Override
-    public void onRowHidden(PhotoGridRowController row, List<PhotoCellData> previousPhotos) {
-        for (PhotoCellData photo : previousPhotos) {
-            visiblePhotoCells.remove(photo.photoId());
+    public void onRowHidden(PhotoGridRowController row, List<GridCellData> previousPhotos) {
+        for (GridCellData photo : previousPhotos) {
+            visiblePhotoCells.remove(photo.mediaId());
         }
     }
 

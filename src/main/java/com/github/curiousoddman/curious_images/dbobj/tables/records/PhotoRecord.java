@@ -44,73 +44,45 @@ public class PhotoRecord extends UpdatableRecordImpl<PhotoRecord> {
     }
 
     /**
-     * Setter for <code>public.PHOTO.IMAGE_WIDTH</code>.
-     */
-    public void setImageWidth(Integer value) {
-        set(1, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.IMAGE_WIDTH</code>.
-     */
-    public Integer getImageWidth() {
-        return (Integer) get(1);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.IMAGE_HEIGHT</code>.
-     */
-    public void setImageHeight(Integer value) {
-        set(2, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.IMAGE_HEIGHT</code>.
-     */
-    public Integer getImageHeight() {
-        return (Integer) get(2);
-    }
-
-    /**
      * Setter for <code>public.PHOTO.ORIENTATION</code>.
      */
     public void setOrientation(Integer value) {
-        set(3, value);
+        set(1, value);
     }
 
     /**
      * Getter for <code>public.PHOTO.ORIENTATION</code>.
      */
     public Integer getOrientation() {
-        return (Integer) get(3);
+        return (Integer) get(1);
     }
 
     /**
      * Setter for <code>public.PHOTO.LENS_MODEL</code>.
      */
     public void setLensModel(String value) {
-        set(4, value);
+        set(2, value);
     }
 
     /**
      * Getter for <code>public.PHOTO.LENS_MODEL</code>.
      */
     public String getLensModel() {
-        return (String) get(4);
+        return (String) get(2);
     }
 
     /**
      * Setter for <code>public.PHOTO.EXIF_EXTRA</code>.
      */
     public void setExifExtra(JSON value) {
-        set(5, value);
+        set(3, value);
     }
 
     /**
      * Getter for <code>public.PHOTO.EXIF_EXTRA</code>.
      */
     public JSON getExifExtra() {
-        return (JSON) get(5);
+        return (JSON) get(3);
     }
 
     // -------------------------------------------------------------------------
@@ -136,12 +108,10 @@ public class PhotoRecord extends UpdatableRecordImpl<PhotoRecord> {
     /**
      * Create a detached, initialised PhotoRecord
      */
-    public PhotoRecord(Long id, Integer imageWidth, Integer imageHeight, Integer orientation, String lensModel, JSON exifExtra) {
+    public PhotoRecord(Long id, Integer orientation, String lensModel, JSON exifExtra) {
         super(Photo.PHOTO);
 
         setId(id);
-        setImageWidth(imageWidth);
-        setImageHeight(imageHeight);
         setOrientation(orientation);
         setLensModel(lensModel);
         setExifExtra(exifExtra);

@@ -24,11 +24,11 @@ public class PixelHasher {
      * is not an error — the caller should simply skip that photo for this run, same policy as
      * thumbnail generation skipping undecodable files during import.
      */
-    public PhotoHashResult hash(long photoId, Path file, String extension, long fileSize) {
+    public MediaHashResult hash(long photoId, Path file, String extension, long fileSize) {
         Optional<Mat> image = imageUtils.imageOrCr2Preview(file, extension, 0);
         return image
-                .map(mat -> new PhotoHashResult(photoId, extension, fileSize, file.toString(), hashPixels(mat)))
-                .orElseGet(() -> new PhotoHashResult(photoId, extension, fileSize, file.toString(), null));
+                .map(mat -> new MediaHashResult(photoId, extension, fileSize, file.toString(), hashPixels(mat)))
+                .orElseGet(() -> new MediaHashResult(photoId, extension, fileSize, file.toString(), null));
     }
 
     String hashPixels(Mat image) {
@@ -60,7 +60,7 @@ public class PixelHasher {
         }
     }
 
-    public record PhotoHashResult(long photoId, String extension, long fileSize, String absolutePath,
+    public record MediaHashResult(long photoId, String extension, long fileSize, String absolutePath,
                                   String pixelHash) {
     }
 }

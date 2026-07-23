@@ -76,23 +76,23 @@ public class PhotoRotationService {
     private final TimeProvider            timeProvider;
 
     /**
-     * @param photoId      the photo being rotated
+     * @param mediaId      the photo being rotated
      * @param deltaDegrees one of {@link #ROTATE_CW}, {@link #ROTATE_CCW}, {@link #ROTATE_180} —
      *                     any value is accepted and normalized, but the menu only ever offers
      *                     these three
      */
-    public void rotateAndClearAiResults(long photoId, int deltaDegrees) {
-        PhotoRecord photo = photoRepo.findById(photoId)
+    public void rotateAndClearAiResults(long mediaId, int deltaDegrees) {
+        PhotoRecord photo = photoRepo.findById(mediaId)
                                      .orElse(null);
         if (photo == null) {
-            log.warn("rotate: photo {} no longer exists", photoId);
+            log.warn("rotate: photo {} no longer exists", mediaId);
             return;
         }
 
         int current    = Objects.requireNonNullElse(photo.getOrientation(), 0);
         int normalized = ((current + deltaDegrees) % 360 + 360) % 360;
 
-        List<FaceRecord> faces = faceRepo.findByPhotoId(photoId);
+        List<FaceRecord> faces = faceRepo.findByMediaId(mediaId);
         List<Long> faceIds = faces.stream()
                                   .map(FaceRecord::getId)
                                   .toList();
@@ -102,22 +102,22 @@ public class PhotoRotationService {
         Set<Long> orphanedPersons = personCorrectionService.removeFacesFromClusters(faceIds);
         if (!orphanedPersons.isEmpty()) {
             log.info("rotate: photo {} rotation left person(s) {} owning zero clusters — " +
-                    "leaving them for manual cleanup via the People tab", photoId, orphanedPersons);
+                    "leaving them for manual cleanup via the People tab", mediaId, orphanedPersons);
         }
 
         LocalDateTime now = timeProvider.now();
         dsl.transaction(cfg -> {
             DSLContext ctx = cfg.dsl();
-            photoRepo.updateOrientationAndResetAi(ctx, photoId, normalized, now);
+            photoRepo.updateOrientationAndResetAi(ctx, mediaId, normalized, now);
             faceEmbeddingRepo.deleteByFaceIds(ctx, faceIds);
-            faceRepo.deleteByPhotoId(ctx, photoId);
-            clipEmbeddingRepo.deleteByPhotoId(ctx, photoId);
+            faceRepo.deleteByPhotoId(ctx, mediaId);
+            clipEmbeddingRepo.deleteByPhotoId(ctx, mediaId);
         });
 
         deleteFaceThumbnailFiles(faces);
-        removeFromLuceneIndexes(photoId, faceIds);
+        removeFromLuceneIndexes(mediaId, faceIds);
 
-        jobManager.submitThumbnailGenerationJob(List.of(photoId));
+        jobManager.submitThumbnailGenerationJob(List.of(mediaId));
     }
 
     private void deleteFaceThumbnailFiles(List<FaceRecord> faces) {

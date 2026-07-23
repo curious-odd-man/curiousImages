@@ -79,9 +79,9 @@ public class FaceRepository {
                   .fetch();
     }
 
-    public List<FaceRecord> findByPhotoId(long photoId) {
+    public List<FaceRecord> findByMediaId(long photoId) {
         return dsl.selectFrom(FACE)
-                  .where(FACE.PHOTO_ID.eq(photoId))
+                  .where(FACE.MEDIA_ID.eq(photoId))
                   .fetch();
     }
 

@@ -2,10 +2,10 @@ package com.github.curiousoddman.curious_images.domain.common.thumbnail;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
-import com.github.curiousoddman.curious_images.model.PhotoCellData;
+import com.github.curiousoddman.curious_images.model.GridCellData;
 import com.github.curiousoddman.curious_images.persistence.PhotoTagRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
-import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoCellController;
+import com.github.curiousoddman.curious_images.ui.controller.custom.GridCellController;
 import javafx.scene.image.Image;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +15,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridController.MAX_THUMBNAIL_DECODE_SIZE;
+import static com.github.curiousoddman.curious_images.ui.controller.custom.GridController.MAX_THUMBNAIL_DECODE_SIZE;
 import static com.github.curiousoddman.curious_images.util.async.ThreadUtils.runOnDaemonThread;
 import static com.sun.javafx.util.Utils.runOnFxThread;
 
@@ -26,18 +26,18 @@ public class ThumbnailUtils {
     private final ThumbnailRepository thumbnailRepository;
     private final PhotoTagRepository  photoTagRepository;
 
-    public void updateThumbnailImage(Map<Long, PhotoCellController> visiblePhotoCells, ThumbnailsReadyEvent event) {
+    public void updateThumbnailImage(Map<Long, GridCellController> visiblePhotoCells, ThumbnailsReadyEvent event) {
         List<Long> ids = List.copyOf(event.getPhotoIds());
         runOnDaemonThread("ThumbnailUpdate", () -> {
             Map<Long, ThumbnailRecord> thumbs = thumbnailRepository.findByPhotoIds(ids);
 
             for (Map.Entry<Long, ThumbnailRecord> entry : thumbs.entrySet()) {
-                PhotoCellController cell          = visiblePhotoCells.get(entry.getKey());
-                boolean             hasCachedFile = hasCachedFile(entry.getValue());
+                GridCellController cell          = visiblePhotoCells.get(entry.getKey());
+                boolean            hasCachedFile = hasCachedFile(entry.getValue());
                 if (cell != null && hasCachedFile) {
-                    PhotoCellData existingCellData = cell.getPhotoCellData();
+                    GridCellData existingCellData = cell.getGridCellData();
                     runOnFxThread(() -> cell.showImage(
-                            new PhotoCellData(
+                            new GridCellData(
                                     existingCellData.photo(),
                                     loadThumbnailImage(thumbs.get(entry.getKey())),
                                     existingCellData.tags(),

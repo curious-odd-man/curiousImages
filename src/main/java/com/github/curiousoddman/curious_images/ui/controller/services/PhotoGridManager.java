@@ -1,19 +1,19 @@
 package com.github.curiousoddman.curious_images.ui.controller.services;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoTagRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaTagRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailUtils;
 import com.github.curiousoddman.curious_images.model.PersonDetails;
-import com.github.curiousoddman.curious_images.model.PhotoCellData;
+import com.github.curiousoddman.curious_images.model.GridCellData;
 import com.github.curiousoddman.curious_images.persistence.AlbumPhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoTagRepository;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
-import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridController;
+import com.github.curiousoddman.curious_images.ui.controller.custom.GridController;
 import com.github.curiousoddman.curious_images.util.async.DelayedAction;
 import com.github.curiousoddman.curious_images.util.async.jobs.JobManager;
 import javafx.scene.image.Image;
@@ -50,24 +50,24 @@ public class PhotoGridManager {
     private final Set<Long>     pendingThumbnailGenIds = new HashSet<>();
     private final DelayedAction thumbnailGenDebounce   = new DelayedAction(THUMBNAIL_GEN_DEBOUNCE_MS, TimeUnit.MILLISECONDS);
 
-    private PhotoGridController photoGridController;
+    private GridController gridController;
 
-    public void initialize(PhotoGridController photoGridController) {
-        this.photoGridController = photoGridController;
+    public void initialize(GridController gridController) {
+        this.gridController = gridController;
     }
 
     public void populate(List<PhotoRecord> photos) {
-        List<PhotoCellData> data = createData(photos);
-        runOnFxThread(() -> photoGridController.populatePhotoGrid(data));
+        List<GridCellData> data = createData(photos);
+        runOnFxThread(() -> gridController.populatePhotoGrid(data));
     }
 
     public void clear() {
         pendingThumbnailGenIds.clear();
-        photoGridController.clear();
+        gridController.clear();
     }
 
     public void loadPhotosForFolder(long folderId) {
-        long myGeneration = photoGridController.initiateChange();
+        long myGeneration = gridController.initiateChange();
         runOnDaemonThread("LoadFolder", () -> {
             List<PhotoRecord> photos = photoRepository.findByFolderId(folderId);
             loadSelectionResult(myGeneration, photos);
@@ -75,7 +75,7 @@ public class PhotoGridManager {
     }
 
     public void loadPhotosForTimeline(int year, int month, Integer day) {
-        long myGeneration = photoGridController.initiateChange();
+        long myGeneration = gridController.initiateChange();
         runOnDaemonThread("LoadTimeline", () -> {
             List<PhotoRecord> photos = photoRepository.findByCaptureDate(year, month, day);
             loadSelectionResult(myGeneration, photos);
@@ -83,7 +83,7 @@ public class PhotoGridManager {
     }
 
     public void loadPhotosUndated() {
-        long myGeneration = photoGridController.initiateChange();
+        long myGeneration = gridController.initiateChange();
         runOnDaemonThread("LoadUndated", () -> {
             List<PhotoRecord> photos = photoRepository.findByNullCaptureDate();
             loadSelectionResult(myGeneration, photos);
@@ -91,7 +91,7 @@ public class PhotoGridManager {
     }
 
     public void loadPhotosForAlbum(long albumId) {
-        long myGeneration = photoGridController.initiateChange();
+        long myGeneration = gridController.initiateChange();
         runOnDaemonThread("LoadAlbum", () -> {
             List<Long> photoIds = albumPhotoRepository.findPhotoIdsByAlbumId(albumId);
             List<PhotoRecord> photos = photoIds.stream()
@@ -103,18 +103,18 @@ public class PhotoGridManager {
         });
     }
 
-    public List<PhotoCellData> createData(List<PhotoRecord> photos) {
+    public List<GridCellData> createData(List<PhotoRecord> photos) {
         List<Long> ids = photos.stream()
                                .map(PhotoRecord::getId)
                                .toList();
 
-        Map<Long, Map<PhotoTagRecord, TagEmbeddingRecord>> tags       = photoTagRepository.findForPhotos(ids);
+        Map<Long, Map<MediaTagRecord, TagEmbeddingRecord>> tags       = photoTagRepository.findForPhotos(ids);
         Map<Long, List<PersonDetails>>                     persons    = personRepository.findByPhotoIdsIn(ids);
         Map<Long, Integer>                                 duplicates = duplicateGroupRepository.countDuplicatesForPhotos(ids);
         Map<Long, ThumbnailRecord>                         thumbs     = thumbnailRepository.findByPhotoIds(ids);
 
         List<Long> missing = new ArrayList<>();
-        List<PhotoCellData> cellData = photos
+        List<GridCellData> cellData = photos
                 .stream()
                 .map(photoRecord -> {
                     ThumbnailRecord thumbnail  = thumbs.get(photoRecord.getId());
@@ -124,7 +124,7 @@ public class PhotoGridManager {
                     } else {
                         missing.add(photoRecord.getId());
                     }
-                    return new PhotoCellData(
+                    return new GridCellData(
                             photoRecord,
                             thumbImage,
                             tags.getOrDefault(photoRecord.getId(), Map.of()),
@@ -155,7 +155,7 @@ public class PhotoGridManager {
     }
 
     private void loadSelectionResult(long myGeneration, List<PhotoRecord> photos) {
-        if (myGeneration == photoGridController.currentChange()) {
+        if (myGeneration == gridController.currentChange()) {
             populate(photos);
         }
     }

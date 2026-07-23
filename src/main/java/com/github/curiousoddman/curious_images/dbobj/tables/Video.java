@@ -72,16 +72,6 @@ public class Video extends TableImpl<VideoRecord> {
     public final TableField<VideoRecord, Long> ID = createField(DSL.name("ID"), SQLDataType.BIGINT.nullable(false), this, "");
 
     /**
-     * The column <code>public.VIDEO.WIDTH</code>.
-     */
-    public final TableField<VideoRecord, Integer> WIDTH = createField(DSL.name("WIDTH"), SQLDataType.INTEGER, this, "");
-
-    /**
-     * The column <code>public.VIDEO.HEIGHT</code>.
-     */
-    public final TableField<VideoRecord, Integer> HEIGHT = createField(DSL.name("HEIGHT"), SQLDataType.INTEGER, this, "");
-
-    /**
      * The column <code>public.VIDEO.DURATION_MS</code>.
      */
     public final TableField<VideoRecord, Long> DURATION_MS = createField(DSL.name("DURATION_MS"), SQLDataType.BIGINT, this, "");

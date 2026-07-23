@@ -3,9 +3,10 @@ package com.github.curiousoddman.curious_images.ui.controller.screen;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.domain.common.photo.PhotoRotationService;
+import com.github.curiousoddman.curious_images.model.GridCellData;
 import com.github.curiousoddman.curious_images.model.bundle.SlideshowBundle;
 import com.github.curiousoddman.curious_images.persistence.ThumbnailRepository;
-import com.github.curiousoddman.curious_images.ui.util.ImageContextMenu;
+import com.github.curiousoddman.curious_images.ui.util.GridContextMenu;
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.fxml.FXML;
@@ -58,7 +59,7 @@ public class SlideshowController implements Initializable {
 
     // ── Dependencies ────────────────────────────────────────────────────────
     private final ThumbnailRepository thumbnailRepository;
-    private final ImageContextMenu    imageContextMenu;
+    private final GridContextMenu     gridContextMenu;
     @FXML
     public        StackPane           imagesPane;
 
@@ -86,8 +87,8 @@ public class SlideshowController implements Initializable {
     private Button closeButton;
 
     // ── Slideshow state ─────────────────────────────────────────────────────
-    private List<PhotoRecord> photos;
-    private int               currentIndex;
+    private List<GridCellData> gridCellData;
+    private int                currentIndex;
 
     // ── Zoom / pan state ────────────────────────────────────────────────────
     private static final double ZOOM_MIN  = 0.5;
@@ -144,7 +145,7 @@ public class SlideshowController implements Initializable {
      * Must be called on the FX thread after {@link #initialize} has run.
      */
     public void initSlideshow(SlideshowBundle bundle) {
-        this.photos = bundle.getPhotos();
+        this.gridCellData = bundle.getMediaRecords();
         this.currentIndex = bundle.getStartIndex();
         showPhoto(currentIndex);
         rootPane.requestFocus();
@@ -155,28 +156,28 @@ public class SlideshowController implements Initializable {
     // ────────────────────────────────────────────────────────────────────────
 
     private void showPhoto(int index) {
-        if (photos == null || photos.isEmpty()) {
+        if (gridCellData == null || gridCellData.isEmpty()) {
             return;
         }
         fileNotFoundPathLabel.setVisible(false);
 
         // Clamp
-        index = Math.max(0, Math.min(index, photos.size() - 1));
+        index = Math.max(0, Math.min(index, gridCellData.size() - 1));
         currentIndex = index;
 
-        PhotoRecord photo = photos.get(index);
+        GridCellData cellData = gridCellData.get(index);
 
-        // Reset zoom/pan and rotation for each new photo
+        // Reset zoom/pan and rotation for each new cellData
         resetZoomPan();
 
         // Update UI labels
-        photoNameLabel.setText(photo.getFilename());
-        counterLabel.setText((index + 1) + " / " + photos.size());
+        photoNameLabel.setText(cellData.media().getFilename());
+        counterLabel.setText((index + 1) + " / " + gridCellData.size());
         prevButton.setDisable(index == 0);
-        nextButton.setDisable(index == photos.size() - 1);
+        nextButton.setDisable(index == gridCellData.size() - 1);
 
         // 1. Load and show thumbnail immediately
-        ThumbnailRecord thumbnailRecord = thumbnailRepository.findByPhotoId(photo.getId())
+        ThumbnailRecord thumbnailRecord = thumbnailRepository.findByMediaId(cellData.media().getId())
                                                              .orElse(null);
         Image thumb = loadThumbnailImage(thumbnailRecord);
         thumbnailImageView.setImage(thumb);
@@ -185,7 +186,7 @@ public class SlideshowController implements Initializable {
         fullImageView.setImage(null);
 
         // 2. Try to load full-res original in background
-        String absolutePath = photo.getAbsolutePath();
+        String absolutePath = cellData.media().getAbsolutePath();
         File   sourceFile   = absolutePath != null ? new File(absolutePath) : null;
 
         if (sourceFile != null && sourceFile.isFile()) {
@@ -197,9 +198,9 @@ public class SlideshowController implements Initializable {
                      .addListener((obs, oldVal, newVal) -> {
                          if (newVal.doubleValue() >= 1.0 && !fullImage.isError()) {
                              // Only apply if the user hasn't navigated away
-                             if (photos.get(currentIndex) == photo) {
+                             if (gridCellData.get(currentIndex) == cellData) {
                                  fullImageView.setImage(fullImage);
-                                 rotateIfNeeded(photo.getOrientation());
+                                 rotateIfNeeded(cellData.photo().getOrientation());
                                  crossFadeToFull();
                                  runOnFxThread(() -> rootPane.requestFocus());
                              }
@@ -233,7 +234,7 @@ public class SlideshowController implements Initializable {
     private void navigate(int delta) {
         log.info("Navigate {}", delta);
         int next = currentIndex + delta;
-        if (next >= 0 && next < photos.size()) {
+        if (next >= 0 && next < gridCellData.size()) {
             showPhoto(next);
         }
     }
@@ -426,11 +427,11 @@ public class SlideshowController implements Initializable {
      */
     private void setupContextMenu() {
         rootPane.setOnContextMenuRequested(e -> {
-            if (photos == null || photos.isEmpty()) {
+            if (gridCellData == null || gridCellData.isEmpty()) {
                 return;
             }
-            PhotoRecord photo = photos.get(currentIndex);
-            imageContextMenu.show(photo, rootPane, e);
+            GridCellData cellData = gridCellData.get(currentIndex);
+            gridContextMenu.show(cellData, rootPane, e);
         });
     }
 

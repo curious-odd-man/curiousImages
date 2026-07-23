@@ -24,7 +24,7 @@ import static com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGrou
 import static com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroupMember.DUPLICATE_GROUP_MEMBER;
 
 /**
- * See the note in {@link PhotoHashRepository} — written without sight of existing repository
+ * See the note in {@link MediaHashRepository} — written without sight of existing repository
  * conventions. Requires the DUPLICATE_GROUP / DUPLICATE_GROUP_MEMBER jOOQ classes, generated from
  * migration V004.
  */

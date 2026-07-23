@@ -1,6 +1,6 @@
 package com.github.curiousoddman.curious_images.persistence;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoHashRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaHashRecord;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.jooq.Query;
@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash.PHOTO_HASH;
+import static com.github.curiousoddman.curious_images.dbobj.Tables.MEDIA_HASH;
 
 /**
  * NOTE: written without sight of the project's existing repository classes (PhotoRepository,
@@ -22,7 +22,7 @@ import static com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash.PHO
  */
 @Repository
 @RequiredArgsConstructor
-public class PhotoHashRepository {
+public class MediaHashRepository {
     private final DSLContext dsl;
 
     /**
@@ -30,22 +30,22 @@ public class PhotoHashRepository {
      * run to decide, per photo, whether the cached hash can be reused — a single bulk query
      * rather than one lookup per photo, since this runs against up to 25,000 rows.
      */
-    public Map<Long, PhotoHashRecord> findAllAsMap() {
-        return dsl.selectFrom(PHOTO_HASH)
+    public Map<Long, MediaHashRecord> findAllAsMap() {
+        return dsl.selectFrom(MEDIA_HASH)
                   .fetch()
                   .stream()
-                  .collect(Collectors.toMap(PhotoHashRecord::getPhotoId, r -> r));
+                  .collect(Collectors.toMap(MediaHashRecord::getMediaId, r -> r));
     }
 
     public Query upsertQuery(long photoId, String pixelHash, long hashedFileSize, LocalDateTime now) {
-        return dsl.insertInto(PHOTO_HASH)
-                  .set(PHOTO_HASH.PHOTO_ID, photoId)
-                  .set(PHOTO_HASH.PIXEL_HASH, pixelHash)
-                  .set(PHOTO_HASH.HASHED_FILE_SIZE, hashedFileSize)
-                  .set(PHOTO_HASH.HASHED_AT, now)
+        return dsl.insertInto(MEDIA_HASH)
+                  .set(MEDIA_HASH.MEDIA_ID, photoId)
+                  .set(MEDIA_HASH.CONTENT_HASH, pixelHash)
+                  .set(MEDIA_HASH.HASHED_FILE_SIZE, hashedFileSize)
+                  .set(MEDIA_HASH.HASHED_AT, now)
                   .onDuplicateKeyUpdate()
-                  .set(PHOTO_HASH.PIXEL_HASH, pixelHash)
-                  .set(PHOTO_HASH.HASHED_FILE_SIZE, hashedFileSize)
-                  .set(PHOTO_HASH.HASHED_AT, now);
+                  .set(MEDIA_HASH.CONTENT_HASH, pixelHash)
+                  .set(MEDIA_HASH.HASHED_FILE_SIZE, hashedFileSize)
+                  .set(MEDIA_HASH.HASHED_AT, now);
     }
 }

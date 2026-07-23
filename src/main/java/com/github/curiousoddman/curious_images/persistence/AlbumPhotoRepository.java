@@ -8,10 +8,10 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static com.github.curiousoddman.curious_images.dbobj.Tables.ALBUM_PHOTO;
+import static com.github.curiousoddman.curious_images.dbobj.Tables.ALBUM_MEDIA;
 
 /**
- * Hand-written jOOQ repository for {@code album_photo}.
+ * Hand-written jOOQ repository for {@code ALBUM_MEDIA}.
  * All writes return unexecuted {@link Query} objects for caller-controlled batching.
  */
 @Repository
@@ -25,18 +25,18 @@ public class AlbumPhotoRepository {
      * Queue into a buffer and flush as a batch.
      */
     public Query insertQuery(long albumId, long photoId, int sortOrder, LocalDateTime now) {
-        return dsl.insertInto(ALBUM_PHOTO)
-                  .set(ALBUM_PHOTO.ALBUM_ID, albumId)
-                  .set(ALBUM_PHOTO.PHOTO_ID, photoId)
-                  .set(ALBUM_PHOTO.SORT_ORDER, sortOrder)
-                  .set(ALBUM_PHOTO.ADDED_AT, now);
+        return dsl.insertInto(ALBUM_MEDIA)
+                  .set(ALBUM_MEDIA.ALBUM_ID, albumId)
+                  .set(ALBUM_MEDIA.MEDIA_ID, photoId)
+                  .set(ALBUM_MEDIA.SORT_ORDER, sortOrder)
+                  .set(ALBUM_MEDIA.ADDED_AT, now);
     }
 
     public List<Long> findPhotoIdsByAlbumId(long albumId) {
-        return dsl.select(ALBUM_PHOTO.PHOTO_ID)
-                  .from(ALBUM_PHOTO)
-                  .where(ALBUM_PHOTO.ALBUM_ID.eq(albumId))
-                  .orderBy(ALBUM_PHOTO.SORT_ORDER)
-                  .fetch(ALBUM_PHOTO.PHOTO_ID);
+        return dsl.select(ALBUM_MEDIA.MEDIA_ID)
+                  .from(ALBUM_MEDIA)
+                  .where(ALBUM_MEDIA.ALBUM_ID.eq(albumId))
+                  .orderBy(ALBUM_MEDIA.SORT_ORDER)
+                  .fetch(ALBUM_MEDIA.MEDIA_ID);
     }
 }

@@ -1,7 +1,8 @@
 package com.github.curiousoddman.curious_images.ui.nodes.photogrid;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.model.PhotoCellData;
+import com.github.curiousoddman.curious_images.model.GridCellData;
+import com.github.curiousoddman.curious_images.ui.controller.custom.GridCellController;
 import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridRowController;
 import javafx.beans.value.ObservableValue;
 
@@ -15,7 +16,7 @@ import java.util.List;
 public interface PhotoGridCallbacks {
 
     /**
-     * Shared thumbnail-size slider value — bound once per pooled {@link com.github.curiousoddman.curious_images.ui.controller.custom.PhotoCellController},
+     * Shared thumbnail-size slider value — bound once per pooled {@link GridCellController},
      * never rebound, so live slider drags resize already-rendered cells with no extra work.
      */
     ObservableValue<Number> thumbnailSizeProperty();
@@ -32,7 +33,7 @@ public interface PhotoGridCallbacks {
      * {@code row.applyImage(...)}, and queue on-demand thumbnail generation for any that don't
      * have a real thumbnail yet.
      */
-    void onRowShown(PhotoGridRowController row, List<PhotoCellData> photos);
+    void onRowShown(PhotoGridRowController row, List<GridCellData> photos);
 
     /**
      * The given row controller is no longer showing {@code previousPhotos} — about to show a
@@ -40,5 +41,5 @@ public interface PhotoGridCallbacks {
      * bookkeeping keyed by those photo IDs (e.g. a visible-cell registry used to swap in
      * newly-generated thumbnails without rebuilding anything).
      */
-    void onRowHidden(PhotoGridRowController row, List<PhotoCellData> previousPhotos);
+    void onRowHidden(PhotoGridRowController row, List<GridCellData> previousPhotos);
 }

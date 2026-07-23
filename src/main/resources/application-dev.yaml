@@ -10,5 +10,5 @@ logging:
             ui:
               controller:
                 custom:
-                  PhotoCellController: info
+                  com.github.curiousoddman.curious_images.ui.controller.custom.GridCellController: info
                   RightPanelController: debug

@@ -1,6 +1,6 @@
 package com.github.curiousoddman.curious_images.persistence;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoTagRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaTagRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import static com.github.curiousoddman.curious_images.dbobj.Tables.PHOTO_TAG;
+import static com.github.curiousoddman.curious_images.dbobj.Tables.MEDIA_TAG;
 import static com.github.curiousoddman.curious_images.dbobj.Tables.TAG_EMBEDDING;
 
 @Repository
@@ -53,8 +53,8 @@ public class PhotoTagRepository {
     public List<String> findTagSuggestions(String prefix, int limit) {
         return dsl.selectDistinct(TAG_EMBEDDING.TAG)
                   .from(TAG_EMBEDDING)
-                  .join(PHOTO_TAG)
-                  .on(PHOTO_TAG.TAG_ID.eq(TAG_EMBEDDING.ID))
+                  .join(MEDIA_TAG)
+                  .on(MEDIA_TAG.TAG_ID.eq(TAG_EMBEDDING.ID))
                   .where(TAG_EMBEDDING.TAG.likeIgnoreCase(prefix + "%"))
                   .orderBy(TAG_EMBEDDING.TAG)
                   .limit(limit)
@@ -72,13 +72,13 @@ public class PhotoTagRepository {
             return Set.of();
         }
         return new HashSet<>(
-                dsl.select(PHOTO_TAG.PHOTO_ID)
-                   .from(PHOTO_TAG)
-                   .where(PHOTO_TAG.TAG_ID.in(tagIds))
-                   .groupBy(PHOTO_TAG.PHOTO_ID)
-                   .having(DSL.countDistinct(PHOTO_TAG.TAG_ID)
+                dsl.select(MEDIA_TAG.MEDIA_ID)
+                   .from(MEDIA_TAG)
+                   .where(MEDIA_TAG.TAG_ID.in(tagIds))
+                   .groupBy(MEDIA_TAG.MEDIA_ID)
+                   .having(DSL.countDistinct(MEDIA_TAG.TAG_ID)
                               .eq(tagIds.size()))
-                   .fetch(PHOTO_TAG.PHOTO_ID));
+                   .fetch(MEDIA_TAG.MEDIA_ID));
     }
 
     /**
@@ -98,26 +98,26 @@ public class PhotoTagRepository {
      * idempotent - an existing (tag_id, photo_id) pair is left as AI-sourced.
      */
     public Query upsert(Long photoId, TagEmbeddingRecord tag, double score) {
-        return dsl.insertInto(PHOTO_TAG, PHOTO_TAG.TAG_ID, PHOTO_TAG.PHOTO_ID, PHOTO_TAG.TAG_SOURCE, PHOTO_TAG.CONFIDENCE)
+        return dsl.insertInto(MEDIA_TAG, MEDIA_TAG.TAG_ID, MEDIA_TAG.MEDIA_ID, MEDIA_TAG.TAG_SOURCE, MEDIA_TAG.CONFIDENCE)
                   .values(tag.getId(), photoId, "AI", score)
-                  .onConflict(PHOTO_TAG.TAG_ID, PHOTO_TAG.PHOTO_ID)
+                  .onConflict(MEDIA_TAG.TAG_ID, MEDIA_TAG.MEDIA_ID)
                   .doUpdate()
-                  .set(PHOTO_TAG.TAG_SOURCE, "AI");
+                  .set(MEDIA_TAG.TAG_SOURCE, "AI");
     }
 
-    public Map<Long, Map<PhotoTagRecord, TagEmbeddingRecord>> findForPhotos(Collection<Long> photoIds) {
-        Result<Record2<PhotoTagRecord, TagEmbeddingRecord>> result = dsl.select(PHOTO_TAG, TAG_EMBEDDING)
-                                                                        .from(PHOTO_TAG)
+    public Map<Long, Map<MediaTagRecord, TagEmbeddingRecord>> findForPhotos(Collection<Long> photoIds) {
+        Result<Record2<MediaTagRecord, TagEmbeddingRecord>> result = dsl.select(MEDIA_TAG, TAG_EMBEDDING)
+                                                                        .from(MEDIA_TAG)
                                                                         .join(TAG_EMBEDDING)
-                                                                        .on(PHOTO_TAG.TAG_ID.eq(TAG_EMBEDDING.ID))
-                                                                        .where(PHOTO_TAG.PHOTO_ID.in(photoIds))
+                                                                        .on(MEDIA_TAG.TAG_ID.eq(TAG_EMBEDDING.ID))
+                                                                        .where(MEDIA_TAG.MEDIA_ID.in(photoIds))
                                                                         .fetch();
-        Map<Long, Map<PhotoTagRecord, TagEmbeddingRecord>> map = new HashMap<>();
-        for (Record2<PhotoTagRecord, TagEmbeddingRecord> row : result) {
-            PhotoTagRecord     photoTagRecord     = row.value1();
+        Map<Long, Map<MediaTagRecord, TagEmbeddingRecord>> map = new HashMap<>();
+        for (Record2<MediaTagRecord, TagEmbeddingRecord> row : result) {
+            MediaTagRecord     MediaTagRecord     = row.value1();
             TagEmbeddingRecord tagEmbeddingRecord = row.value2();
-            map.computeIfAbsent(photoTagRecord.getPhotoId(), _ -> new HashMap<>())
-               .put(photoTagRecord, tagEmbeddingRecord);
+            map.computeIfAbsent(MediaTagRecord.getMediaId(), _ -> new HashMap<>())
+               .put(MediaTagRecord, tagEmbeddingRecord);
         }
 
         return map;

@@ -29,21 +29,21 @@ public class ThumbnailRepository {
     public Query upsertQuery(long photoId, String cachePath, int width, int height, LocalDateTime now) {
         return dsl.mergeInto(THUMBNAIL)
                   .using(dsl.selectOne())
-                  .on(THUMBNAIL.PHOTO_ID.eq(photoId))
+                  .on(THUMBNAIL.MEDIA_ID.eq(photoId))
                   .whenMatchedThenUpdate()
                   .set(THUMBNAIL.CACHE_PATH, cachePath)
                   .set(THUMBNAIL.WIDTH, width)
                   .set(THUMBNAIL.HEIGHT, height)
                   .set(THUMBNAIL.GENERATED_AT, now)
-                  .whenNotMatchedThenInsert(THUMBNAIL.PHOTO_ID, THUMBNAIL.CACHE_PATH, THUMBNAIL.WIDTH,
+                  .whenNotMatchedThenInsert(THUMBNAIL.MEDIA_ID, THUMBNAIL.CACHE_PATH, THUMBNAIL.WIDTH,
                           THUMBNAIL.HEIGHT, THUMBNAIL.GENERATED_AT)
                   .values(photoId, cachePath, width, height, now);
     }
 
-    public Optional<ThumbnailRecord> findByPhotoId(long photoId) {
+    public Optional<ThumbnailRecord> findByMediaId(long photoId) {
         return Optional.ofNullable(
                 dsl.selectFrom(THUMBNAIL)
-                   .where(THUMBNAIL.PHOTO_ID.eq(photoId))
+                   .where(THUMBNAIL.MEDIA_ID.eq(photoId))
                    .fetchOne());
     }
 
@@ -56,9 +56,9 @@ public class ThumbnailRepository {
             return Map.of();
         }
         return dsl.selectFrom(THUMBNAIL)
-                  .where(THUMBNAIL.PHOTO_ID.in(photoIds))
+                  .where(THUMBNAIL.MEDIA_ID.in(photoIds))
                   .fetch()
                   .stream()
-                  .collect(Collectors.toMap(ThumbnailRecord::getPhotoId, r -> r));
+                  .collect(Collectors.toMap(ThumbnailRecord::getMediaId, r -> r));
     }
 }

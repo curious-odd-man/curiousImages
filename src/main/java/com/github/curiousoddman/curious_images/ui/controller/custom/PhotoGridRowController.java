@@ -2,8 +2,8 @@ package com.github.curiousoddman.curious_images.ui.controller.custom;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
-import com.github.curiousoddman.curious_images.model.PhotoCellData;
-import com.github.curiousoddman.curious_images.model.bundle.PhotoCellResources;
+import com.github.curiousoddman.curious_images.model.GridCellData;
+import com.github.curiousoddman.curious_images.model.bundle.GridCellResources;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
 import com.github.curiousoddman.curious_images.ui.nodes.photogrid.PhotoRowCell;
@@ -26,14 +26,14 @@ import java.util.function.Consumer;
  * Controller for one visible row of the virtualized photo grid ({@code photo_grid_row.fxml}) — the
  * graphic of one {@link PhotoRowCell} ({@code ListView<PhotoGridRow>} cell).
  * <p>
- * Holds a pool of {@link PhotoCellController} image slots, grown lazily as the column count
+ * Holds a pool of {@link GridCellController} image slots, grown lazily as the column count
  * increases and never shrunk — extra slots beyond the current row's photo count are just hidden
- * ({@link PhotoCellController#showEmpty()}), so growing the column count back up after a shrink
+ * ({@link GridCellController#showEmpty()}), so growing the column count back up after a shrink
  * doesn't need to reload any FXML.
  * <p>
  * Because {@code ListView} only instantiates enough {@link PhotoRowCell}s to cover the visible
  * viewport plus a small buffer (and recycles them as the user scrolls), the total number of live
- * {@link PhotoCellController} instances stays bounded regardless of how many thousands of photos
+ * {@link GridCellController} instances stays bounded regardless of how many thousands of photos
  * are in the selection.
  * <p>
  * <b>Scope:</b> {@code prototype}, not the app's usual singleton {@code @Component} — a fresh
@@ -49,11 +49,11 @@ public class PhotoGridRowController implements Initializable {
     @FXML
     private HBox rowBox;
 
-    private final List<PhotoCellController> pool = new ArrayList<>();
+    private final List<GridCellController> pool = new ArrayList<>();
 
     private ObservableValue<Number> thumbnailSize;
-    private Consumer<PhotoRecord>   onPhotoClicked;
-    private PhotoCellResources photoCellResources;
+    private Consumer<PhotoRecord> onPhotoClicked;
+    private GridCellResources     gridCellResources;
 
     @Getter
     private long showToken;
@@ -61,8 +61,8 @@ public class PhotoGridRowController implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // Cells are configured entirely via bindOnce()/showRow() below.
-        if (resources instanceof PhotoCellResources cellResources) {
-            photoCellResources = cellResources;
+        if (resources instanceof GridCellResources cellResources) {
+            gridCellResources = cellResources;
         }
     }
 
@@ -72,18 +72,18 @@ public class PhotoGridRowController implements Initializable {
         this.onPhotoClicked = onPhotoClicked;
     }
 
-    public List<PhotoCellController> getCellControllers() {
+    public List<GridCellController> getCellControllers() {
         return List.copyOf(pool);
     }
 
-    public void showRow(List<PhotoCellData> photos) {
+    public void showRow(List<GridCellData> photos) {
         showToken++;
         ensurePoolSize(photos.size());
 
         for (int i = 0; i < pool.size(); i++) {
-            PhotoCellController cell = pool.get(i);
+            GridCellController cell = pool.get(i);
             if (i < photos.size()) {
-                PhotoCellData photo = photos.get(i);
+                GridCellData photo = photos.get(i);
                 cell.showPlaceholder(photo);
             } else {
                 cell.showEmpty();
@@ -98,9 +98,9 @@ public class PhotoGridRowController implements Initializable {
      * captured value before calling this, to avoid the (harmless but wasted) lookup-vs-slot
      * mismatch entirely.
      */
-    public void applyImage(PhotoCellData photo) {
-        for (PhotoCellController cell : pool) {
-            if (cell.getPhotoCellData().photo() == photo.photo()) {
+    public void applyImage(GridCellData photo) {
+        for (GridCellController cell : pool) {
+            if (cell.getGridCellData().photo() == photo.photo()) {
                 cell.showImage(photo);
                 return;
             }
@@ -109,8 +109,8 @@ public class PhotoGridRowController implements Initializable {
 
     private void ensurePoolSize(int minSize) {
         while (pool.size() < minSize) {
-            LoadedFxml<PhotoCellController> loaded     = fxmlLoader.load(FxmlView.PHOTO_CELL, photoCellResources);
-            PhotoCellController             controller = loaded.controller();
+            LoadedFxml<GridCellController> loaded     = fxmlLoader.load(FxmlView.PHOTO_CELL, gridCellResources);
+            GridCellController             controller = loaded.controller();
             controller.bindThumbnailSize(thumbnailSize);
             controller.setOnPhotoClicked(onPhotoClicked);
             pool.add(controller);

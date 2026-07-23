@@ -2,10 +2,10 @@ package com.github.curiousoddman.curious_images.ui.controller.services;
 
 import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.model.UiElement;
-import com.github.curiousoddman.curious_images.model.bundle.PhotoCellResources;
+import com.github.curiousoddman.curious_images.model.bundle.GridCellResources;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
-import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridController;
+import com.github.curiousoddman.curious_images.ui.controller.custom.GridController;
 import com.github.curiousoddman.curious_images.ui.controller.screen.DuplicatesController;
 import com.github.curiousoddman.curious_images.ui.controller.screen.FolderDuplicatesController;
 import com.github.curiousoddman.curious_images.ui.controller.screen.PersonDetailController;
@@ -29,12 +29,12 @@ public class LibraryViewManager {
 
     private final List<UiElement<?>> uiElements = new ArrayList<>();
 
-    private UiElement<PhotoGridController>        photoGrid;
-    private UiElement<DuplicatesController>       duplicates;
+    private UiElement<GridController>       photoGrid;
+    private UiElement<DuplicatesController> duplicates;
     private UiElement<FolderDuplicatesController> folderDuplicates;
     private UiElement<PersonDetailController>     personDetails;
 
-    public void initialize(UiElement<PhotoGridController> photoGridView,
+    public void initialize(UiElement<GridController> photoGridView,
                            UiElement<DuplicatesController> duplicatesContainer,
                            UiElement<FolderDuplicatesController> folderDuplicatesContainer,
                            UiElement<PersonDetailController> personDetailContainer) {
@@ -49,10 +49,10 @@ public class LibraryViewManager {
         uiElements.add(folderDuplicatesContainer);
     }
 
-    public PersonDetailController showPersonDetail(long personId, UiElement<PersonDetailController> personDetailsElement, PhotoCellResources photoCellResources) {
+    public PersonDetailController showPersonDetail(long personId, UiElement<PersonDetailController> personDetailsElement, GridCellResources gridCellResources) {
         PersonDetailController controller = personDetailsElement.controller();
         if (personDetailsElement.controller() == null) {
-            controller = fxmlLoader.loadFxmlAndAttachToParent(personDetails.pane(), FxmlView.PERSON_DETAIL, photoCellResources)
+            controller = fxmlLoader.loadFxmlAndAttachToParent(personDetails.pane(), FxmlView.PERSON_DETAIL, gridCellResources)
                                    .controller();
 
             if (uiElements.get(1)

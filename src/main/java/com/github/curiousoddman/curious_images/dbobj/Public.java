@@ -18,7 +18,9 @@ import com.github.curiousoddman.curious_images.dbobj.tables.Folder;
 import com.github.curiousoddman.curious_images.dbobj.tables.ImportRoot;
 import com.github.curiousoddman.curious_images.dbobj.tables.Media;
 import com.github.curiousoddman.curious_images.dbobj.tables.MediaHash;
+import com.github.curiousoddman.curious_images.dbobj.tables.MediaPhoto;
 import com.github.curiousoddman.curious_images.dbobj.tables.MediaTag;
+import com.github.curiousoddman.curious_images.dbobj.tables.MediaVideo;
 import com.github.curiousoddman.curious_images.dbobj.tables.PendingAction;
 import com.github.curiousoddman.curious_images.dbobj.tables.Person;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
@@ -130,9 +132,19 @@ public class Public extends SchemaImpl {
     public final MediaHash MEDIA_HASH = MediaHash.MEDIA_HASH;
 
     /**
+     * The table <code>public.MEDIA_PHOTO</code>.
+     */
+    public final MediaPhoto MEDIA_PHOTO = MediaPhoto.MEDIA_PHOTO;
+
+    /**
      * The table <code>public.MEDIA_TAG</code>.
      */
     public final MediaTag MEDIA_TAG = MediaTag.MEDIA_TAG;
+
+    /**
+     * The table <code>public.MEDIA_VIDEO</code>.
+     */
+    public final MediaVideo MEDIA_VIDEO = MediaVideo.MEDIA_VIDEO;
 
     /**
      * The table <code>public.PENDING_ACTION</code>.
@@ -204,7 +216,9 @@ public class Public extends SchemaImpl {
             ImportRoot.IMPORT_ROOT,
             Media.MEDIA,
             MediaHash.MEDIA_HASH,
+            MediaPhoto.MEDIA_PHOTO,
             MediaTag.MEDIA_TAG,
+            MediaVideo.MEDIA_VIDEO,
             PendingAction.PENDING_ACTION,
             Person.PERSON,
             Photo.PHOTO,

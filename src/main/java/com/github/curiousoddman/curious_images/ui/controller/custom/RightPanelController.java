@@ -1,11 +1,11 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaTagRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoTagRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
-import com.github.curiousoddman.curious_images.model.ImageDetails;
+import com.github.curiousoddman.curious_images.model.GridCellData;
 import com.github.curiousoddman.curious_images.model.PersonDetails;
-import com.github.curiousoddman.curious_images.model.PhotoCellData;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
@@ -142,29 +142,32 @@ public class RightPanelController implements Initializable {
         }
     }
 
-    public void showDetails(ImageDetails imageDetails) {
-        log.debug("Show details requested {}", imageDetails.photoCellData().photoId());
-        PhotoCellData photoCellData = imageDetails.photoCellData();
+    public void showDetails(GridCellData gridCellData) {
+        log.debug("Show details requested {}", gridCellData.mediaId());
         rootVbox.setPrefWidth(0);
         fxManage(rootVbox);
 
-        PhotoRecord photo = photoCellData.photo();
-        fileNameLabel.setText(photo.getFilename());
-        extensionLabel.setText(photo.getExtension());
-        pathLabel.setText(photo.getAbsolutePath());
-        fileSizeLabel.setText(size(photo.getFileSize()));
-        importedAtLabel.setText(photo.getImportedAt()
+        MediaRecord media = gridCellData.media();
+        fileNameLabel.setText(media.getFilename());
+        extensionLabel.setText(media.getExtension());
+        pathLabel.setText(media.getAbsolutePath());
+        fileSizeLabel.setText(size(media.getFileSize()));
+        importedAtLabel.setText(media.getImportedAt()
                                      .toString());
-        resolutionLabel.setText(photo.getImageWidth() + " × " + photo.getImageHeight() + " px");
-        orientationLabel.setText("Rotate " + photo.getOrientation() + "°");
-        captureDateLabel.setText(photo.getCaptureDate()
+        resolutionLabel.setText(media.getWidth() + " × " + media.getHeight() + " px");
+        if (gridCellData.isPhoto()) {
+            PhotoRecord photo = gridCellData.photo();
+            orientationLabel.setText("Rotate " + photo.getOrientation() + "°");
+            lensModelLabel.setText(photo.getLensModel());
+
+        }
+        captureDateLabel.setText(media.getCaptureDate()
                                       .toString());
-        captureDateSourceLabel.setText(photo.getCaptureDateSource());
-        cameraMakeLabel.setText(photo.getCameraMake());
-        cameraModelLabel.setText(photo.getCameraModel());
-        lensModelLabel.setText(photo.getLensModel());
-        Double  gpsLon = photo.getGpsLon();
-        Double  gpsLat = photo.getGpsLat();
+        captureDateSourceLabel.setText(media.getCaptureDateSource());
+        cameraMakeLabel.setText(media.getCameraMake());
+        cameraModelLabel.setText(media.getCameraModel());
+        Double  gpsLon = media.getGpsLon();
+        Double  gpsLat = media.getGpsLat();
         boolean hasGps = gpsLat != null && gpsLon != null;
         fxManage(hasGps, gpsIcon, gpsTitleLabel, gpsBox, gpsLabel, openMapButton);
         gpsLabel.setText(gps(gpsLat, gpsLon));
@@ -172,19 +175,19 @@ public class RightPanelController implements Initializable {
             lat = gpsLat.toString();
             lon = gpsLon.toString();
         }
-        Map<PhotoTagRecord, TagEmbeddingRecord> tags = photoCellData.tags();
+        Map<MediaTagRecord, TagEmbeddingRecord> tags = gridCellData.tags();
         fxManage(!tags.isEmpty(), tagsSeparator, tagsSection);
         ObservableList<Node> tagsChildren = tagsPane.getChildren();
         tagsChildren.clear();
 
-        for (Map.Entry<PhotoTagRecord, TagEmbeddingRecord> tag : tags.entrySet()) {
+        for (Map.Entry<MediaTagRecord, TagEmbeddingRecord> tag : tags.entrySet()) {
             Node chip = createChip(tag.getValue()
                                       .getTag(), "%.2f".formatted(tag.getKey()
                                                                      .getConfidence()));
             tagsChildren.add(chip);
         }
 
-        List<PersonDetails> persons = photoCellData.persons();
+        List<PersonDetails> persons = gridCellData.persons();
         fxManage(!persons.isEmpty(), personsSeparator, personsSection);
 
         ObservableList<Node> personsChildren = personsPane.getChildren();
@@ -200,13 +203,16 @@ public class RightPanelController implements Initializable {
     private static Node createChip(String name, String confidence) {
         log.debug("Create chip {} : {}", name, confidence);
         Label nameLabel = new Label(name);
-        nameLabel.getStyleClass().add("tag-name");
+        nameLabel.getStyleClass()
+                 .add("tag-name");
 
         Label score = new Label(confidence);
-        score.getStyleClass().add("tag-score");
+        score.getStyleClass()
+             .add("tag-score");
 
         HBox chip = new HBox(4, nameLabel, score);
-        chip.getStyleClass().add("tag-chip");
+        chip.getStyleClass()
+            .add("tag-chip");
         return chip;
     }
 

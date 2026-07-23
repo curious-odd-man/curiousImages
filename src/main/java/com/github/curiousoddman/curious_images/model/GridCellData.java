@@ -1,7 +1,9 @@
 package com.github.curiousoddman.curious_images.model;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoTagRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaPhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaTagRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaVideoRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
 import com.github.curiousoddman.curious_images.ui.controller.custom.DetailRow;
 import javafx.scene.image.Image;
@@ -20,61 +22,74 @@ import static org.kordamp.ikonli.bootstrapicons.BootstrapIcons.FOLDER2_OPEN;
 import static org.kordamp.ikonli.bootstrapicons.BootstrapIcons.SERVER;
 import static org.kordamp.ikonli.bootstrapicons.BootstrapIcons.TAG;
 
-public record PhotoCellData(PhotoRecord photo, Image image, Map<PhotoTagRecord, TagEmbeddingRecord> tags,
-                            List<PersonDetails> persons, boolean hasDuplicates) {
+public record GridCellData(MediaPhotoRecord photo, MediaVideoRecord video, Image image,
+                           Map<MediaTagRecord, TagEmbeddingRecord> tags, List<PersonDetails> persons,
+                           boolean hasDuplicates) {
 
-    public Long photoId() {
+    public Long mediaId() {
         return photo.getId();
     }
 
-    public String tooltipText() {
-        Map<String, DetailRow> photoDetailsText = getPhotoDetails(photo);
-        StringBuilder          sb               = new StringBuilder();
+    public boolean isPhoto() {
+        return photo != null;
+    }
 
-        photoDetailsText.values()
-                        .forEach(dr ->
-                                sb.append(dr.getLabel())
-                                  .append(": ")
-                                  .append(dr.getValue())
-                                  .append('\n')
-                        );
+    public boolean isVideo() {
+        return !isPhoto();
+    }
+
+    public String tooltipText() {
+        Map<String, DetailRow> mediaDetails = getMediaDetails(photo, video);
+        StringBuilder          sb           = new StringBuilder();
+
+        mediaDetails.values()
+                    .forEach(dr ->
+                            sb.append(dr.getLabel())
+                              .append(": ")
+                              .append(dr.getValue())
+                              .append('\n')
+                    );
         return sb.toString();
     }
 
-    public static Map<String, DetailRow> getPhotoDetails(PhotoRecord photo) {
+    public static Map<String, DetailRow> getMediaDetails(MediaPhotoRecord photo, MediaVideoRecord video) {
+        MediaRecord media = photo == null
+                ? video.into(MediaRecord.class)
+                : photo.into(MediaRecord.class);
+
         Map<String, DetailRow> details = new LinkedHashMap<>();
 
         details.put("filename",
-                new DetailRow(FILE_EARMARK_FONT_FILL, "Filename", photo.getFilename()));
+                new DetailRow(FILE_EARMARK_FONT_FILL, "Filename", media.getFilename()));
 
         details.put("path",
-                new DetailRow(FOLDER2_OPEN, "Path", photo.getAbsolutePath()));
+                new DetailRow(FOLDER2_OPEN, "Path", media.getAbsolutePath()));
 
         details.put("extension",
                 new DetailRow(
                         TAG,
                         "Extension",
-                        photo.getExtension() == null ? "—" : photo.getExtension()));
+                        media.getExtension() == null ? "—" : media.getExtension()));
 
         details.put("size",
                 new DetailRow(
                         SERVER,
                         "Size",
-                        size(photo.getFileSize())));
+                        size(media.getFileSize())));
 
-        if (photo.getImageWidth() != null && photo.getImageHeight() != null) {
+        if (media.getWidth() != null && media.getHeight() != null) {
             details.put("dimensions",
                     new DetailRow(
                             ASPECT_RATIO,
                             "Dimensions",
-                            photo.getImageWidth() + " × " + photo.getImageHeight()));
+                            media.getWidth() + " × " + media.getHeight()));
         }
 
-        if (photo.getCaptureDate() != null) {
-            String value = photo.getCaptureDate()
+        if (media.getCaptureDate() != null) {
+            String value = media.getCaptureDate()
                                 .toString();
-            if (photo.getCaptureDateSource() != null) {
-                value += " (" + photo.getCaptureDateSource() + ")";
+            if (media.getCaptureDateSource() != null) {
+                value += " (" + media.getCaptureDateSource() + ")";
             }
 
             details.put("captured",
@@ -84,21 +99,21 @@ public record PhotoCellData(PhotoRecord photo, Image image, Map<PhotoTagRecord, 
                             value));
         }
 
-        if (photo.getImportedAt() != null) {
+        if (media.getImportedAt() != null) {
             details.put("imported",
                     new DetailRow(
                             DOWNLOAD,
                             "Imported",
-                            photo.getImportedAt()
+                            media.getImportedAt()
                                  .toString()));
         }
 
-        if (photo.getLastSeenAt() != null) {
+        if (media.getLastSeenAt() != null) {
             details.put("lastSeen",
                     new DetailRow(
                             CLOCK_HISTORY,
                             "Last seen",
-                            photo.getLastSeenAt()
+                            media.getLastSeenAt()
                                  .toString()));
         }
 

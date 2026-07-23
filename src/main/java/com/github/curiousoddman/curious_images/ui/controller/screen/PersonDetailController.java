@@ -8,13 +8,12 @@ import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.event.model.TreeViewUpdateEvent;
 import com.github.curiousoddman.curious_images.event.payload.TreeViewUpdatePayload;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
-import com.github.curiousoddman.curious_images.model.bundle.PhotoCellResources;
 import com.github.curiousoddman.curious_images.persistence.FaceRepository;
 import com.github.curiousoddman.curious_images.persistence.PersonRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.ui.FxmlLoader;
 import com.github.curiousoddman.curious_images.ui.FxmlView;
-import com.github.curiousoddman.curious_images.ui.controller.custom.PhotoGridController;
+import com.github.curiousoddman.curious_images.ui.controller.custom.GridController;
 import com.github.curiousoddman.curious_images.ui.controller.services.PhotoGridManager;
 import com.github.curiousoddman.curious_images.ui.controller.services.ThumbnailReadyEventListener;
 import com.github.curiousoddman.curious_images.ui.styles.CssClasses;
@@ -102,8 +101,8 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
     // ── State ─────────────────────────────────────────────────────────────────
 
     private Image               noImageAvailable;
-    private PersonRecord        currentPerson;
-    private PhotoGridController photoGridController;
+    private PersonRecord   currentPerson;
+    private GridController gridController;
 
     /**
      * All face records for the current person, in stable order.
@@ -139,8 +138,8 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
                     .selectedItemProperty()
                     .addListener((obs, oldItem, newItem) -> onAgeAlbumSelected(newItem));
 
-        LoadedFxml<PhotoGridController> loaded = fxmlLoader.load(FxmlView.PHOTO_GRID, resources);
-        photoGridController = loaded.controller();
+        LoadedFxml<GridController> loaded = fxmlLoader.load(FxmlView.PHOTO_GRID, resources);
+        gridController = loaded.controller();
         gridBorderPane.setCenter(loaded.parent());
     }
 
@@ -151,7 +150,7 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
      * (kicks off background work internally).
      */
     public void loadPerson(long personId) {
-        long myGeneration = photoGridController.initiateChange();
+        long myGeneration = gridController.initiateChange();
         runOnDaemonThread("LoadPerson", () -> {
             Optional<PersonRecord> opt = personRepository.findById(personId);
             if (opt.isEmpty()) {
@@ -180,7 +179,7 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
             Map<Integer, List<PhotoRecord>> byYear = groupByYear(photos);
 
             runOnFxThread(() -> {
-                if (myGeneration != photoGridController.currentChange()) {
+                if (myGeneration != gridController.currentChange()) {
                     return; // a newer loadPerson() call has since superseded this one
                 }
                 currentPerson = person;
@@ -579,7 +578,7 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
 
         // FIXME: This is strange workaround. there is 1 instance of manager and 2 instances of controllers.
         // One manager cannot manage 2 controllers simultaneously. this must be unentangled.
-        photoGridController.populatePhotoGrid(photoGridManager.createData(toShow));
+        gridController.populatePhotoGrid(photoGridManager.createData(toShow));
     }
 
     private void applyCoverFace(long faceId) {
@@ -622,8 +621,8 @@ public class PersonDetailController implements Initializable, ThumbnailReadyEven
 
     @Override
     public void onThumbnailReady(ThumbnailsReadyEvent event) {
-        if (photoGridController != null) {
-            photoGridController.onThumbnailReady(event);
+        if (gridController != null) {
+            gridController.onThumbnailReady(event);
         }
     }
 }

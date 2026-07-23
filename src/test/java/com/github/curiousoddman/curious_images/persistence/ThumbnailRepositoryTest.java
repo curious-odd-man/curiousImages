@@ -27,7 +27,7 @@ class ThumbnailRepositoryTest extends AbstractRepositoryH2Test {
         repository.upsertQuery(photoId, "0/" + photoId + ".jpg", 512, 384, now)
                   .execute();
 
-        var found = repository.findByPhotoId(photoId);
+        var found = repository.findByMediaId(photoId);
         assertTrue(found.isPresent());
         assertEquals(512, found.get()
                                .getWidth());
@@ -46,7 +46,7 @@ class ThumbnailRepositoryTest extends AbstractRepositoryH2Test {
         repository.upsertQuery(photoId, "0/" + photoId + ".jpg", 256, 192, regeneratedAt)
                   .execute();
 
-        var found = repository.findByPhotoId(photoId);
+        var found = repository.findByMediaId(photoId);
         assertTrue(found.isPresent());
         assertEquals(256, found.get()
                                .getWidth());
@@ -57,11 +57,11 @@ class ThumbnailRepositoryTest extends AbstractRepositoryH2Test {
     }
 
     @Test
-    void findByPhotoIdReturnsEmptyWhenNoThumbnailGenerated() {
+    void findByMediaIdReturnsEmptyWhenNoThumbnailGenerated() {
         ThumbnailRepository repository = new ThumbnailRepository(dsl);
         long                photoId    = aPhotoId();
 
-        assertTrue(repository.findByPhotoId(photoId)
+        assertTrue(repository.findByMediaId(photoId)
                              .isEmpty());
     }
 }

@@ -1,10 +1,10 @@
 package com.github.curiousoddman.curious_images.domain.dedupe;
 
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoHashRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaHashRecord;
 import com.github.curiousoddman.curious_images.domain.dedupe.hasher.PixelHasher;
 import com.github.curiousoddman.curious_images.persistence.DuplicateGroupRepository;
 import com.github.curiousoddman.curious_images.persistence.DuplicateJobRepository;
-import com.github.curiousoddman.curious_images.persistence.PhotoHashRepository;
+import com.github.curiousoddman.curious_images.persistence.MediaHashRepository;
 import com.github.curiousoddman.curious_images.persistence.PhotoRepository;
 import com.github.curiousoddman.curious_images.util.QueryBuffer;
 import com.github.curiousoddman.curious_images.util.TimeProvider;
@@ -51,7 +51,7 @@ public class DuplicateDetectionJob extends BackgroundJob {
 
     private final DSLContext               dsl;
     private final PhotoRepository          photoRepository;
-    private final PhotoHashRepository      photoHashRepository;
+    private final MediaHashRepository      photoHashRepository;
     private final DuplicateJobRepository   duplicateJobRepository;
     private final DuplicateGroupRepository duplicateGroupRepository;
     private final PixelHasher              pixelHasher;
@@ -65,14 +65,14 @@ public class DuplicateDetectionJob extends BackgroundJob {
         long jobId = -1;
         try {
             List<PhotoForHashing>      photos         = photoRepository.findAllForHashing();
-            Map<Long, PhotoHashRecord> existingHashes = photoHashRepository.findAllAsMap();
+            Map<Long, MediaHashRecord> existingHashes = photoHashRepository.findAllAsMap();
 
             jobId = duplicateJobRepository.insertRunning(timeProvider.now(), photos.size());
 
             Map<Long, HashEntry>  hashByPhoto  = new HashMap<>(photos.size());
             List<PhotoForHashing> needsHashing = new ArrayList<>();
             for (PhotoForHashing photo : photos) {
-                PhotoHashRecord cached = existingHashes.get(photo.id());
+                MediaHashRecord cached = existingHashes.get(photo.id());
                 if (cached != null && cached.getHashedFileSize() == photo.fileSize()) {
                     hashByPhoto.put(photo.id(), new HashEntry(photo.extension(), cached.getPixelHash()));
                 } else {
@@ -129,7 +129,7 @@ public class DuplicateDetectionJob extends BackgroundJob {
             t.setDaemon(true);
             return t;
         })) {
-            CompletionService<PixelHasher.PhotoHashResult> completionService = new ExecutorCompletionService<>(executor);
+            CompletionService<PixelHasher.MediaHashResult> completionService = new ExecutorCompletionService<>(executor);
 
             for (PhotoForHashing photo : needsHashing) {
                 completionService.submit(() ->
@@ -143,7 +143,7 @@ public class DuplicateDetectionJob extends BackgroundJob {
                         return true;
                     }
 
-                    PixelHasher.PhotoHashResult result;
+                    PixelHasher.MediaHashResult result;
                     try {
                         result = completionService.take()
                                                   .get();

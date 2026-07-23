@@ -1,11 +1,11 @@
 package com.github.curiousoddman.curious_images.ui.controller.custom;
 
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.model.ImageDetails;
+import com.github.curiousoddman.curious_images.model.GridCellData;
 import com.github.curiousoddman.curious_images.model.PersonDetails;
-import com.github.curiousoddman.curious_images.model.PhotoCellData;
-import com.github.curiousoddman.curious_images.model.bundle.PhotoCellResources;
-import com.github.curiousoddman.curious_images.ui.util.ImageContextMenu;
+import com.github.curiousoddman.curious_images.model.bundle.GridCellResources;
+import com.github.curiousoddman.curious_images.ui.util.GridContextMenu;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -46,10 +46,10 @@ import static com.github.curiousoddman.curious_images.util.HumanReadableUtils.si
 @Component
 @Scope("prototype")
 @RequiredArgsConstructor
-public class PhotoCellController implements Initializable {
+public class GridCellController implements Initializable {
     private final Tooltip iconsTooltip = new Tooltip();
 
-    private final ImageContextMenu imageContextMenu;
+    private final GridContextMenu gridContextMenu;
 
     @FXML
     public  BorderPane cellRoot;
@@ -82,9 +82,9 @@ public class PhotoCellController implements Initializable {
     private Consumer<PhotoRecord> onPhotoClicked;
 
     @Getter
-    private PhotoCellData photoCellData;
+    private GridCellData gridCellData;
 
-    private Consumer<ImageDetails> imageDetailsConsumer;
+    private Consumer<GridCellData> imageDetailsConsumer;
 
     private Tooltip cellTooltip;
 
@@ -99,8 +99,8 @@ public class PhotoCellController implements Initializable {
         cellTooltip.setShowDelay(Duration.millis(500));
         imageView.setPreserveRatio(true);
 
-        cellRoot.setOnContextMenuRequested(e -> imageContextMenu.show(photoCellData.photo(), cellRoot, e));
-        if (resources instanceof PhotoCellResources cellResources) {
+        cellRoot.setOnContextMenuRequested(e -> gridContextMenu.show(gridCellData, cellRoot, e));
+        if (resources instanceof GridCellResources cellResources) {
             imageDetailsConsumer = cellResources.getImageDetailsConsumer();
         }
     }
@@ -123,9 +123,9 @@ public class PhotoCellController implements Initializable {
                  .bind(size);
     }
 
-    public void showPlaceholder(PhotoCellData data) {
-        log.debug("Placeholder.... {}", data.photoId());
-        this.photoCellData = data;
+    public void showPlaceholder(GridCellData data) {
+        log.debug("Placeholder.... {}", data.mediaId());
+        this.gridCellData = data;
         fxManage(cellRoot, placeholderRect, placeholderLabel);
         fxUnmanage(imageView, iconsHbox);
         cellTooltip.setText(data.tooltipText());
@@ -133,17 +133,17 @@ public class PhotoCellController implements Initializable {
     }
 
     public void showEmpty() {
-        log.debug("Disappear {}", photoCellData == null ? null : photoCellData.photoId());
-        this.photoCellData = null;
+        log.debug("Disappear {}", gridCellData == null ? null : gridCellData.mediaId());
+        this.gridCellData = null;
         fxUnmanage(cellRoot, iconsHbox);
         imageView.setImage(null);
     }
 
-    public void showImage(PhotoCellData data) {
-        log.debug("Showing all data... {}", photoCellData.photoId());
-        PhotoRecord photo = data.photo();
-        if (photoCellData.photo() != photo) {
-            log.debug("oops, photo changed..");
+    public void showImage(GridCellData data) {
+        log.debug("Showing all data... {}", gridCellData.mediaId());
+        MediaRecord media = data.media();
+        if (gridCellData.media() != media) {
+            log.debug("oops, media changed..");
             return;
         }
 
@@ -160,7 +160,7 @@ public class PhotoCellController implements Initializable {
 
         fxManage(!data.tags()
                       .isEmpty(), tagIcon);
-        boolean hasGps = photo.getGpsAltitude() != null || photo.getGpsLat() != null || photo.getGpsLon() != null;
+        boolean hasGps = media.getGpsAltitude() != null || media.getGpsLat() != null || media.getGpsLon() != null;
         fxManage(hasGps, gpsIcon);
         if (data.persons()
                 .size() > 1) {
@@ -175,7 +175,7 @@ public class PhotoCellController implements Initializable {
         fxManage(data.hasDuplicates(), duplicateIcon);
 
         registerHoverTooltip(iconsTooltip, "Has duplicates", duplicateIcon);
-        registerHoverTooltip(iconsTooltip, photo.getExtension() + ": " + size(photo.getFileSize()), typeImageIcon);
+        registerHoverTooltip(iconsTooltip, media.getExtension() + ": " + size(media.getFileSize()), typeImageIcon);
         registerHoverTooltip(iconsTooltip, data.tags()
                                                .entrySet()
                                                .stream()
@@ -185,7 +185,7 @@ public class PhotoCellController implements Initializable {
                                                .sorted(Comparator.comparing(TagData::score))
                                                .map(e -> e.name() + " (" + rate(e.score()) + ")")
                                                .collect(Collectors.joining("\n")), tagIcon);
-        registerHoverTooltip(iconsTooltip, gps(photo.getGpsLat(), photo.getGpsLon()), gpsIcon);
+        registerHoverTooltip(iconsTooltip, gps(media.getGpsLat(), media.getGpsLon()), gpsIcon);
         registerHoverTooltip(iconsTooltip, data.persons()
                                                .stream()
                                                .map(PersonDetails::personName)
@@ -198,17 +198,13 @@ public class PhotoCellController implements Initializable {
 
     @FXML
     private void onCellClicked(MouseEvent e) {
-        if (e.getClickCount() == 1 && e.getButton() == MouseButton.PRIMARY && photoCellData != null && onPhotoClicked != null) {
-            onPhotoClicked.accept(photoCellData.photo());
+        if (e.getClickCount() == 1 && e.getButton() == MouseButton.PRIMARY && gridCellData != null && onPhotoClicked != null) {
+            onPhotoClicked.accept(gridCellData.photo());
         }
     }
 
     @FXML
     public void onShowInfo(ActionEvent event) {
-        imageDetailsConsumer.accept(
-                new ImageDetails(
-                      photoCellData
-                )
-        );
+        imageDetailsConsumer.accept(gridCellData);
     }
 }

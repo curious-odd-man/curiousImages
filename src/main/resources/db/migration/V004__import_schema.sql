@@ -38,8 +38,10 @@ CREATE TABLE media
     filename             VARCHAR(512),
     extension            VARCHAR(10),
     file_size            BIGINT,
+    width                INT,
+    height               INT,
     capture_date         TIMESTAMP,
-    capture_date_source  VARCHAR(20), -- EXIF_ORIGINAL | EXIF_DIGITIZED | CONTAINER_METADATA | FILESYSTEM
+    capture_date_source  VARCHAR(20),          -- EXIF_ORIGINAL | EXIF_DIGITIZED | CONTAINER_METADATA | FILESYSTEM
     imported_at          TIMESTAMP,
     last_seen_at         TIMESTAMP,
     camera_make          VARCHAR(100),
@@ -47,13 +49,13 @@ CREATE TABLE media
     gps_lat              DOUBLE,
     gps_lon              DOUBLE,
     gps_altitude         DOUBLE,
-    ai_face_detect_done  BOOLEAN  NOT NULL DEFAULT FALSE,
-    ai_face_embed_done   BOOLEAN  NOT NULL DEFAULT FALSE,
-    ai_clip_embed_done   BOOLEAN  NOT NULL DEFAULT FALSE,
-    ai_tag_done          BOOLEAN  NOT NULL DEFAULT FALSE,
-    ai_lucene_index_done BOOLEAN  NOT NULL DEFAULT FALSE,
+    ai_face_detect_done  BOOLEAN     NOT NULL DEFAULT FALSE,
+    ai_face_embed_done   BOOLEAN     NOT NULL DEFAULT FALSE,
+    ai_clip_embed_done   BOOLEAN     NOT NULL DEFAULT FALSE,
+    ai_tag_done          BOOLEAN     NOT NULL DEFAULT FALSE,
+    ai_lucene_index_done BOOLEAN     NOT NULL DEFAULT FALSE,
     ai_last_error        VARCHAR(1024),
-    ai_retry_count       SMALLINT NOT NULL DEFAULT 0,
+    ai_retry_count       SMALLINT    NOT NULL DEFAULT 0,
     ai_updated_at        TIMESTAMP
 );
 
@@ -64,25 +66,31 @@ CREATE INDEX idx_media_type ON media (media_type);
 -- Photo-only columns. id IS media.id (shared primary key / identifying relationship).
 CREATE TABLE photo
 (
-    id           BIGINT PRIMARY KEY REFERENCES media (id) ON DELETE CASCADE,
-    image_width  INT,
-    image_height INT,
-    orientation  INT NOT NULL DEFAULT 0,
-    lens_model   VARCHAR(150),
-    exif_extra   JSON
+    id          BIGINT PRIMARY KEY REFERENCES media (id) ON DELETE CASCADE,
+    orientation INT NOT NULL DEFAULT 0,
+    lens_model  VARCHAR(150),
+    exif_extra  JSON
 );
 
 -- Video-only columns. id IS media.id (shared primary key / identifying relationship).
 CREATE TABLE video
 (
     id          BIGINT PRIMARY KEY REFERENCES media (id) ON DELETE CASCADE,
-    width       INT,
-    height      INT,
     duration_ms BIGINT,
     codec       VARCHAR(50),
     frame_rate  FLOAT,
     rotation    INT NOT NULL DEFAULT 0
 );
+
+CREATE VIEW media_photo AS
+SELECT *
+FROM photo
+         join media using(id);
+
+CREATE VIEW media_video AS
+SELECT *
+FROM video
+         join media using(id);
 
 -- Deliberately no image bytes stored here — only the cache path. See implementation plan §10.
 CREATE TABLE thumbnail

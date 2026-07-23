@@ -129,241 +129,269 @@ public class MediaRecord extends UpdatableRecordImpl<MediaRecord> {
     }
 
     /**
+     * Setter for <code>public.MEDIA.WIDTH</code>.
+     */
+    public void setWidth(Integer value) {
+        set(7, value);
+    }
+
+    /**
+     * Getter for <code>public.MEDIA.WIDTH</code>.
+     */
+    public Integer getWidth() {
+        return (Integer) get(7);
+    }
+
+    /**
+     * Setter for <code>public.MEDIA.HEIGHT</code>.
+     */
+    public void setHeight(Integer value) {
+        set(8, value);
+    }
+
+    /**
+     * Getter for <code>public.MEDIA.HEIGHT</code>.
+     */
+    public Integer getHeight() {
+        return (Integer) get(8);
+    }
+
+    /**
      * Setter for <code>public.MEDIA.CAPTURE_DATE</code>.
      */
     public void setCaptureDate(LocalDateTime value) {
-        set(7, value);
+        set(9, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.CAPTURE_DATE</code>.
      */
     public LocalDateTime getCaptureDate() {
-        return (LocalDateTime) get(7);
+        return (LocalDateTime) get(9);
     }
 
     /**
      * Setter for <code>public.MEDIA.CAPTURE_DATE_SOURCE</code>.
      */
     public void setCaptureDateSource(String value) {
-        set(8, value);
+        set(10, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.CAPTURE_DATE_SOURCE</code>.
      */
     public String getCaptureDateSource() {
-        return (String) get(8);
+        return (String) get(10);
     }
 
     /**
      * Setter for <code>public.MEDIA.IMPORTED_AT</code>.
      */
     public void setImportedAt(LocalDateTime value) {
-        set(9, value);
+        set(11, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.IMPORTED_AT</code>.
      */
     public LocalDateTime getImportedAt() {
-        return (LocalDateTime) get(9);
+        return (LocalDateTime) get(11);
     }
 
     /**
      * Setter for <code>public.MEDIA.LAST_SEEN_AT</code>.
      */
     public void setLastSeenAt(LocalDateTime value) {
-        set(10, value);
+        set(12, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.LAST_SEEN_AT</code>.
      */
     public LocalDateTime getLastSeenAt() {
-        return (LocalDateTime) get(10);
+        return (LocalDateTime) get(12);
     }
 
     /**
      * Setter for <code>public.MEDIA.CAMERA_MAKE</code>.
      */
     public void setCameraMake(String value) {
-        set(11, value);
+        set(13, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.CAMERA_MAKE</code>.
      */
     public String getCameraMake() {
-        return (String) get(11);
+        return (String) get(13);
     }
 
     /**
      * Setter for <code>public.MEDIA.CAMERA_MODEL</code>.
      */
     public void setCameraModel(String value) {
-        set(12, value);
+        set(14, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.CAMERA_MODEL</code>.
      */
     public String getCameraModel() {
-        return (String) get(12);
+        return (String) get(14);
     }
 
     /**
      * Setter for <code>public.MEDIA.GPS_LAT</code>.
      */
     public void setGpsLat(Double value) {
-        set(13, value);
+        set(15, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.GPS_LAT</code>.
      */
     public Double getGpsLat() {
-        return (Double) get(13);
+        return (Double) get(15);
     }
 
     /**
      * Setter for <code>public.MEDIA.GPS_LON</code>.
      */
     public void setGpsLon(Double value) {
-        set(14, value);
+        set(16, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.GPS_LON</code>.
      */
     public Double getGpsLon() {
-        return (Double) get(14);
+        return (Double) get(16);
     }
 
     /**
      * Setter for <code>public.MEDIA.GPS_ALTITUDE</code>.
      */
     public void setGpsAltitude(Double value) {
-        set(15, value);
+        set(17, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.GPS_ALTITUDE</code>.
      */
     public Double getGpsAltitude() {
-        return (Double) get(15);
+        return (Double) get(17);
     }
 
     /**
      * Setter for <code>public.MEDIA.AI_FACE_DETECT_DONE</code>.
      */
     public void setAiFaceDetectDone(Boolean value) {
-        set(16, value);
+        set(18, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.AI_FACE_DETECT_DONE</code>.
      */
     public Boolean getAiFaceDetectDone() {
-        return (Boolean) get(16);
+        return (Boolean) get(18);
     }
 
     /**
      * Setter for <code>public.MEDIA.AI_FACE_EMBED_DONE</code>.
      */
     public void setAiFaceEmbedDone(Boolean value) {
-        set(17, value);
+        set(19, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.AI_FACE_EMBED_DONE</code>.
      */
     public Boolean getAiFaceEmbedDone() {
-        return (Boolean) get(17);
+        return (Boolean) get(19);
     }
 
     /**
      * Setter for <code>public.MEDIA.AI_CLIP_EMBED_DONE</code>.
      */
     public void setAiClipEmbedDone(Boolean value) {
-        set(18, value);
+        set(20, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.AI_CLIP_EMBED_DONE</code>.
      */
     public Boolean getAiClipEmbedDone() {
-        return (Boolean) get(18);
+        return (Boolean) get(20);
     }
 
     /**
      * Setter for <code>public.MEDIA.AI_TAG_DONE</code>.
      */
     public void setAiTagDone(Boolean value) {
-        set(19, value);
+        set(21, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.AI_TAG_DONE</code>.
      */
     public Boolean getAiTagDone() {
-        return (Boolean) get(19);
+        return (Boolean) get(21);
     }
 
     /**
      * Setter for <code>public.MEDIA.AI_LUCENE_INDEX_DONE</code>.
      */
     public void setAiLuceneIndexDone(Boolean value) {
-        set(20, value);
+        set(22, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.AI_LUCENE_INDEX_DONE</code>.
      */
     public Boolean getAiLuceneIndexDone() {
-        return (Boolean) get(20);
+        return (Boolean) get(22);
     }
 
     /**
      * Setter for <code>public.MEDIA.AI_LAST_ERROR</code>.
      */
     public void setAiLastError(String value) {
-        set(21, value);
+        set(23, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.AI_LAST_ERROR</code>.
      */
     public String getAiLastError() {
-        return (String) get(21);
+        return (String) get(23);
     }
 
     /**
      * Setter for <code>public.MEDIA.AI_RETRY_COUNT</code>.
      */
     public void setAiRetryCount(Short value) {
-        set(22, value);
+        set(24, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.AI_RETRY_COUNT</code>.
      */
     public Short getAiRetryCount() {
-        return (Short) get(22);
+        return (Short) get(24);
     }
 
     /**
      * Setter for <code>public.MEDIA.AI_UPDATED_AT</code>.
      */
     public void setAiUpdatedAt(LocalDateTime value) {
-        set(23, value);
+        set(25, value);
     }
 
     /**
      * Getter for <code>public.MEDIA.AI_UPDATED_AT</code>.
      */
     public LocalDateTime getAiUpdatedAt() {
-        return (LocalDateTime) get(23);
+        return (LocalDateTime) get(25);
     }
 
     // -------------------------------------------------------------------------
@@ -389,7 +417,7 @@ public class MediaRecord extends UpdatableRecordImpl<MediaRecord> {
     /**
      * Create a detached, initialised MediaRecord
      */
-    public MediaRecord(Long id, String mediaType, Long folderId, String absolutePath, String filename, String extension, Long fileSize, LocalDateTime captureDate, String captureDateSource, LocalDateTime importedAt, LocalDateTime lastSeenAt, String cameraMake, String cameraModel, Double gpsLat, Double gpsLon, Double gpsAltitude, Boolean aiFaceDetectDone, Boolean aiFaceEmbedDone, Boolean aiClipEmbedDone, Boolean aiTagDone, Boolean aiLuceneIndexDone, String aiLastError, Short aiRetryCount, LocalDateTime aiUpdatedAt) {
+    public MediaRecord(Long id, String mediaType, Long folderId, String absolutePath, String filename, String extension, Long fileSize, Integer width, Integer height, LocalDateTime captureDate, String captureDateSource, LocalDateTime importedAt, LocalDateTime lastSeenAt, String cameraMake, String cameraModel, Double gpsLat, Double gpsLon, Double gpsAltitude, Boolean aiFaceDetectDone, Boolean aiFaceEmbedDone, Boolean aiClipEmbedDone, Boolean aiTagDone, Boolean aiLuceneIndexDone, String aiLastError, Short aiRetryCount, LocalDateTime aiUpdatedAt) {
         super(Media.MEDIA);
 
         setId(id);
@@ -399,6 +427,8 @@ public class MediaRecord extends UpdatableRecordImpl<MediaRecord> {
         setFilename(filename);
         setExtension(extension);
         setFileSize(fileSize);
+        setWidth(width);
+        setHeight(height);
         setCaptureDate(captureDate);
         setCaptureDateSource(captureDateSource);
         setImportedAt(importedAt);

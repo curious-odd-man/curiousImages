@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import static com.github.curiousoddman.curious_images.dbobj.tables.DuplicateJob.DUPLICATE_JOB;
 
 /**
- * See the note in {@link PhotoHashRepository} — written without sight of existing repository
+ * See the note in {@link MediaHashRepository} — written without sight of existing repository
  * conventions. Requires the DUPLICATE_JOB jOOQ classes, generated from migration V004.
  */
 @Repository

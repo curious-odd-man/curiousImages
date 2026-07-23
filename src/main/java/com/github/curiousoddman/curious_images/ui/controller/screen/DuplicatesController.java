@@ -8,7 +8,7 @@ import com.github.curiousoddman.curious_images.event.model.ThumbnailsReadyEvent;
 import com.github.curiousoddman.curious_images.model.DupResolveStrategy;
 import com.github.curiousoddman.curious_images.model.DuplicateGroup;
 import com.github.curiousoddman.curious_images.model.LoadedFxml;
-import com.github.curiousoddman.curious_images.model.PhotoCellData;
+import com.github.curiousoddman.curious_images.model.GridCellData;
 import com.github.curiousoddman.curious_images.model.PhotoFailure;
 import com.github.curiousoddman.curious_images.model.PhotoWithThumbnail;
 import com.github.curiousoddman.curious_images.model.bundle.DuplicateCellDataBundle;
@@ -218,7 +218,7 @@ public class DuplicatesController implements Initializable {
                 .map(PhotoWithThumbnail::photo)
                 .collect(Collectors.toMap(
                         PhotoRecord::getId,
-                        PhotoCellData::getPhotoDetails
+                        GridCellData::getMediaDetails
                 ));
 
         Set<String> allKeys = allValues

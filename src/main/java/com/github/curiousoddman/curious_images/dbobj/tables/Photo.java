@@ -74,16 +74,6 @@ public class Photo extends TableImpl<PhotoRecord> {
     public final TableField<PhotoRecord, Long> ID = createField(DSL.name("ID"), SQLDataType.BIGINT.nullable(false), this, "");
 
     /**
-     * The column <code>public.PHOTO.IMAGE_WIDTH</code>.
-     */
-    public final TableField<PhotoRecord, Integer> IMAGE_WIDTH = createField(DSL.name("IMAGE_WIDTH"), SQLDataType.INTEGER, this, "");
-
-    /**
-     * The column <code>public.PHOTO.IMAGE_HEIGHT</code>.
-     */
-    public final TableField<PhotoRecord, Integer> IMAGE_HEIGHT = createField(DSL.name("IMAGE_HEIGHT"), SQLDataType.INTEGER, this, "");
-
-    /**
      * The column <code>public.PHOTO.ORIENTATION</code>.
      */
     public final TableField<PhotoRecord, Integer> ORIENTATION = createField(DSL.name("ORIENTATION"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");

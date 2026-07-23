@@ -15,7 +15,7 @@ import com.github.curiousoddman.curious_images.domain.common.thumbnail.PersonSer
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerationJob;
 import com.github.curiousoddman.curious_images.domain.common.thumbnail.ThumbnailGenerator;
 import com.github.curiousoddman.curious_images.domain.dedupe.DuplicateDetectionJob;
-import com.github.curiousoddman.curious_images.persistence.PhotoHashRepository;
+import com.github.curiousoddman.curious_images.persistence.MediaHashRepository;
 import com.github.curiousoddman.curious_images.domain.dedupe.hasher.PixelHasher;
 import com.github.curiousoddman.curious_images.domain.imports.AddFilesJob;
 import com.github.curiousoddman.curious_images.domain.imports.ImportJob;
@@ -60,7 +60,7 @@ public class JobFactory {
     private final ImageUtils             imageUtils;
     private final TimeProvider           timeProvider;
 
-    private final PhotoHashRepository      photoHashRepository;
+    private final MediaHashRepository      photoHashRepository;
     private final DuplicateJobRepository   duplicateJobRepository;
     private final DuplicateGroupRepository duplicateGroupRepository;
     private final PixelHasher              pixelHasher;
