@@ -1,24 +1,31 @@
--- Per-photo pixel hash, used by duplicate detection to decide whether a photo needs
--- (re)hashing on a given run. Mirrors THUMBNAIL's 1:1-with-PHOTO shape rather than adding
--- columns to PHOTO directly, so PHOTO stays import-pipeline-only.
+-- Per-media content hash, used by duplicate detection to decide whether an item needs
+-- (re)hashing on a given run. Mirrors THUMBNAIL's 1:1-with-MEDIA shape rather than adding
+-- columns to MEDIA directly, so MEDIA stays import-pipeline-only.
 --
 -- "Skip unchanged on rerun" works by comparing hashed_file_size to the current
--- PHOTO.file_size: if they match, the file hasn't changed since it was last hashed (same
+-- MEDIA.file_size: if they match, the file hasn't changed since it was last hashed (same
 -- cheap signal ImportService already uses to skip unchanged files on rescan), so the
--- existing pixel_hash is reused instead of re-decoding the file.
+-- existing content_hash is reused instead of re-hashing the file.
 --
--- For CR2: pixel_hash is computed from the decoded embedded preview (same source the
--- thumbnail pipeline uses), never from a full RAW render — consistent with "do not perform
--- full RAW rendering" elsewhere in the spec. This means CR2 duplicate detection is really
--- "preview identical", not "full raw decode identical".
-CREATE TABLE photo_hash
+-- hash_type distinguishes how content_hash was computed, since photos and videos are hashed
+-- differently and must never be compared across types:
+--   PIXEL - decoded pixel bytes (photos). For CR2, computed from the decoded embedded
+--           preview (same source the thumbnail pipeline uses), never a full RAW render —
+--           consistent with "do not perform full RAW rendering" elsewhere in the spec, so
+--           CR2 duplicate detection is really "preview identical", not "full raw decode
+--           identical".
+--   FILE  - plain SHA-256 of the raw file bytes (videos). Exact-duplicate only for v1: no
+--           perceptual/frame-based matching, so a re-encoded/trimmed copy of the same video
+--           will not be detected as a duplicate. See video-support-plan.md §6.
+CREATE TABLE media_hash
 (
-    photo_id         BIGINT PRIMARY KEY REFERENCES photo (id) ON DELETE CASCADE,
-    pixel_hash       VARCHAR(64), -- SHA-256 hex of decoded pixel bytes (or CR2 preview)
-    hashed_file_size BIGINT,      -- PHOTO.file_size at hash time; mismatch => stale, rehash
+    media_id         BIGINT PRIMARY KEY REFERENCES media (id) ON DELETE CASCADE,
+    hash_type        VARCHAR(10), -- PIXEL | FILE
+    content_hash     VARCHAR(64), -- SHA-256 hex
+    hashed_file_size BIGINT,      -- MEDIA.file_size at hash time; mismatch => stale, rehash
     hashed_at        TIMESTAMP
 );
-CREATE INDEX idx_photo_hash_pixel_hash ON photo_hash (pixel_hash);
+CREATE INDEX idx_media_hash_content_hash ON media_hash (content_hash);
 
 -- One row per duplicate-detection run. Exists so DUPLICATE_GROUP rows can be scoped to "which
 -- run produced this", and so an interrupted/failed run is visible/diagnosable (mirrors the
@@ -42,17 +49,20 @@ CREATE TABLE duplicate_job
 -- completed run, rather than accumulating stale groups across reruns. An interrupted/failed
 -- run leaves the previous run's groups untouched.
 --
--- (extension, pixel_hash) is unique because "compares only within the same file type" means
+-- (extension, content_hash) is unique because "compares only within the same file type" means
 -- a hash collision across extensions (e.g. matching JPEG and CR2 previews) must never be
--- grouped together.
+-- grouped together. Note: PIXEL-hashed and FILE-hashed rows never collide here in practice
+-- since extensions already differ between photo and video formats, but the dedupe job still
+-- scopes comparisons within the same media_hash.hash_type as a explicit safety rule (see
+-- video-support-plan.md §6) so a future extension overlap can't silently cross-match.
 CREATE TABLE duplicate_group
 (
     id               BIGSERIAL PRIMARY KEY,
     duplicate_job_id BIGINT REFERENCES duplicate_job (id),
     extension        VARCHAR(10),
-    pixel_hash       VARCHAR(64),
+    content_hash     VARCHAR(64),
     created_at       TIMESTAMP,
-    UNIQUE (extension, pixel_hash)
+    UNIQUE (extension, content_hash)
 );
 CREATE INDEX idx_duplicate_group_job ON duplicate_group (duplicate_job_id);
 
@@ -60,8 +70,8 @@ CREATE TABLE duplicate_group_member
 (
     id                 BIGSERIAL PRIMARY KEY,
     duplicate_group_id BIGINT REFERENCES duplicate_group (id),
-    photo_id           BIGINT REFERENCES photo (id),
-    UNIQUE (duplicate_group_id, photo_id)
+    media_id           BIGINT REFERENCES media (id),
+    UNIQUE (duplicate_group_id, media_id)
 );
 CREATE INDEX idx_duplicate_group_member_group ON duplicate_group_member (duplicate_group_id);
-CREATE INDEX idx_duplicate_group_member_photo ON duplicate_group_member (photo_id);
+CREATE INDEX idx_duplicate_group_member_media ON duplicate_group_member (media_id);

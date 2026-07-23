@@ -31,16 +31,16 @@ public class ThumbnailRecord extends UpdatableRecordImpl<ThumbnailRecord> {
     private static final long serialVersionUID = 1L;
 
     /**
-     * Setter for <code>public.THUMBNAIL.PHOTO_ID</code>.
+     * Setter for <code>public.THUMBNAIL.MEDIA_ID</code>.
      */
-    public void setPhotoId(Long value) {
+    public void setMediaId(Long value) {
         set(0, value);
     }
 
     /**
-     * Getter for <code>public.THUMBNAIL.PHOTO_ID</code>.
+     * Getter for <code>public.THUMBNAIL.MEDIA_ID</code>.
      */
-    public Long getPhotoId() {
+    public Long getMediaId() {
         return (Long) get(0);
     }
 
@@ -123,10 +123,10 @@ public class ThumbnailRecord extends UpdatableRecordImpl<ThumbnailRecord> {
     /**
      * Create a detached, initialised ThumbnailRecord
      */
-    public ThumbnailRecord(Long photoId, String cachePath, Integer width, Integer height, LocalDateTime generatedAt) {
+    public ThumbnailRecord(Long mediaId, String cachePath, Integer width, Integer height, LocalDateTime generatedAt) {
         super(Thumbnail.THUMBNAIL);
 
-        setPhotoId(photoId);
+        setMediaId(mediaId);
         setCachePath(cachePath);
         setWidth(width);
         setHeight(height);

@@ -8,7 +8,7 @@ import com.github.curiousoddman.curious_images.dbobj.Keys;
 import com.github.curiousoddman.curious_images.dbobj.Public;
 import com.github.curiousoddman.curious_images.dbobj.tables.Folder.FolderPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.ImportRoot.ImportRootPath;
-import com.github.curiousoddman.curious_images.dbobj.tables.Photo.PhotoPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.Media.MediaPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FolderRecord;
 
 import java.util.Arrays;
@@ -213,16 +213,16 @@ public class Folder extends TableImpl<FolderRecord> {
         return _folder;
     }
 
-    private transient PhotoPath _photo;
+    private transient MediaPath _media;
 
     /**
-     * Get the implicit to-many join path to the <code>public.PHOTO</code> table
+     * Get the implicit to-many join path to the <code>public.MEDIA</code> table
      */
-    public PhotoPath photo() {
-        if (_photo == null)
-            _photo = new PhotoPath(this, null, Keys.CONSTRAINT_48.getInverseKey());
+    public MediaPath media() {
+        if (_media == null)
+            _media = new MediaPath(this, null, Keys.CONSTRAINT_45.getInverseKey());
 
-        return _photo;
+        return _media;
     }
 
     @Override

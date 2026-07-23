@@ -5,7 +5,7 @@ package com.github.curiousoddman.curious_images.dbobj;
 
 
 import com.github.curiousoddman.curious_images.dbobj.tables.Album;
-import com.github.curiousoddman.curious_images.dbobj.tables.AlbumPhoto;
+import com.github.curiousoddman.curious_images.dbobj.tables.AlbumMedia;
 import com.github.curiousoddman.curious_images.dbobj.tables.ClipEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.Cluster;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroup;
@@ -16,15 +16,17 @@ import com.github.curiousoddman.curious_images.dbobj.tables.FaceEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.FlywaySchemaHistory;
 import com.github.curiousoddman.curious_images.dbobj.tables.Folder;
 import com.github.curiousoddman.curious_images.dbobj.tables.ImportRoot;
+import com.github.curiousoddman.curious_images.dbobj.tables.Media;
+import com.github.curiousoddman.curious_images.dbobj.tables.MediaHash;
+import com.github.curiousoddman.curious_images.dbobj.tables.MediaTag;
 import com.github.curiousoddman.curious_images.dbobj.tables.PendingAction;
 import com.github.curiousoddman.curious_images.dbobj.tables.Person;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
-import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoPreview;
-import com.github.curiousoddman.curious_images.dbobj.tables.PhotoTag;
 import com.github.curiousoddman.curious_images.dbobj.tables.TagEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail;
 import com.github.curiousoddman.curious_images.dbobj.tables.UserPreferences;
+import com.github.curiousoddman.curious_images.dbobj.tables.Video;
 
 import java.util.Arrays;
 import java.util.List;
@@ -63,9 +65,9 @@ public class Public extends SchemaImpl {
     public final Album ALBUM = Album.ALBUM;
 
     /**
-     * The table <code>public.ALBUM_PHOTO</code>.
+     * The table <code>public.ALBUM_MEDIA</code>.
      */
-    public final AlbumPhoto ALBUM_PHOTO = AlbumPhoto.ALBUM_PHOTO;
+    public final AlbumMedia ALBUM_MEDIA = AlbumMedia.ALBUM_MEDIA;
 
     /**
      * The table <code>public.CLIP_EMBEDDING</code>.
@@ -118,6 +120,21 @@ public class Public extends SchemaImpl {
     public final ImportRoot IMPORT_ROOT = ImportRoot.IMPORT_ROOT;
 
     /**
+     * The table <code>public.MEDIA</code>.
+     */
+    public final Media MEDIA = Media.MEDIA;
+
+    /**
+     * The table <code>public.MEDIA_HASH</code>.
+     */
+    public final MediaHash MEDIA_HASH = MediaHash.MEDIA_HASH;
+
+    /**
+     * The table <code>public.MEDIA_TAG</code>.
+     */
+    public final MediaTag MEDIA_TAG = MediaTag.MEDIA_TAG;
+
+    /**
      * The table <code>public.PENDING_ACTION</code>.
      */
     public final PendingAction PENDING_ACTION = PendingAction.PENDING_ACTION;
@@ -133,19 +150,9 @@ public class Public extends SchemaImpl {
     public final Photo PHOTO = Photo.PHOTO;
 
     /**
-     * The table <code>public.PHOTO_HASH</code>.
-     */
-    public final PhotoHash PHOTO_HASH = PhotoHash.PHOTO_HASH;
-
-    /**
      * The table <code>public.PHOTO_PREVIEW</code>.
      */
     public final PhotoPreview PHOTO_PREVIEW = PhotoPreview.PHOTO_PREVIEW;
-
-    /**
-     * The table <code>public.PHOTO_TAG</code>.
-     */
-    public final PhotoTag PHOTO_TAG = PhotoTag.PHOTO_TAG;
 
     /**
      * The table <code>public.TAG_EMBEDDING</code>.
@@ -161,6 +168,11 @@ public class Public extends SchemaImpl {
      * The table <code>public.USER_PREFERENCES</code>.
      */
     public final UserPreferences USER_PREFERENCES = UserPreferences.USER_PREFERENCES;
+
+    /**
+     * The table <code>public.VIDEO</code>.
+     */
+    public final Video VIDEO = Video.VIDEO;
 
     /**
      * No further instances allowed
@@ -179,7 +191,7 @@ public class Public extends SchemaImpl {
     public final List<Table<?>> getTables() {
         return Arrays.asList(
             Album.ALBUM,
-            AlbumPhoto.ALBUM_PHOTO,
+            AlbumMedia.ALBUM_MEDIA,
             ClipEmbedding.CLIP_EMBEDDING,
             Cluster.CLUSTER,
             DuplicateGroup.DUPLICATE_GROUP,
@@ -190,15 +202,17 @@ public class Public extends SchemaImpl {
             FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY,
             Folder.FOLDER,
             ImportRoot.IMPORT_ROOT,
+            Media.MEDIA,
+            MediaHash.MEDIA_HASH,
+            MediaTag.MEDIA_TAG,
             PendingAction.PENDING_ACTION,
             Person.PERSON,
             Photo.PHOTO,
-            PhotoHash.PHOTO_HASH,
             PhotoPreview.PHOTO_PREVIEW,
-            PhotoTag.PHOTO_TAG,
             TagEmbedding.TAG_EMBEDDING,
             Thumbnail.THUMBNAIL,
-            UserPreferences.USER_PREFERENCES
+            UserPreferences.USER_PREFERENCES,
+            Video.VIDEO
         );
     }
 }

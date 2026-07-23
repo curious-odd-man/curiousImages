@@ -9,7 +9,7 @@ import com.github.curiousoddman.curious_images.dbobj.Keys;
 import com.github.curiousoddman.curious_images.dbobj.Public;
 import com.github.curiousoddman.curious_images.dbobj.tables.Cluster.ClusterPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.FaceEmbedding.FaceEmbeddingPath;
-import com.github.curiousoddman.curious_images.dbobj.tables.Photo.PhotoPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.Media.MediaPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 
 import java.time.LocalDateTime;
@@ -78,9 +78,14 @@ public class Face extends TableImpl<FaceRecord> {
     public final TableField<FaceRecord, Long> ID = createField(DSL.name("ID"), SQLDataType.BIGINT.nullable(false).identity(true), this, "");
 
     /**
-     * The column <code>public.FACE.PHOTO_ID</code>.
+     * The column <code>public.FACE.MEDIA_ID</code>.
      */
-    public final TableField<FaceRecord, Long> PHOTO_ID = createField(DSL.name("PHOTO_ID"), SQLDataType.BIGINT.nullable(false), this, "");
+    public final TableField<FaceRecord, Long> MEDIA_ID = createField(DSL.name("MEDIA_ID"), SQLDataType.BIGINT.nullable(false), this, "");
+
+    /**
+     * The column <code>public.FACE.FRAME_OFFSET_MS</code>.
+     */
+    public final TableField<FaceRecord, Long> FRAME_OFFSET_MS = createField(DSL.name("FRAME_OFFSET_MS"), SQLDataType.BIGINT, this, "");
 
     /**
      * The column <code>public.FACE.BBOX_X</code>.
@@ -259,7 +264,7 @@ public class Face extends TableImpl<FaceRecord> {
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IDX_FACE_CLUSTER_ID, Indexes.IDX_FACE_PHOTO);
+        return Arrays.asList(Indexes.IDX_FACE_CLUSTER_ID, Indexes.IDX_FACE_MEDIA);
     }
 
     @Override
@@ -277,16 +282,16 @@ public class Face extends TableImpl<FaceRecord> {
         return Arrays.asList(Keys.CONSTRAINT_20C, Keys.CONSTRAINT_20CE);
     }
 
-    private transient PhotoPath _photo;
+    private transient MediaPath _media;
 
     /**
-     * Get the implicit join path to the <code>public.PHOTO</code> table.
+     * Get the implicit join path to the <code>public.MEDIA</code> table.
      */
-    public PhotoPath photo() {
-        if (_photo == null)
-            _photo = new PhotoPath(this, Keys.CONSTRAINT_20C, null);
+    public MediaPath media() {
+        if (_media == null)
+            _media = new MediaPath(this, Keys.CONSTRAINT_20C, null);
 
-        return _photo;
+        return _media;
     }
 
     private transient ClusterPath _cluster;

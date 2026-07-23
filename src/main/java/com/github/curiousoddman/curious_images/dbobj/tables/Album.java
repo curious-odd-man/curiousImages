@@ -7,8 +7,8 @@ package com.github.curiousoddman.curious_images.dbobj.tables;
 import com.github.curiousoddman.curious_images.dbobj.Indexes;
 import com.github.curiousoddman.curious_images.dbobj.Keys;
 import com.github.curiousoddman.curious_images.dbobj.Public;
-import com.github.curiousoddman.curious_images.dbobj.tables.AlbumPhoto.AlbumPhotoPath;
-import com.github.curiousoddman.curious_images.dbobj.tables.Photo.PhotoPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.AlbumMedia.AlbumMediaPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.Media.MediaPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.AlbumRecord;
 
 import java.time.LocalDateTime;
@@ -87,9 +87,9 @@ public class Album extends TableImpl<AlbumRecord> {
     public final TableField<AlbumRecord, String> TYPE = createField(DSL.name("TYPE"), SQLDataType.VARCHAR(20).nullable(false), this, "");
 
     /**
-     * The column <code>public.ALBUM.COVER_PHOTO_ID</code>.
+     * The column <code>public.ALBUM.COVER_MEDIA_ID</code>.
      */
-    public final TableField<AlbumRecord, Long> COVER_PHOTO_ID = createField(DSL.name("COVER_PHOTO_ID"), SQLDataType.BIGINT, this, "");
+    public final TableField<AlbumRecord, Long> COVER_MEDIA_ID = createField(DSL.name("COVER_MEDIA_ID"), SQLDataType.BIGINT, this, "");
 
     /**
      * The column <code>public.ALBUM.CREATED_AT</code>.
@@ -201,29 +201,29 @@ public class Album extends TableImpl<AlbumRecord> {
         return Arrays.asList(Keys.CONSTRAINT_3B);
     }
 
-    private transient PhotoPath _photo;
+    private transient MediaPath _media;
 
     /**
-     * Get the implicit join path to the <code>public.PHOTO</code> table.
+     * Get the implicit join path to the <code>public.MEDIA</code> table.
      */
-    public PhotoPath photo() {
-        if (_photo == null)
-            _photo = new PhotoPath(this, Keys.CONSTRAINT_3B, null);
+    public MediaPath media() {
+        if (_media == null)
+            _media = new MediaPath(this, Keys.CONSTRAINT_3B, null);
 
-        return _photo;
+        return _media;
     }
 
-    private transient AlbumPhotoPath _albumPhoto;
+    private transient AlbumMediaPath _albumMedia;
 
     /**
-     * Get the implicit to-many join path to the <code>public.ALBUM_PHOTO</code>
+     * Get the implicit to-many join path to the <code>public.ALBUM_MEDIA</code>
      * table
      */
-    public AlbumPhotoPath albumPhoto() {
-        if (_albumPhoto == null)
-            _albumPhoto = new AlbumPhotoPath(this, null, Keys.CONSTRAINT_9B.getInverseKey());
+    public AlbumMediaPath albumMedia() {
+        if (_albumMedia == null)
+            _albumMedia = new AlbumMediaPath(this, null, Keys.CONSTRAINT_9B.getInverseKey());
 
-        return _albumPhoto;
+        return _albumMedia;
     }
 
     @Override

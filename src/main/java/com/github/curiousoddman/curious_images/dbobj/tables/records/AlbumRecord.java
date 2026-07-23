@@ -73,16 +73,16 @@ public class AlbumRecord extends UpdatableRecordImpl<AlbumRecord> {
     }
 
     /**
-     * Setter for <code>public.ALBUM.COVER_PHOTO_ID</code>.
+     * Setter for <code>public.ALBUM.COVER_MEDIA_ID</code>.
      */
-    public void setCoverPhotoId(Long value) {
+    public void setCoverMediaId(Long value) {
         set(3, value);
     }
 
     /**
-     * Getter for <code>public.ALBUM.COVER_PHOTO_ID</code>.
+     * Getter for <code>public.ALBUM.COVER_MEDIA_ID</code>.
      */
-    public Long getCoverPhotoId() {
+    public Long getCoverMediaId() {
         return (Long) get(3);
     }
 
@@ -151,13 +151,13 @@ public class AlbumRecord extends UpdatableRecordImpl<AlbumRecord> {
     /**
      * Create a detached, initialised AlbumRecord
      */
-    public AlbumRecord(Long id, String name, String type, Long coverPhotoId, LocalDateTime createdAt, LocalDateTime updatedAt, String metaJson) {
+    public AlbumRecord(Long id, String name, String type, Long coverMediaId, LocalDateTime createdAt, LocalDateTime updatedAt, String metaJson) {
         super(Album.ALBUM);
 
         setId(id);
         setName(name);
         setType(type);
-        setCoverPhotoId(coverPhotoId);
+        setCoverMediaId(coverMediaId);
         setCreatedAt(createdAt);
         setUpdatedAt(updatedAt);
         setMetaJson(metaJson);

@@ -6,7 +6,7 @@ package com.github.curiousoddman.curious_images.dbobj.tables;
 
 import com.github.curiousoddman.curious_images.dbobj.Keys;
 import com.github.curiousoddman.curious_images.dbobj.Public;
-import com.github.curiousoddman.curious_images.dbobj.tables.Photo.PhotoPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.Media.MediaPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 
 import java.time.LocalDateTime;
@@ -68,9 +68,9 @@ public class Thumbnail extends TableImpl<ThumbnailRecord> {
     }
 
     /**
-     * The column <code>public.THUMBNAIL.PHOTO_ID</code>.
+     * The column <code>public.THUMBNAIL.MEDIA_ID</code>.
      */
-    public final TableField<ThumbnailRecord, Long> PHOTO_ID = createField(DSL.name("PHOTO_ID"), SQLDataType.BIGINT.nullable(false), this, "");
+    public final TableField<ThumbnailRecord, Long> MEDIA_ID = createField(DSL.name("MEDIA_ID"), SQLDataType.BIGINT.nullable(false), this, "");
 
     /**
      * The column <code>public.THUMBNAIL.CACHE_PATH</code>.
@@ -177,16 +177,16 @@ public class Thumbnail extends TableImpl<ThumbnailRecord> {
         return Arrays.asList(Keys.CONSTRAINT_F5);
     }
 
-    private transient PhotoPath _photo;
+    private transient MediaPath _media;
 
     /**
-     * Get the implicit join path to the <code>public.PHOTO</code> table.
+     * Get the implicit join path to the <code>public.MEDIA</code> table.
      */
-    public PhotoPath photo() {
-        if (_photo == null)
-            _photo = new PhotoPath(this, Keys.CONSTRAINT_F5, null);
+    public MediaPath media() {
+        if (_media == null)
+            _media = new MediaPath(this, Keys.CONSTRAINT_F5, null);
 
-        return _photo;
+        return _media;
     }
 
     @Override

@@ -5,7 +5,7 @@ package com.github.curiousoddman.curious_images.dbobj;
 
 
 import com.github.curiousoddman.curious_images.dbobj.tables.Album;
-import com.github.curiousoddman.curious_images.dbobj.tables.AlbumPhoto;
+import com.github.curiousoddman.curious_images.dbobj.tables.AlbumMedia;
 import com.github.curiousoddman.curious_images.dbobj.tables.ClipEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.Cluster;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroup;
@@ -16,15 +16,17 @@ import com.github.curiousoddman.curious_images.dbobj.tables.FaceEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.FlywaySchemaHistory;
 import com.github.curiousoddman.curious_images.dbobj.tables.Folder;
 import com.github.curiousoddman.curious_images.dbobj.tables.ImportRoot;
+import com.github.curiousoddman.curious_images.dbobj.tables.Media;
+import com.github.curiousoddman.curious_images.dbobj.tables.MediaHash;
+import com.github.curiousoddman.curious_images.dbobj.tables.MediaTag;
 import com.github.curiousoddman.curious_images.dbobj.tables.PendingAction;
 import com.github.curiousoddman.curious_images.dbobj.tables.Person;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
-import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoPreview;
-import com.github.curiousoddman.curious_images.dbobj.tables.PhotoTag;
 import com.github.curiousoddman.curious_images.dbobj.tables.TagEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail;
 import com.github.curiousoddman.curious_images.dbobj.tables.UserPreferences;
+import com.github.curiousoddman.curious_images.dbobj.tables.Video;
 
 import javax.annotation.processing.Generated;
 
@@ -49,9 +51,9 @@ public class Tables {
     public static final Album ALBUM = Album.ALBUM;
 
     /**
-     * The table <code>public.ALBUM_PHOTO</code>.
+     * The table <code>public.ALBUM_MEDIA</code>.
      */
-    public static final AlbumPhoto ALBUM_PHOTO = AlbumPhoto.ALBUM_PHOTO;
+    public static final AlbumMedia ALBUM_MEDIA = AlbumMedia.ALBUM_MEDIA;
 
     /**
      * The table <code>public.CLIP_EMBEDDING</code>.
@@ -104,6 +106,21 @@ public class Tables {
     public static final ImportRoot IMPORT_ROOT = ImportRoot.IMPORT_ROOT;
 
     /**
+     * The table <code>public.MEDIA</code>.
+     */
+    public static final Media MEDIA = Media.MEDIA;
+
+    /**
+     * The table <code>public.MEDIA_HASH</code>.
+     */
+    public static final MediaHash MEDIA_HASH = MediaHash.MEDIA_HASH;
+
+    /**
+     * The table <code>public.MEDIA_TAG</code>.
+     */
+    public static final MediaTag MEDIA_TAG = MediaTag.MEDIA_TAG;
+
+    /**
      * The table <code>public.PENDING_ACTION</code>.
      */
     public static final PendingAction PENDING_ACTION = PendingAction.PENDING_ACTION;
@@ -119,19 +136,9 @@ public class Tables {
     public static final Photo PHOTO = Photo.PHOTO;
 
     /**
-     * The table <code>public.PHOTO_HASH</code>.
-     */
-    public static final PhotoHash PHOTO_HASH = PhotoHash.PHOTO_HASH;
-
-    /**
      * The table <code>public.PHOTO_PREVIEW</code>.
      */
     public static final PhotoPreview PHOTO_PREVIEW = PhotoPreview.PHOTO_PREVIEW;
-
-    /**
-     * The table <code>public.PHOTO_TAG</code>.
-     */
-    public static final PhotoTag PHOTO_TAG = PhotoTag.PHOTO_TAG;
 
     /**
      * The table <code>public.TAG_EMBEDDING</code>.
@@ -147,4 +154,9 @@ public class Tables {
      * The table <code>public.USER_PREFERENCES</code>.
      */
     public static final UserPreferences USER_PREFERENCES = UserPreferences.USER_PREFERENCES;
+
+    /**
+     * The table <code>public.VIDEO</code>.
+     */
+    public static final Video VIDEO = Video.VIDEO;
 }

@@ -5,14 +5,15 @@ package com.github.curiousoddman.curious_images.dbobj;
 
 
 import com.github.curiousoddman.curious_images.dbobj.tables.Album;
-import com.github.curiousoddman.curious_images.dbobj.tables.AlbumPhoto;
+import com.github.curiousoddman.curious_images.dbobj.tables.AlbumMedia;
+import com.github.curiousoddman.curious_images.dbobj.tables.ClipEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.Cluster;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroup;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroupMember;
 import com.github.curiousoddman.curious_images.dbobj.tables.Face;
 import com.github.curiousoddman.curious_images.dbobj.tables.FlywaySchemaHistory;
-import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
-import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash;
+import com.github.curiousoddman.curious_images.dbobj.tables.Media;
+import com.github.curiousoddman.curious_images.dbobj.tables.MediaHash;
 
 import javax.annotation.processing.Generated;
 
@@ -41,16 +42,18 @@ public class Indexes {
     // -------------------------------------------------------------------------
 
     public static final Index FLYWAY_SCHEMA_HISTORY_S_IDX = Internal.createIndex(DSL.name("flyway_schema_history_s_idx"), FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY, new OrderField[] { FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY.SUCCESS }, false);
-    public static final Index IDX_ALBUM_PHOTO_ALBUM = Internal.createIndex(DSL.name("IDX_ALBUM_PHOTO_ALBUM"), AlbumPhoto.ALBUM_PHOTO, new OrderField[] { AlbumPhoto.ALBUM_PHOTO.ALBUM_ID }, false);
-    public static final Index IDX_ALBUM_PHOTO_PHOTO = Internal.createIndex(DSL.name("IDX_ALBUM_PHOTO_PHOTO"), AlbumPhoto.ALBUM_PHOTO, new OrderField[] { AlbumPhoto.ALBUM_PHOTO.PHOTO_ID }, false);
+    public static final Index IDX_ALBUM_MEDIA_ALBUM = Internal.createIndex(DSL.name("IDX_ALBUM_MEDIA_ALBUM"), AlbumMedia.ALBUM_MEDIA, new OrderField[] { AlbumMedia.ALBUM_MEDIA.ALBUM_ID }, false);
+    public static final Index IDX_ALBUM_MEDIA_MEDIA = Internal.createIndex(DSL.name("IDX_ALBUM_MEDIA_MEDIA"), AlbumMedia.ALBUM_MEDIA, new OrderField[] { AlbumMedia.ALBUM_MEDIA.MEDIA_ID }, false);
     public static final Index IDX_ALBUM_TYPE = Internal.createIndex(DSL.name("IDX_ALBUM_TYPE"), Album.ALBUM, new OrderField[] { Album.ALBUM.TYPE }, false);
+    public static final Index IDX_CLIP_EMBEDDING_MEDIA = Internal.createIndex(DSL.name("IDX_CLIP_EMBEDDING_MEDIA"), ClipEmbedding.CLIP_EMBEDDING, new OrderField[] { ClipEmbedding.CLIP_EMBEDDING.MEDIA_ID }, false);
     public static final Index IDX_CLUSTER_PERSON_ID = Internal.createIndex(DSL.name("IDX_CLUSTER_PERSON_ID"), Cluster.CLUSTER, new OrderField[] { Cluster.CLUSTER.PERSON_ID }, false);
     public static final Index IDX_DUPLICATE_GROUP_JOB = Internal.createIndex(DSL.name("IDX_DUPLICATE_GROUP_JOB"), DuplicateGroup.DUPLICATE_GROUP, new OrderField[] { DuplicateGroup.DUPLICATE_GROUP.DUPLICATE_JOB_ID }, false);
     public static final Index IDX_DUPLICATE_GROUP_MEMBER_GROUP = Internal.createIndex(DSL.name("IDX_DUPLICATE_GROUP_MEMBER_GROUP"), DuplicateGroupMember.DUPLICATE_GROUP_MEMBER, new OrderField[] { DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID }, false);
-    public static final Index IDX_DUPLICATE_GROUP_MEMBER_PHOTO = Internal.createIndex(DSL.name("IDX_DUPLICATE_GROUP_MEMBER_PHOTO"), DuplicateGroupMember.DUPLICATE_GROUP_MEMBER, new OrderField[] { DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.PHOTO_ID }, false);
+    public static final Index IDX_DUPLICATE_GROUP_MEMBER_MEDIA = Internal.createIndex(DSL.name("IDX_DUPLICATE_GROUP_MEMBER_MEDIA"), DuplicateGroupMember.DUPLICATE_GROUP_MEMBER, new OrderField[] { DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.MEDIA_ID }, false);
     public static final Index IDX_FACE_CLUSTER_ID = Internal.createIndex(DSL.name("IDX_FACE_CLUSTER_ID"), Face.FACE, new OrderField[] { Face.FACE.CLUSTER_ID }, false);
-    public static final Index IDX_FACE_PHOTO = Internal.createIndex(DSL.name("IDX_FACE_PHOTO"), Face.FACE, new OrderField[] { Face.FACE.PHOTO_ID }, false);
-    public static final Index IDX_PHOTO_CAPTURE_DATE = Internal.createIndex(DSL.name("IDX_PHOTO_CAPTURE_DATE"), Photo.PHOTO, new OrderField[] { Photo.PHOTO.CAPTURE_DATE }, false);
-    public static final Index IDX_PHOTO_FOLDER = Internal.createIndex(DSL.name("IDX_PHOTO_FOLDER"), Photo.PHOTO, new OrderField[] { Photo.PHOTO.FOLDER_ID }, false);
-    public static final Index IDX_PHOTO_HASH_PIXEL_HASH = Internal.createIndex(DSL.name("IDX_PHOTO_HASH_PIXEL_HASH"), PhotoHash.PHOTO_HASH, new OrderField[] { PhotoHash.PHOTO_HASH.PIXEL_HASH }, false);
+    public static final Index IDX_FACE_MEDIA = Internal.createIndex(DSL.name("IDX_FACE_MEDIA"), Face.FACE, new OrderField[] { Face.FACE.MEDIA_ID }, false);
+    public static final Index IDX_MEDIA_CAPTURE_DATE = Internal.createIndex(DSL.name("IDX_MEDIA_CAPTURE_DATE"), Media.MEDIA, new OrderField[] { Media.MEDIA.CAPTURE_DATE }, false);
+    public static final Index IDX_MEDIA_FOLDER = Internal.createIndex(DSL.name("IDX_MEDIA_FOLDER"), Media.MEDIA, new OrderField[] { Media.MEDIA.FOLDER_ID }, false);
+    public static final Index IDX_MEDIA_HASH_CONTENT_HASH = Internal.createIndex(DSL.name("IDX_MEDIA_HASH_CONTENT_HASH"), MediaHash.MEDIA_HASH, new OrderField[] { MediaHash.MEDIA_HASH.CONTENT_HASH }, false);
+    public static final Index IDX_MEDIA_TYPE = Internal.createIndex(DSL.name("IDX_MEDIA_TYPE"), Media.MEDIA, new OrderField[] { Media.MEDIA.MEDIA_TYPE }, false);
 }

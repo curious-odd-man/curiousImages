@@ -57,16 +57,16 @@ public class DuplicateGroupMemberRecord extends UpdatableRecordImpl<DuplicateGro
     }
 
     /**
-     * Setter for <code>public.DUPLICATE_GROUP_MEMBER.PHOTO_ID</code>.
+     * Setter for <code>public.DUPLICATE_GROUP_MEMBER.MEDIA_ID</code>.
      */
-    public void setPhotoId(Long value) {
+    public void setMediaId(Long value) {
         set(2, value);
     }
 
     /**
-     * Getter for <code>public.DUPLICATE_GROUP_MEMBER.PHOTO_ID</code>.
+     * Getter for <code>public.DUPLICATE_GROUP_MEMBER.MEDIA_ID</code>.
      */
-    public Long getPhotoId() {
+    public Long getMediaId() {
         return (Long) get(2);
     }
 
@@ -93,12 +93,12 @@ public class DuplicateGroupMemberRecord extends UpdatableRecordImpl<DuplicateGro
     /**
      * Create a detached, initialised DuplicateGroupMemberRecord
      */
-    public DuplicateGroupMemberRecord(Long id, Long duplicateGroupId, Long photoId) {
+    public DuplicateGroupMemberRecord(Long id, Long duplicateGroupId, Long mediaId) {
         super(DuplicateGroupMember.DUPLICATE_GROUP_MEMBER);
 
         setId(id);
         setDuplicateGroupId(duplicateGroupId);
-        setPhotoId(photoId);
+        setMediaId(mediaId);
         resetChangedOnNotNull();
     }
 }

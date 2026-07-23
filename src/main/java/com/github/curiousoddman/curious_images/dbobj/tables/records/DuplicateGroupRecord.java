@@ -73,16 +73,16 @@ public class DuplicateGroupRecord extends UpdatableRecordImpl<DuplicateGroupReco
     }
 
     /**
-     * Setter for <code>public.DUPLICATE_GROUP.PIXEL_HASH</code>.
+     * Setter for <code>public.DUPLICATE_GROUP.CONTENT_HASH</code>.
      */
-    public void setPixelHash(String value) {
+    public void setContentHash(String value) {
         set(3, value);
     }
 
     /**
-     * Getter for <code>public.DUPLICATE_GROUP.PIXEL_HASH</code>.
+     * Getter for <code>public.DUPLICATE_GROUP.CONTENT_HASH</code>.
      */
-    public String getPixelHash() {
+    public String getContentHash() {
         return (String) get(3);
     }
 
@@ -137,13 +137,13 @@ public class DuplicateGroupRecord extends UpdatableRecordImpl<DuplicateGroupReco
     /**
      * Create a detached, initialised DuplicateGroupRecord
      */
-    public DuplicateGroupRecord(Long id, Long duplicateJobId, String extension, String pixelHash, LocalDateTime createdAt, Boolean accepted) {
+    public DuplicateGroupRecord(Long id, Long duplicateJobId, String extension, String contentHash, LocalDateTime createdAt, Boolean accepted) {
         super(DuplicateGroup.DUPLICATE_GROUP);
 
         setId(id);
         setDuplicateJobId(duplicateJobId);
         setExtension(extension);
-        setPixelHash(pixelHash);
+        setContentHash(contentHash);
         setCreatedAt(createdAt);
         setAccepted(accepted);
         resetChangedOnNotNull();

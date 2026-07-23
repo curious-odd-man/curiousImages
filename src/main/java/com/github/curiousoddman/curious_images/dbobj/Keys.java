@@ -5,7 +5,7 @@ package com.github.curiousoddman.curious_images.dbobj;
 
 
 import com.github.curiousoddman.curious_images.dbobj.tables.Album;
-import com.github.curiousoddman.curious_images.dbobj.tables.AlbumPhoto;
+import com.github.curiousoddman.curious_images.dbobj.tables.AlbumMedia;
 import com.github.curiousoddman.curious_images.dbobj.tables.ClipEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.Cluster;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroup;
@@ -16,16 +16,18 @@ import com.github.curiousoddman.curious_images.dbobj.tables.FaceEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.FlywaySchemaHistory;
 import com.github.curiousoddman.curious_images.dbobj.tables.Folder;
 import com.github.curiousoddman.curious_images.dbobj.tables.ImportRoot;
+import com.github.curiousoddman.curious_images.dbobj.tables.Media;
+import com.github.curiousoddman.curious_images.dbobj.tables.MediaHash;
+import com.github.curiousoddman.curious_images.dbobj.tables.MediaTag;
 import com.github.curiousoddman.curious_images.dbobj.tables.PendingAction;
 import com.github.curiousoddman.curious_images.dbobj.tables.Person;
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
-import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoPreview;
-import com.github.curiousoddman.curious_images.dbobj.tables.PhotoTag;
 import com.github.curiousoddman.curious_images.dbobj.tables.TagEmbedding;
 import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail;
 import com.github.curiousoddman.curious_images.dbobj.tables.UserPreferences;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.AlbumPhotoRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.Video;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.AlbumMediaRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.AlbumRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ClipEmbeddingRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ClusterRecord;
@@ -37,15 +39,17 @@ import com.github.curiousoddman.curious_images.dbobj.tables.records.FaceRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FlywaySchemaHistoryRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.FolderRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ImportRootRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaHashRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.MediaTagRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PendingActionRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PersonRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoHashRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoPreviewRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
-import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoTagRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ThumbnailRecord;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.UserPreferencesRecord;
+import com.github.curiousoddman.curious_images.dbobj.tables.records.VideoRecord;
 
 import javax.annotation.processing.Generated;
 
@@ -76,14 +80,15 @@ public class Keys {
     // -------------------------------------------------------------------------
 
     public static final UniqueKey<AlbumRecord> CONSTRAINT_3 = Internal.createUniqueKey(Album.ALBUM, DSL.name("CONSTRAINT_3"), new TableField[] { Album.ALBUM.ID }, true);
-    public static final UniqueKey<AlbumPhotoRecord> CONSTRAINT_9B2C = Internal.createUniqueKey(AlbumPhoto.ALBUM_PHOTO, DSL.name("CONSTRAINT_9B2C"), new TableField[] { AlbumPhoto.ALBUM_PHOTO.ALBUM_ID, AlbumPhoto.ALBUM_PHOTO.PHOTO_ID }, true);
-    public static final UniqueKey<ClipEmbeddingRecord> CONSTRAINT_9 = Internal.createUniqueKey(ClipEmbedding.CLIP_EMBEDDING, DSL.name("CONSTRAINT_9"), new TableField[] { ClipEmbedding.CLIP_EMBEDDING.PHOTO_ID }, true);
+    public static final UniqueKey<AlbumMediaRecord> CONSTRAINT_9B01 = Internal.createUniqueKey(AlbumMedia.ALBUM_MEDIA, DSL.name("CONSTRAINT_9B01"), new TableField[] { AlbumMedia.ALBUM_MEDIA.ALBUM_ID, AlbumMedia.ALBUM_MEDIA.MEDIA_ID }, true);
+    public static final UniqueKey<ClipEmbeddingRecord> CONSTRAINT_9E = Internal.createUniqueKey(ClipEmbedding.CLIP_EMBEDDING, DSL.name("CONSTRAINT_9E"), new TableField[] { ClipEmbedding.CLIP_EMBEDDING.ID }, true);
+    public static final UniqueKey<ClipEmbeddingRecord> CONSTRAINT_9E77 = Internal.createUniqueKey(ClipEmbedding.CLIP_EMBEDDING, DSL.name("CONSTRAINT_9E77"), new TableField[] { ClipEmbedding.CLIP_EMBEDDING.MEDIA_ID, ClipEmbedding.CLIP_EMBEDDING.FRAME_OFFSET_MS }, true);
     public static final UniqueKey<ClusterRecord> CONSTRAINT_5 = Internal.createUniqueKey(Cluster.CLUSTER, DSL.name("CONSTRAINT_5"), new TableField[] { Cluster.CLUSTER.ID }, true);
     public static final UniqueKey<DuplicateGroupRecord> CONSTRAINT_B = Internal.createUniqueKey(DuplicateGroup.DUPLICATE_GROUP, DSL.name("CONSTRAINT_B"), new TableField[] { DuplicateGroup.DUPLICATE_GROUP.ID }, true);
-    public static final UniqueKey<DuplicateGroupRecord> CONSTRAINT_B68 = Internal.createUniqueKey(DuplicateGroup.DUPLICATE_GROUP, DSL.name("CONSTRAINT_B68"), new TableField[] { DuplicateGroup.DUPLICATE_GROUP.EXTENSION, DuplicateGroup.DUPLICATE_GROUP.PIXEL_HASH }, true);
+    public static final UniqueKey<DuplicateGroupRecord> CONSTRAINT_B68 = Internal.createUniqueKey(DuplicateGroup.DUPLICATE_GROUP, DSL.name("CONSTRAINT_B68"), new TableField[] { DuplicateGroup.DUPLICATE_GROUP.EXTENSION, DuplicateGroup.DUPLICATE_GROUP.CONTENT_HASH }, true);
     public static final UniqueKey<DuplicateGroupMemberRecord> CONSTRAINT_BB = Internal.createUniqueKey(DuplicateGroupMember.DUPLICATE_GROUP_MEMBER, DSL.name("CONSTRAINT_BB"), new TableField[] { DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.ID }, true);
-    public static final UniqueKey<DuplicateGroupMemberRecord> CONSTRAINT_BB010 = Internal.createUniqueKey(DuplicateGroupMember.DUPLICATE_GROUP_MEMBER, DSL.name("CONSTRAINT_BB010"), new TableField[] { DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID, DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.PHOTO_ID }, true);
-    public static final UniqueKey<DuplicateJobRecord> CONSTRAINT_6F = Internal.createUniqueKey(DuplicateJob.DUPLICATE_JOB, DSL.name("CONSTRAINT_6F"), new TableField[] { DuplicateJob.DUPLICATE_JOB.ID }, true);
+    public static final UniqueKey<DuplicateGroupMemberRecord> CONSTRAINT_BB010 = Internal.createUniqueKey(DuplicateGroupMember.DUPLICATE_GROUP_MEMBER, DSL.name("CONSTRAINT_BB010"), new TableField[] { DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID, DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.MEDIA_ID }, true);
+    public static final UniqueKey<DuplicateJobRecord> CONSTRAINT_6 = Internal.createUniqueKey(DuplicateJob.DUPLICATE_JOB, DSL.name("CONSTRAINT_6"), new TableField[] { DuplicateJob.DUPLICATE_JOB.ID }, true);
     public static final UniqueKey<FaceRecord> CONSTRAINT_20 = Internal.createUniqueKey(Face.FACE, DSL.name("CONSTRAINT_20"), new TableField[] { Face.FACE.ID }, true);
     public static final UniqueKey<FaceEmbeddingRecord> CONSTRAINT_70 = Internal.createUniqueKey(FaceEmbedding.FACE_EMBEDDING, DSL.name("CONSTRAINT_70"), new TableField[] { FaceEmbedding.FACE_EMBEDDING.FACE_ID }, true);
     public static final UniqueKey<FlywaySchemaHistoryRecord> FLYWAY_SCHEMA_HISTORY_PK = Internal.createUniqueKey(FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY, DSL.name("flyway_schema_history_pk"), new TableField[] { FlywaySchemaHistory.FLYWAY_SCHEMA_HISTORY.INSTALLED_RANK }, true);
@@ -91,39 +96,43 @@ public class Keys {
     public static final UniqueKey<FolderRecord> CONSTRAINT_7BF01 = Internal.createUniqueKey(Folder.FOLDER, DSL.name("CONSTRAINT_7BF01"), new TableField[] { Folder.FOLDER.IMPORT_ROOT_ID, Folder.FOLDER.RELATIVE_PATH }, true);
     public static final UniqueKey<ImportRootRecord> CONSTRAINT_D = Internal.createUniqueKey(ImportRoot.IMPORT_ROOT, DSL.name("CONSTRAINT_D"), new TableField[] { ImportRoot.IMPORT_ROOT.ID }, true);
     public static final UniqueKey<ImportRootRecord> CONSTRAINT_D9 = Internal.createUniqueKey(ImportRoot.IMPORT_ROOT, DSL.name("CONSTRAINT_D9"), new TableField[] { ImportRoot.IMPORT_ROOT.PATH }, true);
+    public static final UniqueKey<MediaRecord> CONSTRAINT_4 = Internal.createUniqueKey(Media.MEDIA, DSL.name("CONSTRAINT_4"), new TableField[] { Media.MEDIA.ID }, true);
+    public static final UniqueKey<MediaRecord> CONSTRAINT_45D = Internal.createUniqueKey(Media.MEDIA, DSL.name("CONSTRAINT_45D"), new TableField[] { Media.MEDIA.ABSOLUTE_PATH }, true);
+    public static final UniqueKey<MediaHashRecord> CONSTRAINT_9 = Internal.createUniqueKey(MediaHash.MEDIA_HASH, DSL.name("CONSTRAINT_9"), new TableField[] { MediaHash.MEDIA_HASH.MEDIA_ID }, true);
+    public static final UniqueKey<MediaTagRecord> CONSTRAINT_25C0 = Internal.createUniqueKey(MediaTag.MEDIA_TAG, DSL.name("CONSTRAINT_25C0"), new TableField[] { MediaTag.MEDIA_TAG.TAG_ID, MediaTag.MEDIA_TAG.MEDIA_ID }, true);
     public static final UniqueKey<PendingActionRecord> CONSTRAINT_7 = Internal.createUniqueKey(PendingAction.PENDING_ACTION, DSL.name("CONSTRAINT_7"), new TableField[] { PendingAction.PENDING_ACTION.ID }, true);
     public static final UniqueKey<PersonRecord> CONSTRAINT_8 = Internal.createUniqueKey(Person.PERSON, DSL.name("CONSTRAINT_8"), new TableField[] { Person.PERSON.ID }, true);
-    public static final UniqueKey<PhotoRecord> CONSTRAINT_4 = Internal.createUniqueKey(Photo.PHOTO, DSL.name("CONSTRAINT_4"), new TableField[] { Photo.PHOTO.ID }, true);
-    public static final UniqueKey<PhotoRecord> CONSTRAINT_489 = Internal.createUniqueKey(Photo.PHOTO, DSL.name("CONSTRAINT_489"), new TableField[] { Photo.PHOTO.ABSOLUTE_PATH }, true);
-    public static final UniqueKey<PhotoHashRecord> CONSTRAINT_6 = Internal.createUniqueKey(PhotoHash.PHOTO_HASH, DSL.name("CONSTRAINT_6"), new TableField[] { PhotoHash.PHOTO_HASH.PHOTO_ID }, true);
+    public static final UniqueKey<PhotoRecord> CONSTRAINT_48 = Internal.createUniqueKey(Photo.PHOTO, DSL.name("CONSTRAINT_48"), new TableField[] { Photo.PHOTO.ID }, true);
     public static final UniqueKey<PhotoPreviewRecord> CONSTRAINT_33 = Internal.createUniqueKey(PhotoPreview.PHOTO_PREVIEW, DSL.name("CONSTRAINT_33"), new TableField[] { PhotoPreview.PHOTO_PREVIEW.PHOTO_ID }, true);
-    public static final UniqueKey<PhotoTagRecord> CONSTRAINT_73A0 = Internal.createUniqueKey(PhotoTag.PHOTO_TAG, DSL.name("CONSTRAINT_73A0"), new TableField[] { PhotoTag.PHOTO_TAG.TAG_ID, PhotoTag.PHOTO_TAG.PHOTO_ID }, true);
     public static final UniqueKey<TagEmbeddingRecord> CONSTRAINT_7BE = Internal.createUniqueKey(TagEmbedding.TAG_EMBEDDING, DSL.name("CONSTRAINT_7BE"), new TableField[] { TagEmbedding.TAG_EMBEDDING.ID }, true);
-    public static final UniqueKey<ThumbnailRecord> CONSTRAINT_F = Internal.createUniqueKey(Thumbnail.THUMBNAIL, DSL.name("CONSTRAINT_F"), new TableField[] { Thumbnail.THUMBNAIL.PHOTO_ID }, true);
+    public static final UniqueKey<ThumbnailRecord> CONSTRAINT_F = Internal.createUniqueKey(Thumbnail.THUMBNAIL, DSL.name("CONSTRAINT_F"), new TableField[] { Thumbnail.THUMBNAIL.MEDIA_ID }, true);
     public static final UniqueKey<UserPreferencesRecord> CONSTRAINT_2 = Internal.createUniqueKey(UserPreferences.USER_PREFERENCES, DSL.name("CONSTRAINT_2"), new TableField[] { UserPreferences.USER_PREFERENCES.PREF_KEY }, true);
+    public static final UniqueKey<VideoRecord> CONSTRAINT_4D = Internal.createUniqueKey(Video.VIDEO, DSL.name("CONSTRAINT_4D"), new TableField[] { Video.VIDEO.ID }, true);
 
     // -------------------------------------------------------------------------
     // FOREIGN KEY definitions
     // -------------------------------------------------------------------------
 
-    public static final ForeignKey<AlbumRecord, PhotoRecord> CONSTRAINT_3B = Internal.createForeignKey(Album.ALBUM, DSL.name("CONSTRAINT_3B"), new TableField[] { Album.ALBUM.COVER_PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
-    public static final ForeignKey<AlbumPhotoRecord, AlbumRecord> CONSTRAINT_9B = Internal.createForeignKey(AlbumPhoto.ALBUM_PHOTO, DSL.name("CONSTRAINT_9B"), new TableField[] { AlbumPhoto.ALBUM_PHOTO.ALBUM_ID }, Keys.CONSTRAINT_3, new TableField[] { Album.ALBUM.ID }, true);
-    public static final ForeignKey<AlbumPhotoRecord, PhotoRecord> CONSTRAINT_9B2 = Internal.createForeignKey(AlbumPhoto.ALBUM_PHOTO, DSL.name("CONSTRAINT_9B2"), new TableField[] { AlbumPhoto.ALBUM_PHOTO.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
-    public static final ForeignKey<ClipEmbeddingRecord, PhotoRecord> CONSTRAINT_9E = Internal.createForeignKey(ClipEmbedding.CLIP_EMBEDDING, DSL.name("CONSTRAINT_9E"), new TableField[] { ClipEmbedding.CLIP_EMBEDDING.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
+    public static final ForeignKey<AlbumRecord, MediaRecord> CONSTRAINT_3B = Internal.createForeignKey(Album.ALBUM, DSL.name("CONSTRAINT_3B"), new TableField[] { Album.ALBUM.COVER_MEDIA_ID }, Keys.CONSTRAINT_4, new TableField[] { Media.MEDIA.ID }, true);
+    public static final ForeignKey<AlbumMediaRecord, AlbumRecord> CONSTRAINT_9B = Internal.createForeignKey(AlbumMedia.ALBUM_MEDIA, DSL.name("CONSTRAINT_9B"), new TableField[] { AlbumMedia.ALBUM_MEDIA.ALBUM_ID }, Keys.CONSTRAINT_3, new TableField[] { Album.ALBUM.ID }, true);
+    public static final ForeignKey<AlbumMediaRecord, MediaRecord> CONSTRAINT_9B0 = Internal.createForeignKey(AlbumMedia.ALBUM_MEDIA, DSL.name("CONSTRAINT_9B0"), new TableField[] { AlbumMedia.ALBUM_MEDIA.MEDIA_ID }, Keys.CONSTRAINT_4, new TableField[] { Media.MEDIA.ID }, true);
+    public static final ForeignKey<ClipEmbeddingRecord, MediaRecord> CONSTRAINT_9E7 = Internal.createForeignKey(ClipEmbedding.CLIP_EMBEDDING, DSL.name("CONSTRAINT_9E7"), new TableField[] { ClipEmbedding.CLIP_EMBEDDING.MEDIA_ID }, Keys.CONSTRAINT_4, new TableField[] { Media.MEDIA.ID }, true);
     public static final ForeignKey<ClusterRecord, PersonRecord> CONSTRAINT_5E = Internal.createForeignKey(Cluster.CLUSTER, DSL.name("CONSTRAINT_5E"), new TableField[] { Cluster.CLUSTER.PERSON_ID }, Keys.CONSTRAINT_8, new TableField[] { Person.PERSON.ID }, true);
-    public static final ForeignKey<DuplicateGroupRecord, DuplicateJobRecord> CONSTRAINT_B6 = Internal.createForeignKey(DuplicateGroup.DUPLICATE_GROUP, DSL.name("CONSTRAINT_B6"), new TableField[] { DuplicateGroup.DUPLICATE_GROUP.DUPLICATE_JOB_ID }, Keys.CONSTRAINT_6F, new TableField[] { DuplicateJob.DUPLICATE_JOB.ID }, true);
+    public static final ForeignKey<DuplicateGroupRecord, DuplicateJobRecord> CONSTRAINT_B6 = Internal.createForeignKey(DuplicateGroup.DUPLICATE_GROUP, DSL.name("CONSTRAINT_B6"), new TableField[] { DuplicateGroup.DUPLICATE_GROUP.DUPLICATE_JOB_ID }, Keys.CONSTRAINT_6, new TableField[] { DuplicateJob.DUPLICATE_JOB.ID }, true);
     public static final ForeignKey<DuplicateGroupMemberRecord, DuplicateGroupRecord> CONSTRAINT_BB0 = Internal.createForeignKey(DuplicateGroupMember.DUPLICATE_GROUP_MEMBER, DSL.name("CONSTRAINT_BB0"), new TableField[] { DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.DUPLICATE_GROUP_ID }, Keys.CONSTRAINT_B, new TableField[] { DuplicateGroup.DUPLICATE_GROUP.ID }, true);
-    public static final ForeignKey<DuplicateGroupMemberRecord, PhotoRecord> CONSTRAINT_BB01 = Internal.createForeignKey(DuplicateGroupMember.DUPLICATE_GROUP_MEMBER, DSL.name("CONSTRAINT_BB01"), new TableField[] { DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
-    public static final ForeignKey<FaceRecord, PhotoRecord> CONSTRAINT_20C = Internal.createForeignKey(Face.FACE, DSL.name("CONSTRAINT_20C"), new TableField[] { Face.FACE.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
+    public static final ForeignKey<DuplicateGroupMemberRecord, MediaRecord> CONSTRAINT_BB01 = Internal.createForeignKey(DuplicateGroupMember.DUPLICATE_GROUP_MEMBER, DSL.name("CONSTRAINT_BB01"), new TableField[] { DuplicateGroupMember.DUPLICATE_GROUP_MEMBER.MEDIA_ID }, Keys.CONSTRAINT_4, new TableField[] { Media.MEDIA.ID }, true);
+    public static final ForeignKey<FaceRecord, MediaRecord> CONSTRAINT_20C = Internal.createForeignKey(Face.FACE, DSL.name("CONSTRAINT_20C"), new TableField[] { Face.FACE.MEDIA_ID }, Keys.CONSTRAINT_4, new TableField[] { Media.MEDIA.ID }, true);
     public static final ForeignKey<FaceRecord, ClusterRecord> CONSTRAINT_20CE = Internal.createForeignKey(Face.FACE, DSL.name("CONSTRAINT_20CE"), new TableField[] { Face.FACE.CLUSTER_ID }, Keys.CONSTRAINT_5, new TableField[] { Cluster.CLUSTER.ID }, true);
     public static final ForeignKey<FaceEmbeddingRecord, FaceRecord> CONSTRAINT_707 = Internal.createForeignKey(FaceEmbedding.FACE_EMBEDDING, DSL.name("CONSTRAINT_707"), new TableField[] { FaceEmbedding.FACE_EMBEDDING.FACE_ID }, Keys.CONSTRAINT_20, new TableField[] { Face.FACE.ID }, true);
     public static final ForeignKey<FolderRecord, ImportRootRecord> CONSTRAINT_7BF = Internal.createForeignKey(Folder.FOLDER, DSL.name("CONSTRAINT_7BF"), new TableField[] { Folder.FOLDER.IMPORT_ROOT_ID }, Keys.CONSTRAINT_D, new TableField[] { ImportRoot.IMPORT_ROOT.ID }, true);
     public static final ForeignKey<FolderRecord, FolderRecord> CONSTRAINT_7BF0 = Internal.createForeignKey(Folder.FOLDER, DSL.name("CONSTRAINT_7BF0"), new TableField[] { Folder.FOLDER.PARENT_FOLDER_ID }, Keys.CONSTRAINT_7B, new TableField[] { Folder.FOLDER.ID }, true);
+    public static final ForeignKey<MediaRecord, FolderRecord> CONSTRAINT_45 = Internal.createForeignKey(Media.MEDIA, DSL.name("CONSTRAINT_45"), new TableField[] { Media.MEDIA.FOLDER_ID }, Keys.CONSTRAINT_7B, new TableField[] { Folder.FOLDER.ID }, true);
+    public static final ForeignKey<MediaHashRecord, MediaRecord> CONSTRAINT_92 = Internal.createForeignKey(MediaHash.MEDIA_HASH, DSL.name("CONSTRAINT_92"), new TableField[] { MediaHash.MEDIA_HASH.MEDIA_ID }, Keys.CONSTRAINT_4, new TableField[] { Media.MEDIA.ID }, true);
+    public static final ForeignKey<MediaTagRecord, TagEmbeddingRecord> CONSTRAINT_25 = Internal.createForeignKey(MediaTag.MEDIA_TAG, DSL.name("CONSTRAINT_25"), new TableField[] { MediaTag.MEDIA_TAG.TAG_ID }, Keys.CONSTRAINT_7BE, new TableField[] { TagEmbedding.TAG_EMBEDDING.ID }, true);
+    public static final ForeignKey<MediaTagRecord, MediaRecord> CONSTRAINT_25C = Internal.createForeignKey(MediaTag.MEDIA_TAG, DSL.name("CONSTRAINT_25C"), new TableField[] { MediaTag.MEDIA_TAG.MEDIA_ID }, Keys.CONSTRAINT_4, new TableField[] { Media.MEDIA.ID }, true);
     public static final ForeignKey<PersonRecord, PersonRecord> CONSTRAINT_8C = Internal.createForeignKey(Person.PERSON, DSL.name("CONSTRAINT_8C"), new TableField[] { Person.PERSON.MERGED_INTO_ID }, Keys.CONSTRAINT_8, new TableField[] { Person.PERSON.ID }, true);
-    public static final ForeignKey<PhotoRecord, FolderRecord> CONSTRAINT_48 = Internal.createForeignKey(Photo.PHOTO, DSL.name("CONSTRAINT_48"), new TableField[] { Photo.PHOTO.FOLDER_ID }, Keys.CONSTRAINT_7B, new TableField[] { Folder.FOLDER.ID }, true);
-    public static final ForeignKey<PhotoHashRecord, PhotoRecord> CONSTRAINT_66 = Internal.createForeignKey(PhotoHash.PHOTO_HASH, DSL.name("CONSTRAINT_66"), new TableField[] { PhotoHash.PHOTO_HASH.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
-    public static final ForeignKey<PhotoPreviewRecord, PhotoRecord> CONSTRAINT_331 = Internal.createForeignKey(PhotoPreview.PHOTO_PREVIEW, DSL.name("CONSTRAINT_331"), new TableField[] { PhotoPreview.PHOTO_PREVIEW.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
-    public static final ForeignKey<PhotoTagRecord, TagEmbeddingRecord> CONSTRAINT_73 = Internal.createForeignKey(PhotoTag.PHOTO_TAG, DSL.name("CONSTRAINT_73"), new TableField[] { PhotoTag.PHOTO_TAG.TAG_ID }, Keys.CONSTRAINT_7BE, new TableField[] { TagEmbedding.TAG_EMBEDDING.ID }, true);
-    public static final ForeignKey<PhotoTagRecord, PhotoRecord> CONSTRAINT_73A = Internal.createForeignKey(PhotoTag.PHOTO_TAG, DSL.name("CONSTRAINT_73A"), new TableField[] { PhotoTag.PHOTO_TAG.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
-    public static final ForeignKey<ThumbnailRecord, PhotoRecord> CONSTRAINT_F5 = Internal.createForeignKey(Thumbnail.THUMBNAIL, DSL.name("CONSTRAINT_F5"), new TableField[] { Thumbnail.THUMBNAIL.PHOTO_ID }, Keys.CONSTRAINT_4, new TableField[] { Photo.PHOTO.ID }, true);
+    public static final ForeignKey<PhotoRecord, MediaRecord> CONSTRAINT_489 = Internal.createForeignKey(Photo.PHOTO, DSL.name("CONSTRAINT_489"), new TableField[] { Photo.PHOTO.ID }, Keys.CONSTRAINT_4, new TableField[] { Media.MEDIA.ID }, true);
+    public static final ForeignKey<PhotoPreviewRecord, PhotoRecord> CONSTRAINT_331 = Internal.createForeignKey(PhotoPreview.PHOTO_PREVIEW, DSL.name("CONSTRAINT_331"), new TableField[] { PhotoPreview.PHOTO_PREVIEW.PHOTO_ID }, Keys.CONSTRAINT_48, new TableField[] { Photo.PHOTO.ID }, true);
+    public static final ForeignKey<ThumbnailRecord, MediaRecord> CONSTRAINT_F5 = Internal.createForeignKey(Thumbnail.THUMBNAIL, DSL.name("CONSTRAINT_F5"), new TableField[] { Thumbnail.THUMBNAIL.MEDIA_ID }, Keys.CONSTRAINT_4, new TableField[] { Media.MEDIA.ID }, true);
+    public static final ForeignKey<VideoRecord, MediaRecord> CONSTRAINT_4DE = Internal.createForeignKey(Video.VIDEO, DSL.name("CONSTRAINT_4DE"), new TableField[] { Video.VIDEO.ID }, Keys.CONSTRAINT_4, new TableField[] { Media.MEDIA.ID }, true);
 }

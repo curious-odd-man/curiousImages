@@ -188,7 +188,7 @@ public class DuplicateJob extends TableImpl<DuplicateJobRecord> {
 
     @Override
     public UniqueKey<DuplicateJobRecord> getPrimaryKey() {
-        return Keys.CONSTRAINT_6F;
+        return Keys.CONSTRAINT_6;
     }
 
     private transient DuplicateGroupPath _duplicateGroup;

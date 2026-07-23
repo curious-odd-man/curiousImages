@@ -29,45 +29,73 @@ public class ClipEmbeddingRecord extends UpdatableRecordImpl<ClipEmbeddingRecord
     private static final long serialVersionUID = 1L;
 
     /**
-     * Setter for <code>public.CLIP_EMBEDDING.PHOTO_ID</code>.
+     * Setter for <code>public.CLIP_EMBEDDING.ID</code>.
      */
-    public void setPhotoId(Long value) {
+    public void setId(Long value) {
         set(0, value);
     }
 
     /**
-     * Getter for <code>public.CLIP_EMBEDDING.PHOTO_ID</code>.
+     * Getter for <code>public.CLIP_EMBEDDING.ID</code>.
      */
-    public Long getPhotoId() {
+    public Long getId() {
         return (Long) get(0);
+    }
+
+    /**
+     * Setter for <code>public.CLIP_EMBEDDING.MEDIA_ID</code>.
+     */
+    public void setMediaId(Long value) {
+        set(1, value);
+    }
+
+    /**
+     * Getter for <code>public.CLIP_EMBEDDING.MEDIA_ID</code>.
+     */
+    public Long getMediaId() {
+        return (Long) get(1);
+    }
+
+    /**
+     * Setter for <code>public.CLIP_EMBEDDING.FRAME_OFFSET_MS</code>.
+     */
+    public void setFrameOffsetMs(Long value) {
+        set(2, value);
+    }
+
+    /**
+     * Getter for <code>public.CLIP_EMBEDDING.FRAME_OFFSET_MS</code>.
+     */
+    public Long getFrameOffsetMs() {
+        return (Long) get(2);
     }
 
     /**
      * Setter for <code>public.CLIP_EMBEDDING.EMBEDDING</code>.
      */
     public void setEmbedding(byte[] value) {
-        set(1, value);
+        set(3, value);
     }
 
     /**
      * Getter for <code>public.CLIP_EMBEDDING.EMBEDDING</code>.
      */
     public byte[] getEmbedding() {
-        return (byte[]) get(1);
+        return (byte[]) get(3);
     }
 
     /**
      * Setter for <code>public.CLIP_EMBEDDING.MODEL_VER</code>.
      */
     public void setModelVer(String value) {
-        set(2, value);
+        set(4, value);
     }
 
     /**
      * Getter for <code>public.CLIP_EMBEDDING.MODEL_VER</code>.
      */
     public String getModelVer() {
-        return (String) get(2);
+        return (String) get(4);
     }
 
     // -------------------------------------------------------------------------
@@ -93,10 +121,12 @@ public class ClipEmbeddingRecord extends UpdatableRecordImpl<ClipEmbeddingRecord
     /**
      * Create a detached, initialised ClipEmbeddingRecord
      */
-    public ClipEmbeddingRecord(Long photoId, byte[] embedding, String modelVer) {
+    public ClipEmbeddingRecord(Long id, Long mediaId, Long frameOffsetMs, byte[] embedding, String modelVer) {
         super(ClipEmbedding.CLIP_EMBEDDING);
 
-        setPhotoId(photoId);
+        setId(id);
+        setMediaId(mediaId);
+        setFrameOffsetMs(frameOffsetMs);
         setEmbedding(embedding);
         setModelVer(modelVer);
         resetChangedOnNotNull();

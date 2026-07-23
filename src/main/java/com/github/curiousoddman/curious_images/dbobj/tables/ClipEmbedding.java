@@ -4,9 +4,10 @@
 package com.github.curiousoddman.curious_images.dbobj.tables;
 
 
+import com.github.curiousoddman.curious_images.dbobj.Indexes;
 import com.github.curiousoddman.curious_images.dbobj.Keys;
 import com.github.curiousoddman.curious_images.dbobj.Public;
-import com.github.curiousoddman.curious_images.dbobj.tables.Photo.PhotoPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.Media.MediaPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.ClipEmbeddingRecord;
 
 import java.util.Arrays;
@@ -18,6 +19,8 @@ import javax.annotation.processing.Generated;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.ForeignKey;
+import org.jooq.Identity;
+import org.jooq.Index;
 import org.jooq.InverseForeignKey;
 import org.jooq.Name;
 import org.jooq.Path;
@@ -67,9 +70,19 @@ public class ClipEmbedding extends TableImpl<ClipEmbeddingRecord> {
     }
 
     /**
-     * The column <code>public.CLIP_EMBEDDING.PHOTO_ID</code>.
+     * The column <code>public.CLIP_EMBEDDING.ID</code>.
      */
-    public final TableField<ClipEmbeddingRecord, Long> PHOTO_ID = createField(DSL.name("PHOTO_ID"), SQLDataType.BIGINT.nullable(false), this, "");
+    public final TableField<ClipEmbeddingRecord, Long> ID = createField(DSL.name("ID"), SQLDataType.BIGINT.nullable(false).identity(true), this, "");
+
+    /**
+     * The column <code>public.CLIP_EMBEDDING.MEDIA_ID</code>.
+     */
+    public final TableField<ClipEmbeddingRecord, Long> MEDIA_ID = createField(DSL.name("MEDIA_ID"), SQLDataType.BIGINT.nullable(false), this, "");
+
+    /**
+     * The column <code>public.CLIP_EMBEDDING.FRAME_OFFSET_MS</code>.
+     */
+    public final TableField<ClipEmbeddingRecord, Long> FRAME_OFFSET_MS = createField(DSL.name("FRAME_OFFSET_MS"), SQLDataType.BIGINT, this, "");
 
     /**
      * The column <code>public.CLIP_EMBEDDING.EMBEDDING</code>.
@@ -157,25 +170,40 @@ public class ClipEmbedding extends TableImpl<ClipEmbeddingRecord> {
     }
 
     @Override
+    public List<Index> getIndexes() {
+        return Arrays.asList(Indexes.IDX_CLIP_EMBEDDING_MEDIA);
+    }
+
+    @Override
+    public Identity<ClipEmbeddingRecord, Long> getIdentity() {
+        return (Identity<ClipEmbeddingRecord, Long>) super.getIdentity();
+    }
+
+    @Override
     public UniqueKey<ClipEmbeddingRecord> getPrimaryKey() {
-        return Keys.CONSTRAINT_9;
+        return Keys.CONSTRAINT_9E;
+    }
+
+    @Override
+    public List<UniqueKey<ClipEmbeddingRecord>> getUniqueKeys() {
+        return Arrays.asList(Keys.CONSTRAINT_9E77);
     }
 
     @Override
     public List<ForeignKey<ClipEmbeddingRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.CONSTRAINT_9E);
+        return Arrays.asList(Keys.CONSTRAINT_9E7);
     }
 
-    private transient PhotoPath _photo;
+    private transient MediaPath _media;
 
     /**
-     * Get the implicit join path to the <code>public.PHOTO</code> table.
+     * Get the implicit join path to the <code>public.MEDIA</code> table.
      */
-    public PhotoPath photo() {
-        if (_photo == null)
-            _photo = new PhotoPath(this, Keys.CONSTRAINT_9E, null);
+    public MediaPath media() {
+        if (_media == null)
+            _media = new MediaPath(this, Keys.CONSTRAINT_9E7, null);
 
-        return _photo;
+        return _media;
     }
 
     @Override

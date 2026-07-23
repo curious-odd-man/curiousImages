@@ -4,24 +4,12 @@
 package com.github.curiousoddman.curious_images.dbobj.tables;
 
 
-import com.github.curiousoddman.curious_images.dbobj.Indexes;
 import com.github.curiousoddman.curious_images.dbobj.Keys;
 import com.github.curiousoddman.curious_images.dbobj.Public;
-import com.github.curiousoddman.curious_images.dbobj.tables.Album.AlbumPath;
-import com.github.curiousoddman.curious_images.dbobj.tables.AlbumPhoto.AlbumPhotoPath;
-import com.github.curiousoddman.curious_images.dbobj.tables.ClipEmbedding.ClipEmbeddingPath;
-import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroup.DuplicateGroupPath;
-import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroupMember.DuplicateGroupMemberPath;
-import com.github.curiousoddman.curious_images.dbobj.tables.Face.FacePath;
-import com.github.curiousoddman.curious_images.dbobj.tables.Folder.FolderPath;
-import com.github.curiousoddman.curious_images.dbobj.tables.PhotoHash.PhotoHashPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.Media.MediaPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.PhotoPreview.PhotoPreviewPath;
-import com.github.curiousoddman.curious_images.dbobj.tables.PhotoTag.PhotoTagPath;
-import com.github.curiousoddman.curious_images.dbobj.tables.TagEmbedding.TagEmbeddingPath;
-import com.github.curiousoddman.curious_images.dbobj.tables.Thumbnail.ThumbnailPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.PhotoRecord;
 
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -31,8 +19,6 @@ import javax.annotation.processing.Generated;
 import org.jooq.Condition;
 import org.jooq.Field;
 import org.jooq.ForeignKey;
-import org.jooq.Identity;
-import org.jooq.Index;
 import org.jooq.InverseForeignKey;
 import org.jooq.JSON;
 import org.jooq.Name;
@@ -85,32 +71,7 @@ public class Photo extends TableImpl<PhotoRecord> {
     /**
      * The column <code>public.PHOTO.ID</code>.
      */
-    public final TableField<PhotoRecord, Long> ID = createField(DSL.name("ID"), SQLDataType.BIGINT.nullable(false).identity(true), this, "");
-
-    /**
-     * The column <code>public.PHOTO.FOLDER_ID</code>.
-     */
-    public final TableField<PhotoRecord, Long> FOLDER_ID = createField(DSL.name("FOLDER_ID"), SQLDataType.BIGINT, this, "");
-
-    /**
-     * The column <code>public.PHOTO.ABSOLUTE_PATH</code>.
-     */
-    public final TableField<PhotoRecord, String> ABSOLUTE_PATH = createField(DSL.name("ABSOLUTE_PATH"), SQLDataType.VARCHAR(2048), this, "");
-
-    /**
-     * The column <code>public.PHOTO.FILENAME</code>.
-     */
-    public final TableField<PhotoRecord, String> FILENAME = createField(DSL.name("FILENAME"), SQLDataType.VARCHAR(512), this, "");
-
-    /**
-     * The column <code>public.PHOTO.EXTENSION</code>.
-     */
-    public final TableField<PhotoRecord, String> EXTENSION = createField(DSL.name("EXTENSION"), SQLDataType.VARCHAR(10), this, "");
-
-    /**
-     * The column <code>public.PHOTO.FILE_SIZE</code>.
-     */
-    public final TableField<PhotoRecord, Long> FILE_SIZE = createField(DSL.name("FILE_SIZE"), SQLDataType.BIGINT, this, "");
+    public final TableField<PhotoRecord, Long> ID = createField(DSL.name("ID"), SQLDataType.BIGINT.nullable(false), this, "");
 
     /**
      * The column <code>public.PHOTO.IMAGE_WIDTH</code>.
@@ -123,39 +84,9 @@ public class Photo extends TableImpl<PhotoRecord> {
     public final TableField<PhotoRecord, Integer> IMAGE_HEIGHT = createField(DSL.name("IMAGE_HEIGHT"), SQLDataType.INTEGER, this, "");
 
     /**
-     * The column <code>public.PHOTO.CAPTURE_DATE</code>.
-     */
-    public final TableField<PhotoRecord, LocalDateTime> CAPTURE_DATE = createField(DSL.name("CAPTURE_DATE"), SQLDataType.LOCALDATETIME(6), this, "");
-
-    /**
-     * The column <code>public.PHOTO.CAPTURE_DATE_SOURCE</code>.
-     */
-    public final TableField<PhotoRecord, String> CAPTURE_DATE_SOURCE = createField(DSL.name("CAPTURE_DATE_SOURCE"), SQLDataType.VARCHAR(20), this, "");
-
-    /**
-     * The column <code>public.PHOTO.IMPORTED_AT</code>.
-     */
-    public final TableField<PhotoRecord, LocalDateTime> IMPORTED_AT = createField(DSL.name("IMPORTED_AT"), SQLDataType.LOCALDATETIME(6), this, "");
-
-    /**
-     * The column <code>public.PHOTO.LAST_SEEN_AT</code>.
-     */
-    public final TableField<PhotoRecord, LocalDateTime> LAST_SEEN_AT = createField(DSL.name("LAST_SEEN_AT"), SQLDataType.LOCALDATETIME(6), this, "");
-
-    /**
      * The column <code>public.PHOTO.ORIENTATION</code>.
      */
     public final TableField<PhotoRecord, Integer> ORIENTATION = createField(DSL.name("ORIENTATION"), SQLDataType.INTEGER.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.INTEGER)), this, "");
-
-    /**
-     * The column <code>public.PHOTO.CAMERA_MAKE</code>.
-     */
-    public final TableField<PhotoRecord, String> CAMERA_MAKE = createField(DSL.name("CAMERA_MAKE"), SQLDataType.VARCHAR(100), this, "");
-
-    /**
-     * The column <code>public.PHOTO.CAMERA_MODEL</code>.
-     */
-    public final TableField<PhotoRecord, String> CAMERA_MODEL = createField(DSL.name("CAMERA_MODEL"), SQLDataType.VARCHAR(100), this, "");
 
     /**
      * The column <code>public.PHOTO.LENS_MODEL</code>.
@@ -166,61 +97,6 @@ public class Photo extends TableImpl<PhotoRecord> {
      * The column <code>public.PHOTO.EXIF_EXTRA</code>.
      */
     public final TableField<PhotoRecord, JSON> EXIF_EXTRA = createField(DSL.name("EXIF_EXTRA"), SQLDataType.JSON, this, "");
-
-    /**
-     * The column <code>public.PHOTO.GPS_LAT</code>.
-     */
-    public final TableField<PhotoRecord, Double> GPS_LAT = createField(DSL.name("GPS_LAT"), SQLDataType.DOUBLE, this, "");
-
-    /**
-     * The column <code>public.PHOTO.GPS_LON</code>.
-     */
-    public final TableField<PhotoRecord, Double> GPS_LON = createField(DSL.name("GPS_LON"), SQLDataType.DOUBLE, this, "");
-
-    /**
-     * The column <code>public.PHOTO.GPS_ALTITUDE</code>.
-     */
-    public final TableField<PhotoRecord, Double> GPS_ALTITUDE = createField(DSL.name("GPS_ALTITUDE"), SQLDataType.DOUBLE, this, "");
-
-    /**
-     * The column <code>public.PHOTO.AI_FACE_DETECT_DONE</code>.
-     */
-    public final TableField<PhotoRecord, Boolean> AI_FACE_DETECT_DONE = createField(DSL.name("AI_FACE_DETECT_DONE"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field(DSL.raw("FALSE"), SQLDataType.BOOLEAN)), this, "");
-
-    /**
-     * The column <code>public.PHOTO.AI_FACE_EMBED_DONE</code>.
-     */
-    public final TableField<PhotoRecord, Boolean> AI_FACE_EMBED_DONE = createField(DSL.name("AI_FACE_EMBED_DONE"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field(DSL.raw("FALSE"), SQLDataType.BOOLEAN)), this, "");
-
-    /**
-     * The column <code>public.PHOTO.AI_CLIP_EMBED_DONE</code>.
-     */
-    public final TableField<PhotoRecord, Boolean> AI_CLIP_EMBED_DONE = createField(DSL.name("AI_CLIP_EMBED_DONE"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field(DSL.raw("FALSE"), SQLDataType.BOOLEAN)), this, "");
-
-    /**
-     * The column <code>public.PHOTO.AI_LUCENE_INDEX_DONE</code>.
-     */
-    public final TableField<PhotoRecord, Boolean> AI_LUCENE_INDEX_DONE = createField(DSL.name("AI_LUCENE_INDEX_DONE"), SQLDataType.BOOLEAN.nullable(false).defaultValue(DSL.field(DSL.raw("FALSE"), SQLDataType.BOOLEAN)), this, "");
-
-    /**
-     * The column <code>public.PHOTO.AI_LAST_ERROR</code>.
-     */
-    public final TableField<PhotoRecord, String> AI_LAST_ERROR = createField(DSL.name("AI_LAST_ERROR"), SQLDataType.VARCHAR(1024), this, "");
-
-    /**
-     * The column <code>public.PHOTO.AI_RETRY_COUNT</code>.
-     */
-    public final TableField<PhotoRecord, Short> AI_RETRY_COUNT = createField(DSL.name("AI_RETRY_COUNT"), SQLDataType.SMALLINT.nullable(false).defaultValue(DSL.field(DSL.raw("0"), SQLDataType.SMALLINT)), this, "");
-
-    /**
-     * The column <code>public.PHOTO.AI_UPDATED_AT</code>.
-     */
-    public final TableField<PhotoRecord, LocalDateTime> AI_UPDATED_AT = createField(DSL.name("AI_UPDATED_AT"), SQLDataType.LOCALDATETIME(6), this, "");
-
-    /**
-     * The column <code>public.PHOTO.AI_TAG_DONE</code>.
-     */
-    public final TableField<PhotoRecord, Boolean> AI_TAG_DONE = createField(DSL.name("AI_TAG_DONE"), SQLDataType.BOOLEAN.defaultValue(DSL.field(DSL.raw("FALSE"), SQLDataType.BOOLEAN)), this, "");
 
     private Photo(Name alias, Table<PhotoRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
@@ -298,52 +174,25 @@ public class Photo extends TableImpl<PhotoRecord> {
     }
 
     @Override
-    public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IDX_PHOTO_CAPTURE_DATE, Indexes.IDX_PHOTO_FOLDER);
-    }
-
-    @Override
-    public Identity<PhotoRecord, Long> getIdentity() {
-        return (Identity<PhotoRecord, Long>) super.getIdentity();
-    }
-
-    @Override
     public UniqueKey<PhotoRecord> getPrimaryKey() {
-        return Keys.CONSTRAINT_4;
-    }
-
-    @Override
-    public List<UniqueKey<PhotoRecord>> getUniqueKeys() {
-        return Arrays.asList(Keys.CONSTRAINT_489);
+        return Keys.CONSTRAINT_48;
     }
 
     @Override
     public List<ForeignKey<PhotoRecord, ?>> getReferences() {
-        return Arrays.asList(Keys.CONSTRAINT_48);
+        return Arrays.asList(Keys.CONSTRAINT_489);
     }
 
-    private transient FolderPath _folder;
+    private transient MediaPath _media;
 
     /**
-     * Get the implicit join path to the <code>public.FOLDER</code> table.
+     * Get the implicit join path to the <code>public.MEDIA</code> table.
      */
-    public FolderPath folder() {
-        if (_folder == null)
-            _folder = new FolderPath(this, Keys.CONSTRAINT_48, null);
+    public MediaPath media() {
+        if (_media == null)
+            _media = new MediaPath(this, Keys.CONSTRAINT_489, null);
 
-        return _folder;
-    }
-
-    private transient FacePath _face;
-
-    /**
-     * Get the implicit to-many join path to the <code>public.FACE</code> table
-     */
-    public FacePath face() {
-        if (_face == null)
-            _face = new FacePath(this, null, Keys.CONSTRAINT_20C.getInverseKey());
-
-        return _face;
+        return _media;
     }
 
     private transient PhotoPreviewPath _photoPreview;
@@ -357,112 +206,6 @@ public class Photo extends TableImpl<PhotoRecord> {
             _photoPreview = new PhotoPreviewPath(this, null, Keys.CONSTRAINT_331.getInverseKey());
 
         return _photoPreview;
-    }
-
-    private transient AlbumPath _album;
-
-    /**
-     * Get the implicit to-many join path to the <code>public.ALBUM</code> table
-     */
-    public AlbumPath album() {
-        if (_album == null)
-            _album = new AlbumPath(this, null, Keys.CONSTRAINT_3B.getInverseKey());
-
-        return _album;
-    }
-
-    private transient PhotoHashPath _photoHash;
-
-    /**
-     * Get the implicit to-many join path to the <code>public.PHOTO_HASH</code>
-     * table
-     */
-    public PhotoHashPath photoHash() {
-        if (_photoHash == null)
-            _photoHash = new PhotoHashPath(this, null, Keys.CONSTRAINT_66.getInverseKey());
-
-        return _photoHash;
-    }
-
-    private transient PhotoTagPath _photoTag;
-
-    /**
-     * Get the implicit to-many join path to the <code>public.PHOTO_TAG</code>
-     * table
-     */
-    public PhotoTagPath photoTag() {
-        if (_photoTag == null)
-            _photoTag = new PhotoTagPath(this, null, Keys.CONSTRAINT_73A.getInverseKey());
-
-        return _photoTag;
-    }
-
-    private transient AlbumPhotoPath _albumPhoto;
-
-    /**
-     * Get the implicit to-many join path to the <code>public.ALBUM_PHOTO</code>
-     * table
-     */
-    public AlbumPhotoPath albumPhoto() {
-        if (_albumPhoto == null)
-            _albumPhoto = new AlbumPhotoPath(this, null, Keys.CONSTRAINT_9B2.getInverseKey());
-
-        return _albumPhoto;
-    }
-
-    private transient ClipEmbeddingPath _clipEmbedding;
-
-    /**
-     * Get the implicit to-many join path to the
-     * <code>public.CLIP_EMBEDDING</code> table
-     */
-    public ClipEmbeddingPath clipEmbedding() {
-        if (_clipEmbedding == null)
-            _clipEmbedding = new ClipEmbeddingPath(this, null, Keys.CONSTRAINT_9E.getInverseKey());
-
-        return _clipEmbedding;
-    }
-
-    private transient DuplicateGroupMemberPath _duplicateGroupMember;
-
-    /**
-     * Get the implicit to-many join path to the
-     * <code>public.DUPLICATE_GROUP_MEMBER</code> table
-     */
-    public DuplicateGroupMemberPath duplicateGroupMember() {
-        if (_duplicateGroupMember == null)
-            _duplicateGroupMember = new DuplicateGroupMemberPath(this, null, Keys.CONSTRAINT_BB01.getInverseKey());
-
-        return _duplicateGroupMember;
-    }
-
-    private transient ThumbnailPath _thumbnail;
-
-    /**
-     * Get the implicit to-many join path to the <code>public.THUMBNAIL</code>
-     * table
-     */
-    public ThumbnailPath thumbnail() {
-        if (_thumbnail == null)
-            _thumbnail = new ThumbnailPath(this, null, Keys.CONSTRAINT_F5.getInverseKey());
-
-        return _thumbnail;
-    }
-
-    /**
-     * Get the implicit many-to-many join path to the
-     * <code>public.DUPLICATE_GROUP</code> table
-     */
-    public DuplicateGroupPath duplicateGroup() {
-        return duplicateGroupMember().duplicateGroup();
-    }
-
-    /**
-     * Get the implicit many-to-many join path to the
-     * <code>public.TAG_EMBEDDING</code> table
-     */
-    public TagEmbeddingPath tagEmbedding() {
-        return photoTag().tagEmbedding();
     }
 
     @Override

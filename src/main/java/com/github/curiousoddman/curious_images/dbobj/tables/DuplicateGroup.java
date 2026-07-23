@@ -9,7 +9,7 @@ import com.github.curiousoddman.curious_images.dbobj.Keys;
 import com.github.curiousoddman.curious_images.dbobj.Public;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroupMember.DuplicateGroupMemberPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateJob.DuplicateJobPath;
-import com.github.curiousoddman.curious_images.dbobj.tables.Photo.PhotoPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.Media.MediaPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.DuplicateGroupRecord;
 
 import java.time.LocalDateTime;
@@ -88,9 +88,9 @@ public class DuplicateGroup extends TableImpl<DuplicateGroupRecord> {
     public final TableField<DuplicateGroupRecord, String> EXTENSION = createField(DSL.name("EXTENSION"), SQLDataType.VARCHAR(10), this, "");
 
     /**
-     * The column <code>public.DUPLICATE_GROUP.PIXEL_HASH</code>.
+     * The column <code>public.DUPLICATE_GROUP.CONTENT_HASH</code>.
      */
-    public final TableField<DuplicateGroupRecord, String> PIXEL_HASH = createField(DSL.name("PIXEL_HASH"), SQLDataType.VARCHAR(64), this, "");
+    public final TableField<DuplicateGroupRecord, String> CONTENT_HASH = createField(DSL.name("CONTENT_HASH"), SQLDataType.VARCHAR(64), this, "");
 
     /**
      * The column <code>public.DUPLICATE_GROUP.CREATED_AT</code>.
@@ -229,11 +229,11 @@ public class DuplicateGroup extends TableImpl<DuplicateGroupRecord> {
     }
 
     /**
-     * Get the implicit many-to-many join path to the <code>public.PHOTO</code>
+     * Get the implicit many-to-many join path to the <code>public.MEDIA</code>
      * table
      */
-    public PhotoPath photo() {
-        return duplicateGroupMember().photo();
+    public MediaPath media() {
+        return duplicateGroupMember().media();
     }
 
     @Override

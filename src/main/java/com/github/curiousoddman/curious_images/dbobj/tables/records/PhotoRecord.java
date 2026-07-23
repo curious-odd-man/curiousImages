@@ -6,8 +6,6 @@ package com.github.curiousoddman.curious_images.dbobj.tables.records;
 
 import com.github.curiousoddman.curious_images.dbobj.tables.Photo;
 
-import java.time.LocalDateTime;
-
 import javax.annotation.processing.Generated;
 
 import org.jooq.JSON;
@@ -46,381 +44,73 @@ public class PhotoRecord extends UpdatableRecordImpl<PhotoRecord> {
     }
 
     /**
-     * Setter for <code>public.PHOTO.FOLDER_ID</code>.
-     */
-    public void setFolderId(Long value) {
-        set(1, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.FOLDER_ID</code>.
-     */
-    public Long getFolderId() {
-        return (Long) get(1);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.ABSOLUTE_PATH</code>.
-     */
-    public void setAbsolutePath(String value) {
-        set(2, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.ABSOLUTE_PATH</code>.
-     */
-    public String getAbsolutePath() {
-        return (String) get(2);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.FILENAME</code>.
-     */
-    public void setFilename(String value) {
-        set(3, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.FILENAME</code>.
-     */
-    public String getFilename() {
-        return (String) get(3);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.EXTENSION</code>.
-     */
-    public void setExtension(String value) {
-        set(4, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.EXTENSION</code>.
-     */
-    public String getExtension() {
-        return (String) get(4);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.FILE_SIZE</code>.
-     */
-    public void setFileSize(Long value) {
-        set(5, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.FILE_SIZE</code>.
-     */
-    public Long getFileSize() {
-        return (Long) get(5);
-    }
-
-    /**
      * Setter for <code>public.PHOTO.IMAGE_WIDTH</code>.
      */
     public void setImageWidth(Integer value) {
-        set(6, value);
+        set(1, value);
     }
 
     /**
      * Getter for <code>public.PHOTO.IMAGE_WIDTH</code>.
      */
     public Integer getImageWidth() {
-        return (Integer) get(6);
+        return (Integer) get(1);
     }
 
     /**
      * Setter for <code>public.PHOTO.IMAGE_HEIGHT</code>.
      */
     public void setImageHeight(Integer value) {
-        set(7, value);
+        set(2, value);
     }
 
     /**
      * Getter for <code>public.PHOTO.IMAGE_HEIGHT</code>.
      */
     public Integer getImageHeight() {
-        return (Integer) get(7);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.CAPTURE_DATE</code>.
-     */
-    public void setCaptureDate(LocalDateTime value) {
-        set(8, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.CAPTURE_DATE</code>.
-     */
-    public LocalDateTime getCaptureDate() {
-        return (LocalDateTime) get(8);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.CAPTURE_DATE_SOURCE</code>.
-     */
-    public void setCaptureDateSource(String value) {
-        set(9, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.CAPTURE_DATE_SOURCE</code>.
-     */
-    public String getCaptureDateSource() {
-        return (String) get(9);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.IMPORTED_AT</code>.
-     */
-    public void setImportedAt(LocalDateTime value) {
-        set(10, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.IMPORTED_AT</code>.
-     */
-    public LocalDateTime getImportedAt() {
-        return (LocalDateTime) get(10);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.LAST_SEEN_AT</code>.
-     */
-    public void setLastSeenAt(LocalDateTime value) {
-        set(11, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.LAST_SEEN_AT</code>.
-     */
-    public LocalDateTime getLastSeenAt() {
-        return (LocalDateTime) get(11);
+        return (Integer) get(2);
     }
 
     /**
      * Setter for <code>public.PHOTO.ORIENTATION</code>.
      */
     public void setOrientation(Integer value) {
-        set(12, value);
+        set(3, value);
     }
 
     /**
      * Getter for <code>public.PHOTO.ORIENTATION</code>.
      */
     public Integer getOrientation() {
-        return (Integer) get(12);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.CAMERA_MAKE</code>.
-     */
-    public void setCameraMake(String value) {
-        set(13, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.CAMERA_MAKE</code>.
-     */
-    public String getCameraMake() {
-        return (String) get(13);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.CAMERA_MODEL</code>.
-     */
-    public void setCameraModel(String value) {
-        set(14, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.CAMERA_MODEL</code>.
-     */
-    public String getCameraModel() {
-        return (String) get(14);
+        return (Integer) get(3);
     }
 
     /**
      * Setter for <code>public.PHOTO.LENS_MODEL</code>.
      */
     public void setLensModel(String value) {
-        set(15, value);
+        set(4, value);
     }
 
     /**
      * Getter for <code>public.PHOTO.LENS_MODEL</code>.
      */
     public String getLensModel() {
-        return (String) get(15);
+        return (String) get(4);
     }
 
     /**
      * Setter for <code>public.PHOTO.EXIF_EXTRA</code>.
      */
     public void setExifExtra(JSON value) {
-        set(16, value);
+        set(5, value);
     }
 
     /**
      * Getter for <code>public.PHOTO.EXIF_EXTRA</code>.
      */
     public JSON getExifExtra() {
-        return (JSON) get(16);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.GPS_LAT</code>.
-     */
-    public void setGpsLat(Double value) {
-        set(17, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.GPS_LAT</code>.
-     */
-    public Double getGpsLat() {
-        return (Double) get(17);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.GPS_LON</code>.
-     */
-    public void setGpsLon(Double value) {
-        set(18, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.GPS_LON</code>.
-     */
-    public Double getGpsLon() {
-        return (Double) get(18);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.GPS_ALTITUDE</code>.
-     */
-    public void setGpsAltitude(Double value) {
-        set(19, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.GPS_ALTITUDE</code>.
-     */
-    public Double getGpsAltitude() {
-        return (Double) get(19);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.AI_FACE_DETECT_DONE</code>.
-     */
-    public void setAiFaceDetectDone(Boolean value) {
-        set(20, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.AI_FACE_DETECT_DONE</code>.
-     */
-    public Boolean getAiFaceDetectDone() {
-        return (Boolean) get(20);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.AI_FACE_EMBED_DONE</code>.
-     */
-    public void setAiFaceEmbedDone(Boolean value) {
-        set(21, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.AI_FACE_EMBED_DONE</code>.
-     */
-    public Boolean getAiFaceEmbedDone() {
-        return (Boolean) get(21);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.AI_CLIP_EMBED_DONE</code>.
-     */
-    public void setAiClipEmbedDone(Boolean value) {
-        set(22, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.AI_CLIP_EMBED_DONE</code>.
-     */
-    public Boolean getAiClipEmbedDone() {
-        return (Boolean) get(22);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.AI_LUCENE_INDEX_DONE</code>.
-     */
-    public void setAiLuceneIndexDone(Boolean value) {
-        set(23, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.AI_LUCENE_INDEX_DONE</code>.
-     */
-    public Boolean getAiLuceneIndexDone() {
-        return (Boolean) get(23);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.AI_LAST_ERROR</code>.
-     */
-    public void setAiLastError(String value) {
-        set(24, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.AI_LAST_ERROR</code>.
-     */
-    public String getAiLastError() {
-        return (String) get(24);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.AI_RETRY_COUNT</code>.
-     */
-    public void setAiRetryCount(Short value) {
-        set(25, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.AI_RETRY_COUNT</code>.
-     */
-    public Short getAiRetryCount() {
-        return (Short) get(25);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.AI_UPDATED_AT</code>.
-     */
-    public void setAiUpdatedAt(LocalDateTime value) {
-        set(26, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.AI_UPDATED_AT</code>.
-     */
-    public LocalDateTime getAiUpdatedAt() {
-        return (LocalDateTime) get(26);
-    }
-
-    /**
-     * Setter for <code>public.PHOTO.AI_TAG_DONE</code>.
-     */
-    public void setAiTagDone(Boolean value) {
-        set(27, value);
-    }
-
-    /**
-     * Getter for <code>public.PHOTO.AI_TAG_DONE</code>.
-     */
-    public Boolean getAiTagDone() {
-        return (Boolean) get(27);
+        return (JSON) get(5);
     }
 
     // -------------------------------------------------------------------------
@@ -446,37 +136,15 @@ public class PhotoRecord extends UpdatableRecordImpl<PhotoRecord> {
     /**
      * Create a detached, initialised PhotoRecord
      */
-    public PhotoRecord(Long id, Long folderId, String absolutePath, String filename, String extension, Long fileSize, Integer imageWidth, Integer imageHeight, LocalDateTime captureDate, String captureDateSource, LocalDateTime importedAt, LocalDateTime lastSeenAt, Integer orientation, String cameraMake, String cameraModel, String lensModel, JSON exifExtra, Double gpsLat, Double gpsLon, Double gpsAltitude, Boolean aiFaceDetectDone, Boolean aiFaceEmbedDone, Boolean aiClipEmbedDone, Boolean aiLuceneIndexDone, String aiLastError, Short aiRetryCount, LocalDateTime aiUpdatedAt, Boolean aiTagDone) {
+    public PhotoRecord(Long id, Integer imageWidth, Integer imageHeight, Integer orientation, String lensModel, JSON exifExtra) {
         super(Photo.PHOTO);
 
         setId(id);
-        setFolderId(folderId);
-        setAbsolutePath(absolutePath);
-        setFilename(filename);
-        setExtension(extension);
-        setFileSize(fileSize);
         setImageWidth(imageWidth);
         setImageHeight(imageHeight);
-        setCaptureDate(captureDate);
-        setCaptureDateSource(captureDateSource);
-        setImportedAt(importedAt);
-        setLastSeenAt(lastSeenAt);
         setOrientation(orientation);
-        setCameraMake(cameraMake);
-        setCameraModel(cameraModel);
         setLensModel(lensModel);
         setExifExtra(exifExtra);
-        setGpsLat(gpsLat);
-        setGpsLon(gpsLon);
-        setGpsAltitude(gpsAltitude);
-        setAiFaceDetectDone(aiFaceDetectDone);
-        setAiFaceEmbedDone(aiFaceEmbedDone);
-        setAiClipEmbedDone(aiClipEmbedDone);
-        setAiLuceneIndexDone(aiLuceneIndexDone);
-        setAiLastError(aiLastError);
-        setAiRetryCount(aiRetryCount);
-        setAiUpdatedAt(aiUpdatedAt);
-        setAiTagDone(aiTagDone);
         resetChangedOnNotNull();
     }
 }

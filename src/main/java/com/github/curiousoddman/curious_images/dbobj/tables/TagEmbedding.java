@@ -6,8 +6,8 @@ package com.github.curiousoddman.curious_images.dbobj.tables;
 
 import com.github.curiousoddman.curious_images.dbobj.Keys;
 import com.github.curiousoddman.curious_images.dbobj.Public;
-import com.github.curiousoddman.curious_images.dbobj.tables.Photo.PhotoPath;
-import com.github.curiousoddman.curious_images.dbobj.tables.PhotoTag.PhotoTagPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.Media.MediaPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.MediaTag.MediaTagPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.TagEmbeddingRecord;
 
 import java.util.Collection;
@@ -176,25 +176,25 @@ public class TagEmbedding extends TableImpl<TagEmbeddingRecord> {
         return Keys.CONSTRAINT_7BE;
     }
 
-    private transient PhotoTagPath _photoTag;
+    private transient MediaTagPath _mediaTag;
 
     /**
-     * Get the implicit to-many join path to the <code>public.PHOTO_TAG</code>
+     * Get the implicit to-many join path to the <code>public.MEDIA_TAG</code>
      * table
      */
-    public PhotoTagPath photoTag() {
-        if (_photoTag == null)
-            _photoTag = new PhotoTagPath(this, null, Keys.CONSTRAINT_73.getInverseKey());
+    public MediaTagPath mediaTag() {
+        if (_mediaTag == null)
+            _mediaTag = new MediaTagPath(this, null, Keys.CONSTRAINT_25.getInverseKey());
 
-        return _photoTag;
+        return _mediaTag;
     }
 
     /**
-     * Get the implicit many-to-many join path to the <code>public.PHOTO</code>
+     * Get the implicit many-to-many join path to the <code>public.MEDIA</code>
      * table
      */
-    public PhotoPath photo() {
-        return photoTag().photo();
+    public MediaPath media() {
+        return mediaTag().media();
     }
 
     @Override

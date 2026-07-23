@@ -8,7 +8,7 @@ import com.github.curiousoddman.curious_images.dbobj.Indexes;
 import com.github.curiousoddman.curious_images.dbobj.Keys;
 import com.github.curiousoddman.curious_images.dbobj.Public;
 import com.github.curiousoddman.curious_images.dbobj.tables.DuplicateGroup.DuplicateGroupPath;
-import com.github.curiousoddman.curious_images.dbobj.tables.Photo.PhotoPath;
+import com.github.curiousoddman.curious_images.dbobj.tables.Media.MediaPath;
 import com.github.curiousoddman.curious_images.dbobj.tables.records.DuplicateGroupMemberRecord;
 
 import java.util.Arrays;
@@ -81,9 +81,9 @@ public class DuplicateGroupMember extends TableImpl<DuplicateGroupMemberRecord> 
     public final TableField<DuplicateGroupMemberRecord, Long> DUPLICATE_GROUP_ID = createField(DSL.name("DUPLICATE_GROUP_ID"), SQLDataType.BIGINT, this, "");
 
     /**
-     * The column <code>public.DUPLICATE_GROUP_MEMBER.PHOTO_ID</code>.
+     * The column <code>public.DUPLICATE_GROUP_MEMBER.MEDIA_ID</code>.
      */
-    public final TableField<DuplicateGroupMemberRecord, Long> PHOTO_ID = createField(DSL.name("PHOTO_ID"), SQLDataType.BIGINT, this, "");
+    public final TableField<DuplicateGroupMemberRecord, Long> MEDIA_ID = createField(DSL.name("MEDIA_ID"), SQLDataType.BIGINT, this, "");
 
     private DuplicateGroupMember(Name alias, Table<DuplicateGroupMemberRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
@@ -164,7 +164,7 @@ public class DuplicateGroupMember extends TableImpl<DuplicateGroupMemberRecord> 
 
     @Override
     public List<Index> getIndexes() {
-        return Arrays.asList(Indexes.IDX_DUPLICATE_GROUP_MEMBER_GROUP, Indexes.IDX_DUPLICATE_GROUP_MEMBER_PHOTO);
+        return Arrays.asList(Indexes.IDX_DUPLICATE_GROUP_MEMBER_GROUP, Indexes.IDX_DUPLICATE_GROUP_MEMBER_MEDIA);
     }
 
     @Override
@@ -200,16 +200,16 @@ public class DuplicateGroupMember extends TableImpl<DuplicateGroupMemberRecord> 
         return _duplicateGroup;
     }
 
-    private transient PhotoPath _photo;
+    private transient MediaPath _media;
 
     /**
-     * Get the implicit join path to the <code>public.PHOTO</code> table.
+     * Get the implicit join path to the <code>public.MEDIA</code> table.
      */
-    public PhotoPath photo() {
-        if (_photo == null)
-            _photo = new PhotoPath(this, Keys.CONSTRAINT_BB01, null);
+    public MediaPath media() {
+        if (_media == null)
+            _media = new MediaPath(this, Keys.CONSTRAINT_BB01, null);
 
-        return _photo;
+        return _media;
     }
 
     @Override
